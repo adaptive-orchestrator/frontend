@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Calendar, Gift, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
+import MainNav from '@/components/common/MainNav';
 
 export default function ModeSelection() {
   const navigate = useNavigate();
@@ -83,20 +84,22 @@ export default function ModeSelection() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <motion.h1 
-            className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            Chọn Mô Hình Kinh Doanh
-          </motion.h1>
-          <motion.p 
-            className="text-xl text-muted-foreground max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: -10 }}
+    <>
+      <MainNav />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <motion.h1 
+              className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              Chọn Mô Hình Kinh Doanh
+            </motion.h1>
+            <motion.p 
+              className="text-xl text-muted-foreground max-w-2xl mx-auto"
+              initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
@@ -168,5 +171,6 @@ export default function ModeSelection() {
         </motion.div>
       </div>
     </div>
+    </>
   );
 }

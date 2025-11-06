@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { login } from '@/lib/api/auth';
+import { getRoleFromToken } from '@/utils/jwt';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -47,11 +48,25 @@ const Login = () => {
             setLoginError('');
             const res = await login(data.email, data.password);
             console.log('Login success:', res);
+            
             if (res.accessToken) {
+                // Save token to cookie
                 Cookies.set('token', res.accessToken, {
-                expires: 1, // số ngày hết hạn
-            });
-                navigate(`${baseURL}tasks`);
+                    expires: 1, // số ngày hết hạn
+                });
+                
+                // Get role from JWT token
+                const userRole = getRoleFromToken(res.accessToken);
+                console.log('User role from JWT:', userRole);
+                
+                // Navigate based on role from JWT
+                if (userRole === 'admin') {
+                    // Admin users go to mode selection
+                    navigate(`${baseURL}mode-selection`);
+                } else {
+                    // Regular users (customers) go to products
+                    navigate(`${baseURL}products`);
+                }
             } else {
                 setLoginError('An unexpected error occurred');
             }

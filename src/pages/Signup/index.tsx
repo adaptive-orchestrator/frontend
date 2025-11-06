@@ -2,12 +2,16 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { signup } from '@/lib/api/auth';
 import { useUser } from '@/contexts/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { useState } from 'react';
+import { Building2 } from 'lucide-react';
 
 // Form validation schema
 const signupSchema = z
@@ -27,6 +31,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 const Signup = () => {
     const navigate = useNavigate();
     const { register: registerUser } = useUser();
+    const [isBusinessOwner, setIsBusinessOwner] = useState(false);
     
     const {
         register,
@@ -46,21 +51,28 @@ const Signup = () => {
 
     const onSubmit = async (data: SignupFormValues) => {
         try {
-            // All signups are admin (organization_admin) by default
-            const role = 'organization_admin';
+            // Determine role based on checkbox
+            const role = isBusinessOwner ? 'organization_admin' : 'customer';
+            const backendRole = isBusinessOwner ? 'admin' : 'user';
 
             // Use context register with role
             await registerUser(data.name, data.email, data.password, role);
             
-            // Also call API for backend (if needed)
+            // Call backend API with appropriate role
             try {
-                await signup(data.email, data.password, data.name);
+                await signup(data.email, data.password, data.name, backendRole);
             } catch (apiError) {
-                console.warn('API signup skipped:', apiError);
+                console.warn('API signup skipped or failed:', apiError);
+                // Continue even if API fails (for demo mode)
             }
             
-            alert('Registration successful! Please select your business model.');
-            navigate(`${baseURL}mode-selection`);
+            if (isBusinessOwner) {
+                alert('Registration successful! Please select your business model.');
+                navigate(`${baseURL}mode-selection`);
+            } else {
+                alert('Registration successful! Welcome to OctalTask.');
+                navigate(`${baseURL}products`);
+            }
         } catch (error) {
             console.error('Signup error:', error);
             alert('Registration failed. Please try again.');
@@ -173,13 +185,28 @@ const Signup = () => {
                     <Card className="border border-gray-200 dark:border-gray-700 shadow-sm rounded-2xl bg-white dark:bg-gray-800">
                         <CardContent className="pt-6 px-6 sm:px-8">
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                                {/* Info Box */}
-                                <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-                                    <p className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-2">
-                                        🚀 Create Your Business Account
+                                {/* Info Box - Dynamic based on role */}
+                                <div className={`border rounded-lg p-4 ${
+                                    isBusinessOwner
+                                        ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800'
+                                        : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800'
+                                }`}>
+                                    <p className={`text-sm font-medium mb-2 ${
+                                        isBusinessOwner
+                                            ? 'text-purple-900 dark:text-purple-100'
+                                            : 'text-blue-900 dark:text-blue-100'
+                                    }`}>
+                                        {isBusinessOwner ? '🚀 Create Your Business Account' : '🛍️ Create Your Customer Account'}
                                     </p>
-                                    <p className="text-xs text-purple-800 dark:text-purple-200">
-                                        After signing up, you'll choose your business model (Retail, Subscription, or Freemium) and set up your services.
+                                    <p className={`text-xs ${
+                                        isBusinessOwner
+                                            ? 'text-purple-800 dark:text-purple-200'
+                                            : 'text-blue-800 dark:text-blue-200'
+                                    }`}>
+                                        {isBusinessOwner
+                                            ? "After signing up, you'll choose your business model (Retail, Subscription, or Freemium) and set up your services."
+                                            : "After signing up, you'll be able to browse and purchase products or subscribe to services from businesses."
+                                        }
                                     </p>
                                 </div>
 
@@ -245,13 +272,45 @@ const Signup = () => {
                                     Use 8 or more characters with a mix of letters, numbers & symbols
                                 </p>
 
+                                {/* Business Owner Checkbox */}
+                                <div className="flex items-start space-x-3 pt-3">
+                                    <Checkbox
+                                        id="businessOwner"
+                                        checked={isBusinessOwner}
+                                        onCheckedChange={(checked) => setIsBusinessOwner(checked === true)}
+                                        className="mt-1"
+                                    />
+                                    <div className="flex-1">
+                                        <Label
+                                            htmlFor="businessOwner"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                <span>I am a Business Owner</span>
+                                            </div>
+                                        </Label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            {isBusinessOwner 
+                                                ? 'You will set up your business model (Retail, Subscription, or Freemium) after signup'
+                                                : 'Sign up as a customer to browse and purchase products/services'
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <div className="pt-4">
                                     <Button
                                         type="submit"
                                         className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 text-white font-medium text-sm h-12 transition-all duration-200"
                                         disabled={isSubmitting}
                                     >
-                                        {isSubmitting ? 'Creating account...' : 'Create account'}
+                                        {isSubmitting 
+                                            ? 'Creating account...' 
+                                            : isBusinessOwner 
+                                                ? 'Create Business Account' 
+                                                : 'Create Customer Account'
+                                        }
                                     </Button>
                                 </div>
                             </form>

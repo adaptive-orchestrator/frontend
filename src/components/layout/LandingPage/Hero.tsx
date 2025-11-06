@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Zap } from "lucide-react";
 
 export default function Hero() {
     const navigate = useNavigate();
 
     const baseURL = import.meta.env.BASE_URL;
+    const isDemoMode = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
     return (
       <section
@@ -46,7 +48,27 @@ export default function Hero() {
                 >
                   Get Started - It's Free
                 </Button>
+                
+                {/* Demo Mode Quick Login Button */}
+                {isDemoMode && (
+                  <Button
+                    onClick={() => navigate(`${baseURL}quick-login`)}
+                    variant="outline"
+                    className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50 dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-900/20 px-8 py-3 text-lg shadow-md hover:shadow-lg transition-all"
+                    size="lg"
+                  >
+                    <Zap className="mr-2 h-5 w-5" />
+                    Quick Login (Demo)
+                  </Button>
+                )}
               </div>
+              
+              {/* Demo Mode Badge */}
+              {isDemoMode && (
+                <div className="mt-4 inline-block px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                  🎭 Demo Mode Active - No backend required
+                </div>
+              )}
             </div>
             <div className="hidden md:block relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg blur-3xl"></div>

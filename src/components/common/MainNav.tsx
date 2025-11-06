@@ -31,6 +31,16 @@ export default function MainNav() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
+            {/* Admin Dashboard - chỉ hiển thị cho organization_admin (mapped từ backend role='admin') */}
+            {currentUser && currentUser.role === 'organization_admin' && (
+              <Link
+                to={`${baseURL}admin/dashboard`}
+                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+              >
+                Dashboard
+              </Link>
+            )}
+            
             {/* Retail Mode Links */}
             {(isRetailMode || isMultiMode) && (
               <Link
@@ -135,6 +145,17 @@ export default function MainNav() {
         {isMenuOpen && (
           <div className="md:hidden pb-4 border-t">
             <nav className="flex flex-col space-y-2 pt-4">
+              {/* Admin Dashboard - mobile */}
+              {currentUser && currentUser.role === 'organization_admin' && (
+                <Link
+                  to={`${baseURL}admin/dashboard`}
+                  className="py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+              )}
+              
               {/* Retail Mode Links */}
               {(isRetailMode || isMultiMode) && (
                 <Link

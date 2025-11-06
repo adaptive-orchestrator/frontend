@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SharedUser } from '@/types/task';
-import { authInformation } from '@/lib/api/auth'; 
+import { authInformation } from '@/lib/api/auth';
+import Cookies from 'js-cookie';
 
 type UserRole = 'viewer' | 'editor' | 'admin';
 type SystemRole = 'customer' | 'organization_admin' | 'member' | 'super_admin';
@@ -41,52 +42,64 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Kiểm tra xem có user đã đăng nhập trong localStorage không
-    const savedUser = localStorage.getItem('octalTaskUser');
-    if (savedUser) {
-      try {
-        const user = JSON.parse(savedUser);
-        // Lấy role từ localStorage nếu có (cho demo)
-        const demoRole = localStorage.getItem('demoUserRole');
-        if (demoRole) {
-          user.role = demoRole;
+    const fetchUser = async () => {
+      // Kiểm tra có token trong Cookie không
+      const token = Cookies.get('token');
+      
+      if (!token) {
+        // Không có token, check localStorage (fallback cho demo mode)
+        const savedUser = localStorage.getItem('octalTaskUser');
+        if (savedUser) {
+          try {
+            const user = JSON.parse(savedUser);
+            const demoRole = localStorage.getItem('demoUserRole');
+            if (demoRole) {
+              user.role = demoRole;
+            }
+            setCurrentUser(user);
+          } catch (err) {
+            console.error('Failed to parse saved user:', err);
+            localStorage.removeItem('octalTaskUser');
+          }
         }
-        setCurrentUser(user);
-      } catch (err) {
-        console.error('Failed to parse saved user:', err);
-        localStorage.removeItem('octalTaskUser');
+        return;
       }
-    }
-  }, []);
 
-  useEffect(() => {
-  const fetchUser = async () => {
-    try {
-      const data = await authInformation(); // Gọi API lấy thông tin user
-      const { id, name, email } = data.user;
+      // Có token, fetch user info từ backend
+      try {
+        const data = await authInformation();
+        
+        // Backend returns user object directly
+        const { id, name, email, role } = data;
 
-      // Lấy role từ localStorage cho demo, hoặc mặc định là customer
-      const demoRole = localStorage.getItem('demoUserRole') as SystemRole || 'customer';
+        // Map backend role to frontend role
+        let systemRole: SystemRole;
+        if (role === 'admin') {
+          systemRole = 'organization_admin';
+        } else {
+          systemRole = 'customer';
+        }
 
-      const user: User = {
-        id: id.toString(),
-        name,
-        email,
-        photoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
-        role: demoRole,
-      };
+        const user: User = {
+          id: id.toString(),
+          name,
+          email,
+          photoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
+          role: systemRole,
+        };
 
-      setCurrentUser(user);
-      localStorage.setItem('octalTaskUser', JSON.stringify(user));
-    } catch (err) {
-      console.error('Failed to fetch user info:', err);
-      setCurrentUser(null);
-      localStorage.removeItem('octalTaskUser');
-    }
-  };
+        setCurrentUser(user);
+        localStorage.setItem('octalTaskUser', JSON.stringify(user));
+      } catch (err) {
+        console.error('Failed to fetch user info:', err);
+        setCurrentUser(null);
+        localStorage.removeItem('octalTaskUser');
+        Cookies.remove('token'); // Token không hợp lệ, xóa đi
+      }
+    };
 
-  fetchUser();
-}, []);
+    fetchUser();
+  }, []); // Chỉ chạy 1 lần khi mount
 
   const login = async (email: string) => {
     // login successfully with email and password
@@ -108,6 +121,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('octalTaskUser');
+    Cookies.remove('token'); // Xóa JWT token
+    Cookies.remove('businessModel'); // Xóa business model đã chọn
     // Không xóa demoUserRole để giữ lại setting khi login lại
   };
 

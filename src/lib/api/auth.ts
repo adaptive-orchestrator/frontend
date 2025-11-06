@@ -13,10 +13,14 @@ export const login = async (email: string, password: string) => {
   }
 };
 
-export const signup = async (email: string, password: string,name: string) => {
+export const signup = async (email: string, password: string, name: string, role?: 'user' | 'admin') => {
   try {
     console.log(API_BASE);
-    const res = await axios.post(`${API_BASE}/auth/signup`, { email, password, name });
+    const payload: any = { email, password, name };
+    if (role) {
+      payload.role = role;
+    }
+    const res = await axios.post(`${API_BASE}/auth/signup`, payload);
     return res.data;
   } catch (err: any) {
     throw err.response?.data || err;
