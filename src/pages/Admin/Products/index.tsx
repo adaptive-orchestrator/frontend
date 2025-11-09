@@ -180,7 +180,7 @@ export default function AdminProducts() {
 
       // Step 2: Create inventory for the product
       const inventoryItem = await createInventory({
-        productId: catalogueProduct.id,
+        productId: catalogueProduct.product.id,
         quantity: parseInt(newProduct.stock),
         warehouseLocation: 'Main Warehouse',
         reorderLevel: 10,
