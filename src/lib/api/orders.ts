@@ -5,14 +5,18 @@ import Cookies from 'js-cookie';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 export const createOrder = async (data: {
-  customerId: string;
+  customerId: number;
   items: Array<{
     productId: number;
     quantity: number;
-    unitPrice: number;
+    price: number;
+    notes?: string;
   }>;
-  shippingAddress?: string;
+  notes?: string;
+  shippingAddress: string;
   billingAddress?: string;
+  shippingCost?: number;
+  discount?: number;
 }) => {
   try {
     const token = Cookies.get('token');

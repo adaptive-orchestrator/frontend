@@ -3,9 +3,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useUser } from '@/contexts/UserContext';
-// TODO: Uncomment khi dùng API thật
-// import { createOrder } from '@/lib/api/orders';
-// import { initiatePayment } from '@/lib/api/payments';
+import { createOrder } from '@/lib/api/orders';
+// import { initiatePayment } from '@/lib/api/payments'; // TODO: Payment sau
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,69 +41,91 @@ export default function Checkout() {
       return;
     }
 
+    // Validate shipping address
+    if (!formData.shippingAddress.trim()) {
+      setError('Shipping address is required');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      // TODO: Uncomment để gọi API thật
-      /*
-      // Create order
-      const orderData = {
-        customerId: currentUser.id || currentUser.email,
-        items: items.map((item) => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          unitPrice: item.product.price,
-        })),
-        shippingAddress: formData.shippingAddress,
-        billingAddress: formData.billingAddress,
-      };
+      // Check if we have a valid token (real user) or demo mode
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+      const isRealUser = !!token;
 
-      const orderResponse = await createOrder(orderData);
-      const order = orderResponse.order || orderResponse;
+      if (isRealUser) {
+        // Real API call for authenticated users
+        const customerId = parseInt(currentUser.id);
+        if (isNaN(customerId)) {
+          throw new Error('Invalid customer ID. Please re-login.');
+        }
 
-      // For simplicity, we'll simulate payment initiation
-      // In a real app, you'd integrate with a payment provider
-      const paymentData = {
-        invoiceId: order.id, // Assuming order.id can be used as invoiceId
-        amount: totalPrice,
-        currency: 'USD',
-        method: formData.paymentMethod,
-      };
+        const orderData = {
+          customerId: customerId,
+          items: items.map((item) => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: item.product.price,
+          })),
+          shippingAddress: formData.shippingAddress,
+          billingAddress: formData.billingAddress || formData.shippingAddress,
+          notes: `Order placed via web checkout`,
+        };
 
-      await initiatePayment(paymentData);
-      */
+        console.log('🚀 Creating order (Real API):', orderData);
 
-      // Mock order creation cho demo
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
-      
-      const mockOrderId = Date.now();
-      
-      // Save order to localStorage for demo
-      const existingOrders = JSON.parse(localStorage.getItem('demoOrders') || '[]');
-      const newOrder = {
-        id: mockOrderId,
-        customerId: currentUser.id || currentUser.email,
-        items: items.map((item) => ({
-          productId: item.product.id,
-          product: item.product,
-          quantity: item.quantity,
-          unitPrice: item.product.price,
-        })),
-        status: 'PENDING',
-        totalAmount: totalPrice,
-        shippingAddress: formData.shippingAddress,
-        billingAddress: formData.billingAddress,
-        createdAt: new Date().toISOString(),
-      };
-      existingOrders.push(newOrder);
-      localStorage.setItem('demoOrders', JSON.stringify(existingOrders));
+        const response = await createOrder(orderData);
+        const order = response.order || response;
 
-      // Clear cart and redirect
-      clearCart();
-      navigate(`${baseURL}orders`);
+        console.log('✅ Order created:', order);
+        console.log('📋 Order Number:', order.orderNumber || order.id);
+        console.log('💰 Total Amount:', order.totalAmount);
+        console.log('🔔 Billing service will automatically create invoice via Kafka event');
+
+        clearCart();
+        navigate(`${baseURL}orders`);
+      } else {
+        // Demo mode - save to localStorage
+        console.log('🎭 Demo mode - saving order to localStorage');
+        
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
+        
+        const mockOrderId = Date.now();
+        const existingOrders = JSON.parse(localStorage.getItem('demoOrders') || '[]');
+        
+        const newOrder = {
+          id: mockOrderId,
+          orderNumber: `DEMO-${mockOrderId}`,
+          customerId: currentUser.id || currentUser.email,
+          items: items.map((item) => ({
+            productId: item.product.id,
+            product: item.product,
+            quantity: item.quantity,
+            unitPrice: item.product.price,
+            price: item.product.price,
+          })),
+          status: 'pending',
+          totalAmount: totalPrice,
+          shippingAddress: formData.shippingAddress,
+          billingAddress: formData.billingAddress || formData.shippingAddress,
+          createdAt: new Date().toISOString(),
+        };
+        
+        existingOrders.push(newOrder);
+        localStorage.setItem('demoOrders', JSON.stringify(existingOrders));
+
+        console.log('✅ Demo order created:', newOrder);
+
+        clearCart();
+        navigate(`${baseURL}orders`);
+      }
+
     } catch (err: any) {
-      setError(err.message || 'Failed to process order');
+      console.error('❌ Order creation failed:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to create order';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
