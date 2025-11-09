@@ -98,8 +98,8 @@ export default function AdminProducts() {
       ]);
 
       // Merge catalogue and inventory data
-      const mergedProducts: Product[] = catalogueData.map((product: CatalogueProduct) => {
-        const inventory = inventoryData.find((inv: InventoryItem) => inv.productId === product.id);
+      const mergedProducts: Product[] = catalogueData.products.map((product: CatalogueProduct) => {
+        const inventory = inventoryData.items.find((inv: InventoryItem) => inv.productId === product.id);
         const stock = inventory?.quantity || 0;
         
         return {
