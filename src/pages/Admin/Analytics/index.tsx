@@ -6,7 +6,11 @@ import { useState } from 'react';
 const AdminAnalytics = () => {
     const [timeRange, setTimeRange] = useState('30days');
 
-    // Mock data - thay bằng API call và charting library sau này
+    // Check if user is authenticated
+    const token = typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('token=')) : null;
+    const isAuthenticated = !!token;
+
+    // Mock data - TODO: Replace with real API calls when analytics API is ready
     const stats = {
         revenue: {
             current: 45678.90,
@@ -62,6 +66,11 @@ const AdminAnalytics = () => {
                             </h1>
                             <p className="text-gray-600 dark:text-gray-400 mt-2">
                                 Track performance and business insights
+                                {!isAuthenticated && (
+                                    <span className="ml-2 text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded">
+                                        Demo Mode
+                                    </span>
+                                )}
                             </p>
                         </div>
                         <div className="w-48">

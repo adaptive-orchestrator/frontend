@@ -76,14 +76,18 @@ export default function AdminProducts() {
     { id: 6, name: 'iPad Pro 12.9"', description: 'Professional tablet', price: 1099.99, stock: 8, category: 'Electronics', status: 'Low Stock', supplier: 'Apple', sku: 'APPL-IPADP-001' },
   ];
 
-  // Fetch products from API on mount (only in production mode)
+  // Fetch products from API on mount
   useEffect(() => {
-    if (DEMO_MODE) {
-      // Use demo data
-      setProducts(DEMO_PRODUCTS);
-    } else {
-      // Fetch from API
+    const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+    const isAuthenticated = !!token;
+
+    if (isAuthenticated) {
+      // Real user - fetch from API
       fetchProducts();
+    } else {
+      // Demo mode - use local data
+      console.log('🎭 Demo mode - using sample products');
+      setProducts(DEMO_PRODUCTS);
     }
   }, []);
 
@@ -141,8 +145,11 @@ export default function AdminProducts() {
       return;
     }
 
+    const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+    const isAuthenticated = !!token;
+
     // DEMO mode: Add locally
-    if (DEMO_MODE) {
+    if (!isAuthenticated) {
       const product: Product = {
         id: products.length + 1,
         name: newProduct.name,
@@ -162,7 +169,7 @@ export default function AdminProducts() {
       return;
     }
 
-    // PRODUCTION mode: Call API
+    // Real user - Call API
     try {
       setIsLoading(true);
 
@@ -240,7 +247,7 @@ export default function AdminProducts() {
       await adjustStock(selectedProduct.id, {
         quantity: quantity,
         reason: stockUpdate.note || 'Manual adjustment',
-        adjustmentType: quantity > 0 ? 'restock' : 'sale'
+        adjustmentType: quantity > 0 ? 'RESTOCK' : 'SALE'
       });
 
       // Refresh product list

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { SharedUser } from '@/types/task';
 import { authInformation } from '@/lib/api/auth';
 import Cookies from 'js-cookie';
+import { decodeJWT } from '@/utils/jwt';
 
 type UserRole = 'viewer' | 'editor' | 'admin';
 type SystemRole = 'customer' | 'organization_admin' | 'member' | 'super_admin';
@@ -40,13 +41,17 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
   // Bắt đầu với null - user chưa đăng nhập
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       // Kiểm tra có token trong Cookie không
       const token = Cookies.get('token');
       
+      console.log('🔍 UserContext: Starting fetch, token:', token ? 'exists' : 'none');
+      
       if (!token) {
+        console.log('No token, checking localStorage for demo mode');
         // Không có token, check localStorage (fallback cho demo mode)
         const savedUser = localStorage.getItem('octalTaskUser');
         if (savedUser) {
@@ -57,17 +62,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
               user.role = demoRole;
             }
             setCurrentUser(user);
+            console.log('✅ Loaded demo user from localStorage');
           } catch (err) {
             console.error('Failed to parse saved user:', err);
             localStorage.removeItem('octalTaskUser');
           }
         }
+        setIsLoading(false);
         return;
       }
 
-      // Có token, fetch user info từ backend
+      // Có token, fetch user info từ backend với timeout
       try {
-        const data = await authInformation();
+        console.log('📡 Fetching user info from backend...');
+        
+        // Set timeout 5 seconds (giảm từ 10s)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout after 5s')), 5000);
+        });
+        
+        const fetchPromise = authInformation();
+        
+        const data = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        
+        console.log('✅ User info fetched from API:', data);
         
         // Backend returns user object directly
         const { id, name, email, role } = data;
@@ -90,11 +108,48 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         setCurrentUser(user);
         localStorage.setItem('octalTaskUser', JSON.stringify(user));
+        setIsLoading(false);
+        console.log('✅ User set in context:', user.email);
       } catch (err) {
-        console.error('Failed to fetch user info:', err);
-        setCurrentUser(null);
-        localStorage.removeItem('octalTaskUser');
-        Cookies.remove('token'); // Token không hợp lệ, xóa đi
+        console.error('❌ Failed to fetch user info from API:', err);
+        
+        // FALLBACK: Decode user info from JWT token
+        try {
+          console.log('🔄 Falling back to JWT decode...');
+          const payload = decodeJWT(token);
+          
+          if (payload && payload.email) {
+            console.log('✅ Decoded JWT payload:', payload);
+            
+            let systemRole: SystemRole;
+            if (payload.role === 'admin') {
+              systemRole = 'organization_admin';
+            } else {
+              systemRole = 'customer';
+            }
+            
+            const user: User = {
+              id: payload.sub?.toString() || payload.id?.toString() || '1',
+              name: payload.name || payload.email.split('@')[0],
+              email: payload.email,
+              photoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || 'User')}&background=random`,
+              role: systemRole,
+            };
+            
+            setCurrentUser(user);
+            localStorage.setItem('octalTaskUser', JSON.stringify(user));
+            console.log('✅ User created from JWT token:', user.email);
+          } else {
+            throw new Error('Invalid JWT payload');
+          }
+        } catch (jwtErr) {
+          console.error('❌ Failed to decode JWT:', jwtErr);
+          setCurrentUser(null);
+          localStorage.removeItem('octalTaskUser');
+          Cookies.remove('token'); // Token không hợp lệ, xóa đi
+        }
+        
+        setIsLoading(false);
       }
     };
 

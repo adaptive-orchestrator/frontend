@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
-import { getOrdersByCustomer } from '@/lib/api/orders';
+import { getAllOrders } from '@/lib/api/orders';
 import { Order } from '@/types/product';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +38,8 @@ export default function MyOrders() {
           
           console.log('🔍 Fetching orders from API for customer:', customerId);
           
-          const response = await getOrdersByCustomer(customerId);
+          // Use getAllOrders with customerId filter
+          const response = await getAllOrders({ customerId });
           const fetchedOrders = response.orders || response;
           
           console.log('✅ Orders fetched from API:', fetchedOrders);

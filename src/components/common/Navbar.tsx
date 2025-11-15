@@ -31,10 +31,19 @@ export default function Navbar({ activeSection = '' }: NavbarProps) {
 
     // Check authentication status
     useEffect(() => {
-        const token = Cookies.get('token');
-        const hasAuth = !!token || !!currentUser;
-        console.log('Navbar Auth Check:', { token: !!token, currentUser: !!currentUser, hasAuth });
-        setIsAuthenticated(hasAuth);
+        const checkAuth = () => {
+            const token = Cookies.get('token');
+            const hasAuth = !!token; // Ưu tiên check token
+            console.log('Navbar Auth Check:', { token: !!token, currentUser: !!currentUser, hasAuth });
+            setIsAuthenticated(hasAuth);
+        };
+        
+        checkAuth();
+        
+        // Set up interval to check auth status periodically
+        const interval = setInterval(checkAuth, 1000);
+        
+        return () => clearInterval(interval);
     }, [currentUser]); // Re-run when currentUser changes
 
     const handleLogout = () => {

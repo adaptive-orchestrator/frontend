@@ -46,7 +46,11 @@ export default function AppRoutes() {
             <Route path={`${baseURL}`} element={<QuickLogin />} />
             <Route path={`${baseURL}welcome`} element={<Welcome />} />
             <Route path={`${baseURL}landing`} element={<LandingPage />} />
-            <Route path={`${baseURL}mode-selection`} element={<ModeSelection />} />
+            <Route path={`${baseURL}mode-selection`} element={
+                <ProtectedRoute requireAuth requireAdmin>
+                    <ModeSelection />
+                </ProtectedRoute>
+            } />
             <Route path={`${baseURL}model-recommendation`} element={<LLMRecommendation />} />
             <Route path={`${baseURL}login`} element={<Login />} />
             <Route path={`${baseURL}signup`} element={<Signup />} />

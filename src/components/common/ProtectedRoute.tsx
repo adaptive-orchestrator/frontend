@@ -1,16 +1,17 @@
 // src/components/common/ProtectedRoute.tsx
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { useBusinessMode } from '@/contexts/BusinessModeContext';
 import { Loader2 } from 'lucide-react';
+import Cookies from 'js-cookie';
 
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAuth?: boolean;
   requireAdmin?: boolean;
-  requireMode?: boolean; // Yêu cầu phải chọn business mode
-  allowedModes?: ('retail' | 'subscription' | 'freemium' | 'multi')[]; // Chỉ cho phép các mode cụ thể
+  requireMode?: boolean;
+  allowedModes?: ('retail' | 'subscription' | 'freemium' | 'multi')[];
 }
 
 export default function ProtectedRoute({
@@ -24,12 +25,32 @@ export default function ProtectedRoute({
   const { currentUser, isAdmin, isOrgAdmin } = useUser();
   const { mode } = useBusinessMode();
   const baseURL = import.meta.env.BASE_URL;
+  const [waitTimeout, setWaitTimeout] = useState(false);
+
+  // Set timeout after 5 seconds of waiting
+  useEffect(() => {
+    const token = Cookies.get('token');
+    
+    if (requireAuth && token && !currentUser) {
+      const timer = setTimeout(() => {
+        console.log('⏰ Timeout waiting for user data, redirecting to login');
+        setWaitTimeout(true);
+        navigate(`${baseURL}login`, { replace: true });
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [requireAuth, currentUser, navigate, baseURL]);
 
   useEffect(() => {
+    // Check if token exists
+    const token = Cookies.get('token');
+    
     console.log('ProtectedRoute check:', {
       requireAuth,
       requireAdmin,
       requireMode,
+      hasToken: !!token,
       currentUser: currentUser?.email,
       role: currentUser?.role,
       isAdmin,
@@ -38,7 +59,21 @@ export default function ProtectedRoute({
       allowedModes
     });
 
-    // Check authentication
+    // If requireAuth but no token, redirect immediately
+    if (requireAuth && !token) {
+      console.log('→ Redirecting to login (no token)');
+      navigate(`${baseURL}login`, { replace: true });
+      return;
+    }
+
+    // If we have token but no currentUser yet, wait for UserContext to fetch
+    if (requireAuth && token && !currentUser) {
+      console.log('⏳ Waiting for UserContext to fetch user info...');
+      // Keep checking state - let UserContext fetch complete
+      return;
+    }
+
+    // Check authentication with currentUser
     if (requireAuth && !currentUser) {
       console.log('→ Redirecting to login (no user)');
       navigate(`${baseURL}login`, { replace: true });
@@ -75,10 +110,31 @@ export default function ProtectedRoute({
       } else {
         navigate(`${baseURL}`, { replace: true });
       }
+      return;
     }
   }, [currentUser, isAdmin, isOrgAdmin, mode, requireAuth, requireAdmin, requireMode, allowedModes, navigate, baseURL]);
 
-  // Show loading while checking
+  // Show loading while checking and waiting for user data
+  const token = Cookies.get('token');
+  
+  // If timeout occurred, show nothing (will redirect)
+  if (waitTimeout) {
+    return null;
+  }
+  
+  if (requireAuth && token && !currentUser) {
+    // Has token but waiting for UserContext to fetch user info
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+          <p className="text-sm text-gray-600 dark:text-gray-400">Loading user data...</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">This shouldn't take long</p>
+        </div>
+      </div>
+    );
+  }
+
   if (requireAuth && !currentUser) {
     return (
       <div className="flex items-center justify-center min-h-screen">

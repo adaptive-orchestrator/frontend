@@ -9,10 +9,8 @@ import { getRoleFromToken } from '@/utils/jwt';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import Cookies from 'js-cookie';
-import { useEffect } from 'react';
 import { authInformation } from '@/lib/api/auth';
 
 // Form validation schema
@@ -26,7 +24,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
     const [loginError, setLoginError] = useState('');
-    const navigate = useNavigate();
 
     const baseURL = import.meta.env.BASE_URL;
 
@@ -59,13 +56,24 @@ const Login = () => {
                 const userRole = getRoleFromToken(res.accessToken);
                 console.log('User role from JWT:', userRole);
                 
-                // Navigate based on role from JWT
+                // Fetch and save user ID
+                try {
+                    const userData = await authInformation();
+                    Cookies.set('id', userData.id, {
+                        expires: 1,
+                    });
+                } catch (err) {
+                    console.error('Error fetching user info:', err);
+                }
+                
+                // Use window.location.href to reload page and trigger UserContext
+                // This ensures UserContext fetches user info from the new token
                 if (userRole === 'admin') {
                     // Admin users go to mode selection
-                    navigate(`${baseURL}mode-selection`);
+                    window.location.href = `${baseURL}mode-selection`;
                 } else {
                     // Regular users (customers) go to products
-                    navigate(`${baseURL}products`);
+                    window.location.href = `${baseURL}products`;
                 }
             } else {
                 setLoginError('An unexpected error occurred');
@@ -76,29 +84,13 @@ const Login = () => {
         }
     };
 
-    useEffect(() => {
-        const fetchUser = async () => {
-          try {
-            const data = await authInformation();
-            Cookies.set('id', data.id,{
-                expires: 1, // số ngày hết hạn
-            });
-          } catch (err) {
-            console.error('Error fetching user info:', err);
-            // Redirect to login if needed
-          }
-        };
-    
-        fetchUser();
-      }, []);
-
     return (
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Left side illustration */}
             <div className="items-center justify-center hidden p-12 lg:flex lg:w-1/2 bg-blue-50 dark:bg-gray-800">
                 <div className="max-w-md">
                     <div className="mb-8 text-center lg:text-left">
-                        <h1 className="mb-2 text-4xl font-normal cursor-pointer" onClick={ () => { navigate(baseURL) } }>
+                        <h1 className="mb-2 text-4xl font-normal cursor-pointer" onClick={ () => { window.location.href = baseURL } }>
                             <span className="font-medium text-blue-600 dark:text-blue-400">Octal</span>
                             <span className="font-normal text-gray-800 dark:text-gray-200">Task</span>
                         </h1>

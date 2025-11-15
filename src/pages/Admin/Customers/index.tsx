@@ -1,12 +1,12 @@
 // src/pages/Admin/Customers/index.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Search, Mail, Phone, Eye, Download, Users, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react';
+import { Search, Mail, Phone, Eye, Download, Users, DollarSign, ShoppingCart, TrendingUp, Loader2 } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 
 interface Customer {
@@ -29,8 +29,9 @@ export default function AdminCustomers() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const customers: Customer[] = [
+  const DEMO_CUSTOMERS: Customer[] = [
     { 
       id: 'CUST001',
       name: 'John Doe', 
@@ -100,37 +101,41 @@ export default function AdminCustomers() {
       phone: '+1 234 567 8905',
       type: 'retail',
       status: 'inactive',
-      totalOrders: 3,
-      totalSpent: 450.00,
-      joinDate: '2024-06-15',
-      lastOrderDate: '2024-08-10'
-    },
-    {
-      id: 'CUST007',
-      name: 'Ethan Hunt',
-      email: 'ethan@example.com',
-      phone: '+1 234 567 8906',
-      type: 'freemium',
-      status: 'active',
-      totalOrders: 0,
-      totalSpent: 0,
-      joinDate: '2025-10-01',
-      currentPlan: 'Free'
-    },
-    {
-      id: 'CUST008',
-      name: 'Fiona Green',
-      email: 'fiona@example.com',
-      phone: '+1 234 567 8907',
-      type: 'subscription',
-      status: 'inactive',
-      totalOrders: 0,
-      totalSpent: 359.88,
-      joinDate: '2024-05-20',
-      currentPlan: 'Basic',
-      subscriptionStatus: 'expired'
+      totalOrders: 8,
+      totalSpent: 1250.00,
+      joinDate: '2024-04-12',
+      lastOrderDate: '2025-08-15'
     }
   ];
+
+  const [customers, setCustomers] = useState<Customer[]>(DEMO_CUSTOMERS);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+      const isAuthenticated = !!token;
+
+      if (isAuthenticated) {
+        // TODO: Implement API call when customer API is ready
+        // try {
+        //   const response = await getAllCustomers();
+        //   setCustomers(response.customers || response);
+        // } catch (error) {
+        //   console.error('Failed to fetch customers:', error);
+        //   setCustomers(DEMO_CUSTOMERS);
+        // }
+        console.log('🎭 API not implemented yet - using demo data');
+        setCustomers(DEMO_CUSTOMERS);
+      } else {
+        console.log('🎭 Demo mode - using sample customers');
+        setCustomers(DEMO_CUSTOMERS);
+      }
+      
+      setIsLoading(false);
+    };
+
+    fetchCustomers();
+  }, []);
 
   const filteredCustomers = customers.filter(customer => {
     const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -181,6 +186,16 @@ export default function AdminCustomers() {
   const activeCustomers = customers.filter(c => c.status === 'active').length;
   const totalRevenue = customers.reduce((sum, c) => sum + c.totalSpent, 0);
   const avgSpentPerCustomer = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
+
+  if (isLoading) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>

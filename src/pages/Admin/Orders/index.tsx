@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Eye, FileText, Download, DollarSign, Package as PackageIcon, TrendingUp } from 'lucide-react';
+import { Eye, FileText, Download, DollarSign, Package as PackageIcon, TrendingUp, Loader2 } from 'lucide-react';
+import { getAllOrders } from '@/lib/api/orders';
 
 interface Order {
     id: string;
@@ -26,9 +27,10 @@ const AdminOrders = () => {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock data - thay bằng API call sau này
-    const [orders] = useState<Order[]>([
+    // Demo data
+    const DEMO_ORDERS: Order[] = [
         {
             id: 'ORD001',
             customerId: 'CUST001',
@@ -106,7 +108,60 @@ const AdminOrders = () => {
                 {name: 'MacBook Pro', quantity: 1, price: 1899.99}
             ]
         }
-    ]);
+    ];
+
+    const [orders, setOrders] = useState<Order[]>(DEMO_ORDERS);
+
+    // Fetch orders on mount
+    useEffect(() => {
+        const fetchOrders = async () => {
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+            const isAuthenticated = !!token;
+
+            if (isAuthenticated) {
+                // Real user - fetch from API
+                try {
+                    console.log('🔍 Fetching orders from API (Admin)');
+                    const response = await getAllOrders();
+                    const fetchedOrders = response.orders || response;
+                    
+                    // Transform API data to match UI format
+                    const transformedOrders: Order[] = fetchedOrders.map((order: any) => ({
+                        id: order.orderNumber || order.id.toString(),
+                        customerId: order.customerId.toString(),
+                        customerName: order.customerName || `Customer ${order.customerId}`,
+                        customerEmail: order.customerEmail || 'N/A',
+                        orderDate: new Date(order.createdAt).toISOString().split('T')[0],
+                        status: order.status,
+                        totalAmount: order.totalAmount,
+                        items: order.items?.length || 0,
+                        paymentMethod: 'Credit Card',
+                        shippingAddress: order.shippingAddress,
+                        itemsList: order.items?.map((item: any) => ({
+                            name: item.product?.name || `Product #${item.productId}`,
+                            quantity: item.quantity,
+                            price: item.price || item.unitPrice
+                        }))
+                    }));
+
+                    console.log('✅ Orders fetched from API:', transformedOrders);
+                    setOrders(transformedOrders);
+                } catch (error) {
+                    console.error('❌ Failed to fetch orders:', error);
+                    console.log('⚠️ Using demo data as fallback');
+                    setOrders(DEMO_ORDERS);
+                }
+            } else {
+                // Demo mode - use local data
+                console.log('🎭 Demo mode - using sample orders');
+                setOrders(DEMO_ORDERS);
+            }
+            
+            setIsLoading(false);
+        };
+
+        fetchOrders();
+    }, []);
 
     const getStatusColor = (status: Order['status']) => {
         switch (status) {
@@ -198,6 +253,16 @@ Status: ${order.status.toUpperCase()}
     const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
     const pendingOrders = orders.filter(o => o.status === 'pending').length;
     const completedOrders = orders.filter(o => o.status === 'delivered').length;
+
+    if (isLoading) {
+        return (
+            <PageLayout>
+                <div className="flex items-center justify-center min-h-screen">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                </div>
+            </PageLayout>
+        );
+    }
 
     return (
         <PageLayout>

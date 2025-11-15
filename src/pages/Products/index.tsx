@@ -1,14 +1,14 @@
 // src/pages/Products/index.tsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-// TODO: Uncomment khi dùng API thật
-// import { getAllProducts } from '@/lib/api/products';
+import { getAllProducts, getAllInventory } from '@/lib/api/products';
 import { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingCart, Loader2 } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
+import Cookies from 'js-cookie';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -22,74 +22,107 @@ export default function Products() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        const token = Cookies.get('token');
         
-        // TODO: Uncomment để gọi API thật
-        // const data = await getAllProducts();
-        // setProducts(data.products || data);
-        
-        // Mock data cho demo
-        const mockProducts: Product[] = [
-          {
-            id: 1,
-            name: 'Laptop Dell XPS 15',
-            description: 'High-performance laptop with Intel i7 processor, 16GB RAM, 512GB SSD',
-            price: 1499.99,
-            sku: 'DELL-XPS-001',
-            category: 'Electronics',
-            stock: 15,
-            imageUrl: 'https://via.placeholder.com/300x300?text=Dell+XPS+15',
-          },
-          {
-            id: 2,
-            name: 'iPhone 15 Pro',
-            description: 'Latest iPhone with A17 Pro chip, 256GB storage, Pro camera system',
-            price: 999.99,
-            sku: 'APPLE-IP15-001',
-            category: 'Electronics',
-            stock: 30,
-            imageUrl: 'https://via.placeholder.com/300x300?text=iPhone+15',
-          },
-          {
-            id: 3,
-            name: 'Sony WH-1000XM5',
-            description: 'Premium wireless noise-canceling headphones',
-            price: 399.99,
-            sku: 'SONY-WH-001',
-            category: 'Audio',
-            stock: 25,
-            imageUrl: 'https://via.placeholder.com/300x300?text=Sony+Headphones',
-          },
-          {
-            id: 4,
-            name: 'Samsung 4K Monitor',
-            description: '32-inch 4K UHD monitor with HDR support',
-            price: 549.99,
-            sku: 'SAMSUNG-MON-001',
-            category: 'Electronics',
-            stock: 12,
-          },
-          {
-            id: 5,
-            name: 'Logitech MX Master 3',
-            description: 'Advanced wireless mouse for professionals',
-            price: 99.99,
-            sku: 'LOGI-MX3-001',
-            category: 'Accessories',
-            stock: 50,
-          },
-          {
-            id: 6,
-            name: 'iPad Pro 12.9"',
-            description: 'Powerful tablet with M2 chip and Liquid Retina display',
-            price: 1099.99,
-            sku: 'APPLE-IPAD-001',
-            category: 'Electronics',
-            stock: 8,
-          },
-        ];
-        
-        setProducts(mockProducts);
+        // Check if authenticated - call real API
+        if (token) {
+          console.log('🔐 Authenticated - Fetching products from API...');
+          
+          // Fetch products and inventory in parallel
+          const [productsData, inventoryData] = await Promise.all([
+            getAllProducts(),
+            getAllInventory()
+          ]);
+          
+          console.log('📦 Products:', productsData);
+          console.log('📊 Inventory:', inventoryData);
+          
+          // Map products with inventory stock
+          const productsArray = productsData.products || [];
+          const inventoryMap = new Map(
+            (inventoryData.items || []).map((inv: any) => [inv.productId, inv.quantity - inv.reserved])
+          );
+          
+          const productsWithStock = productsArray.map((product: any) => ({
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            sku: product.sku,
+            category: product.category,
+            stock: inventoryMap.get(product.id) || 0,
+            imageUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&size=300&background=random`,
+          }));
+          
+          setProducts(productsWithStock);
+          console.log('✅ Products with stock:', productsWithStock);
+        } else {
+          console.log('👤 Demo mode - Using mock data');
+          // Demo mode - Mock data
+          const mockProducts: Product[] = [
+            {
+              id: 1,
+              name: 'Laptop Dell XPS 15',
+              description: 'High-performance laptop with Intel i7 processor, 16GB RAM, 512GB SSD',
+              price: 1499.99,
+              sku: 'DELL-XPS-001',
+              category: 'Electronics',
+              stock: 15,
+              imageUrl: 'https://via.placeholder.com/300x300?text=Dell+XPS+15',
+            },
+            {
+              id: 2,
+              name: 'iPhone 15 Pro',
+              description: 'Latest iPhone with A17 Pro chip, 256GB storage, Pro camera system',
+              price: 999.99,
+              sku: 'APPLE-IP15-001',
+              category: 'Electronics',
+              stock: 30,
+              imageUrl: 'https://via.placeholder.com/300x300?text=iPhone+15',
+            },
+            {
+              id: 3,
+              name: 'Sony WH-1000XM5',
+              description: 'Premium wireless noise-canceling headphones',
+              price: 399.99,
+              sku: 'SONY-WH-001',
+              category: 'Audio',
+              stock: 25,
+              imageUrl: 'https://via.placeholder.com/300x300?text=Sony+Headphones',
+            },
+            {
+              id: 4,
+              name: 'Samsung 4K Monitor',
+              description: '32-inch 4K UHD monitor with HDR support',
+              price: 549.99,
+              sku: 'SAMSUNG-MON-001',
+              category: 'Electronics',
+              stock: 12,
+            },
+            {
+              id: 5,
+              name: 'Logitech MX Master 3',
+              description: 'Advanced wireless mouse for professionals',
+              price: 99.99,
+              sku: 'LOGI-MX3-001',
+              category: 'Accessories',
+              stock: 50,
+            },
+            {
+              id: 6,
+              name: 'iPad Pro 12.9"',
+              description: 'Powerful tablet with M2 chip and Liquid Retina display',
+              price: 1099.99,
+              sku: 'APPLE-IPAD-001',
+              category: 'Electronics',
+              stock: 8,
+            },
+          ];
+          
+          setProducts(mockProducts);
+        }
       } catch (err: any) {
+        console.error('❌ Error fetching products:', err);
         setError(err.message || 'Failed to load products');
       } finally {
         setLoading(false);

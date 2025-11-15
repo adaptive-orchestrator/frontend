@@ -55,23 +55,43 @@ const Signup = () => {
             const role = isBusinessOwner ? 'organization_admin' : 'customer';
             const backendRole = isBusinessOwner ? 'admin' : 'user';
 
-            // Use context register with role
-            await registerUser(data.name, data.email, data.password, role);
+            // Try to call backend API to create real account
+            let apiSuccess = false;
             
-            // Call backend API with appropriate role
             try {
-                await signup(data.email, data.password, data.name, backendRole);
-            } catch (apiError) {
-                console.warn('API signup skipped or failed:', apiError);
-                // Continue even if API fails (for demo mode)
+                console.log('🚀 Calling signup API...');
+                const response = await signup(data.email, data.password, data.name, backendRole);
+                console.log('✅ Signup API response:', response);
+                
+                // Signup successful - backend only creates user, doesn't return token
+                if (response.user || response.message) {
+                    apiSuccess = true;
+                    console.log('✅ Account created successfully, redirecting to login...');
+                    
+                    // Redirect to login page to get token
+                    alert('Registration successful! Please login with your credentials.');
+                    navigate(`${baseURL}login`);
+                    return;
+                }
+            } catch (apiError: any) {
+                console.warn('⚠️ API signup failed, falling back to demo mode:', apiError);
+                const errorMsg = apiError?.response?.data?.message || 'API not available';
+                console.log('Error details:', errorMsg);
+                // Continue in demo mode if API fails
             }
-            
-            if (isBusinessOwner) {
-                alert('Registration successful! Please select your business model.');
-                navigate(`${baseURL}mode-selection`);
-            } else {
-                alert('Registration successful! Welcome to OctalTask.');
-                navigate(`${baseURL}products`);
+
+            // Demo mode fallback: register in UserContext
+            if (!apiSuccess) {
+                console.log('🎭 Using demo mode for signup');
+                await registerUser(data.name, data.email, data.password, role);
+                
+                if (isBusinessOwner) {
+                    alert(`Registration successful! (Demo mode) Please select your business model.`);
+                    navigate(`${baseURL}mode-selection`);
+                } else {
+                    alert(`Registration successful! (Demo mode) Welcome to OctalTask.`);
+                    navigate(`${baseURL}products`);
+                }
             }
         } catch (error) {
             console.error('Signup error:', error);

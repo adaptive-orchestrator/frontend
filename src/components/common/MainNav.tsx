@@ -9,7 +9,8 @@ import { useBusinessMode } from '@/contexts/BusinessModeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
 
 export default function MainNav() {
   const { darkMode } = useTheme();
@@ -18,8 +19,22 @@ export default function MainNav() {
   const { totalItems } = useCart();
   const { isRetailMode, isSubscriptionMode, isMultiMode } = useBusinessMode();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const baseURL = import.meta.env.BASE_URL;
+
+  // Check authentication - ưu tiên token
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = Cookies.get('token');
+      setIsAuthenticated(!!token);
+    };
+    
+    checkAuth();
+    const interval = setInterval(checkAuth, 1000);
+    
+    return () => clearInterval(interval);
+  }, [currentUser]);
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-md">
@@ -122,9 +137,9 @@ export default function MainNav() {
 
             {/* Desktop auth/user menu */}
             <div className="hidden md:flex items-center gap-3">
-              {currentUser ? (
+              {isAuthenticated && currentUser ? (
                 <UserMenu user={currentUser} onLogout={logout} />
-              ) : (
+              ) : !isAuthenticated ? (
                 <>
                   <Button
                     variant="ghost"
@@ -136,7 +151,7 @@ export default function MainNav() {
                     Sign up
                   </Button>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -178,7 +193,7 @@ export default function MainNav() {
                 </Link>
               )}
               
-              {currentUser && (
+              {isAuthenticated && currentUser && (
                 <>
                   {(isRetailMode || isMultiMode) && (
                     <Link
@@ -209,7 +224,7 @@ export default function MainNav() {
                   </Link>
                 </>
               )}
-              {!currentUser && (
+              {!isAuthenticated && (
                 <>
                   <Button
                     variant="ghost"
