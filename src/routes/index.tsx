@@ -81,6 +81,11 @@ export default function AppRoutes() {
                     <AdminDashboard />
                 </ProtectedRoute>
             } />
+                <Route path={`${baseURL}admin/dashboard`} element={
+                    <ProtectedRoute requireAuth requireAdmin>
+                        <AdminDashboard />
+                    </ProtectedRoute>
+                } />
             <Route path={`${baseURL}admin/products`} element={
                 <ProtectedRoute requireAuth requireAdmin>
                     <AdminProducts />
