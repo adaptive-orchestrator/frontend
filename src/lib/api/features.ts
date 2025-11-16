@@ -30,9 +30,8 @@ export const getFeatureById = async (id: number) => {
 
 export const createFeature = async (data: {
   name: string;
-  description?: string;
-  category?: string;
-  isActive?: boolean;
+  description: string;
+  code: string;
 }) => {
   try {
     const token = Cookies.get('token');

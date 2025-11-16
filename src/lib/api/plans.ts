@@ -30,10 +30,12 @@ export const getPlanById = async (id: number) => {
 
 export const createPlan = async (data: {
   name: string;
-  description?: string;
+  description: string;
   price: number;
-  billingCycle: 'MONTHLY' | 'YEARLY';
-  features?: string[];
+  billingCycle: 'monthly' | 'yearly';
+  features: number[];
+  trialEnabled?: boolean;
+  trialDays?: number;
 }) => {
   try {
     const token = Cookies.get('token');

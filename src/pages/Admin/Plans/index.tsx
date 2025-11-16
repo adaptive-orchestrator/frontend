@@ -18,8 +18,9 @@ interface Feature {
     id: string;
     name: string;
     description: string;
-    category: 'core' | 'advanced' | 'premium' | 'analytics' | 'support';
-    isActive: boolean;
+    code: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 interface SubscriptionPlan {
@@ -28,11 +29,11 @@ interface SubscriptionPlan {
     description: string;
     price: number;
     billingCycle: 'monthly' | 'yearly';
-    features: string[];
-    maxUsers: number;
-    isPopular: boolean;
-    activeSubscribers: number;
-    totalRevenue: number;
+    features: number[];
+    trialEnabled?: boolean;
+    trialDays?: number;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 const AdminPlans = () => {
@@ -45,25 +46,25 @@ const AdminPlans = () => {
     const [loading, setLoading] = useState(true);
 
     const DEMO_FEATURES: Feature[] = [
-        { id: 'FEAT001', name: 'Task Management', description: 'Create and manage unlimited tasks', category: 'core', isActive: true },
-        { id: 'FEAT002', name: 'Team Collaboration', description: 'Share tasks with team members', category: 'core', isActive: true },
-        { id: 'FEAT003', name: 'Advanced Analytics', description: 'Detailed insights and reports', category: 'analytics', isActive: true },
-        { id: 'FEAT004', name: 'Priority Support', description: '24/7 priority customer support', category: 'support', isActive: true },
-        { id: 'FEAT005', name: 'API Access', description: 'Full REST API access', category: 'advanced', isActive: true },
-        { id: 'FEAT006', name: 'Custom Branding', description: 'White-label your workspace', category: 'premium', isActive: true }
+        { id: '1', name: 'Task Management', description: 'Create and manage unlimited tasks', code: 'TASK_MGT' },
+        { id: '2', name: 'Team Collaboration', description: 'Share tasks with team members', code: 'TEAM_COLLAB' },
+        { id: '3', name: 'Advanced Analytics', description: 'Detailed insights and reports', code: 'ANALYTICS_PRO' },
+        { id: '4', name: 'Priority Support', description: '24/7 priority customer support', code: 'PRIORITY_SUPPORT' },
+        { id: '5', name: 'API Access', description: 'Full REST API access', code: 'API_ACCESS' },
+        { id: '6', name: 'Custom Branding', description: 'White-label your workspace', code: 'CUSTOM_BRAND' }
     ];
 
     const DEMO_PLANS: SubscriptionPlan[] = [
-        { id: 'PLAN001', name: 'Basic', description: 'Perfect for individuals', price: 9.99, billingCycle: 'monthly', features: ['FEAT001', 'FEAT002'], maxUsers: 1, isPopular: false, activeSubscribers: 120, totalRevenue: 1198.80 },
-        { id: 'PLAN002', name: 'Professional', description: 'For growing teams', price: 29.99, billingCycle: 'monthly', features: ['FEAT001', 'FEAT002', 'FEAT003', 'FEAT005'], maxUsers: 10, isPopular: true, activeSubscribers: 85, totalRevenue: 2549.15 },
-        { id: 'PLAN003', name: 'Enterprise', description: 'For large organizations', price: 99.99, billingCycle: 'monthly', features: ['FEAT001', 'FEAT002', 'FEAT003', 'FEAT004', 'FEAT005', 'FEAT006'], maxUsers: -1, isPopular: false, activeSubscribers: 45, totalRevenue: 4499.55 }
+        { id: '1', name: 'Basic', description: 'Perfect for individuals', price: 9.99, billingCycle: 'monthly', features: [1, 2], trialEnabled: false, trialDays: 0 },
+        { id: '2', name: 'Professional', description: 'For growing teams', price: 29.99, billingCycle: 'monthly', features: [1, 2, 3, 5], trialEnabled: true, trialDays: 14 },
+        { id: '3', name: 'Enterprise', description: 'For large organizations', price: 99.99, billingCycle: 'monthly', features: [1, 2, 3, 4, 5, 6], trialEnabled: true, trialDays: 30 }
     ];
 
     const [features, setFeatures] = useState<Feature[]>(DEMO_FEATURES);
     const [plans, setPlans] = useState<SubscriptionPlan[]>(DEMO_PLANS);
 
-    const [newFeature, setNewFeature] = useState<Partial<Feature>>({ name: '', description: '', category: 'core', isActive: true });
-    const [newPlan, setNewPlan] = useState<Partial<SubscriptionPlan>>({ name: '', description: '', price: 0, billingCycle: 'monthly', features: [], maxUsers: 1, isPopular: false, activeSubscribers: 0, totalRevenue: 0 });
+    const [newFeature, setNewFeature] = useState<Partial<Feature>>({ name: '', description: '', code: '' });
+    const [newPlan, setNewPlan] = useState<Partial<SubscriptionPlan>>({ name: '', description: '', price: 0, billingCycle: 'monthly', features: [], trialEnabled: false, trialDays: 0 });
     const [isCreating, setIsCreating] = useState(false);
 
     // Fetch data from API when user is authenticated
@@ -98,8 +99,7 @@ const AdminPlans = () => {
                         id: f.id?.toString() || '',
                         name: f.name || '',
                         description: f.description || '',
-                        category: f.category || 'core',
-                        isActive: f.isActive ?? true
+                        code: f.code || ''
                     }));
                     setFeatures(mappedFeatures);
                 } else {
@@ -115,10 +115,8 @@ const AdminPlans = () => {
                         price: p.price || 0,
                         billingCycle: p.billingCycle?.toLowerCase() === 'yearly' ? 'yearly' : 'monthly',
                         features: p.features || [],
-                        maxUsers: p.maxUsers || 1,
-                        isPopular: p.isPopular || false,
-                        activeSubscribers: p.activeSubscribers || 0,
-                        totalRevenue: p.totalRevenue || 0
+                        trialEnabled: p.trialEnabled || false,
+                        trialDays: p.trialDays || 0
                     }));
                     setPlans(mappedPlans);
                 } else {
@@ -138,8 +136,8 @@ const AdminPlans = () => {
     }, []); // Chỉ chạy 1 lần khi component mount, không phụ thuộc vào user
 
     const handleCreateFeature = async () => {
-        if (!newFeature.name) {
-            alert('Please enter feature name');
+        if (!newFeature.name || !newFeature.code) {
+            alert('Please enter feature name and code');
             return;
         }
 
@@ -148,8 +146,7 @@ const AdminPlans = () => {
             await createFeature({
                 name: newFeature.name,
                 description: newFeature.description || '',
-                category: newFeature.category || 'core',
-                isActive: newFeature.isActive ?? true
+                code: newFeature.code
             });
 
             // Refresh features list
@@ -159,14 +156,13 @@ const AdminPlans = () => {
                     id: f.id?.toString() || '',
                     name: f.name || '',
                     description: f.description || '',
-                    category: f.category || 'core',
-                    isActive: f.isActive ?? true
+                    code: f.code || ''
                 }));
                 setFeatures(mappedFeatures);
             }
 
             setIsFeatureDialogOpen(false);
-            setNewFeature({ name: '', description: '', category: 'core', isActive: true });
+            setNewFeature({ name: '', description: '', code: '' });
             alert('Feature created successfully!');
         } catch (error) {
             console.error('Error creating feature:', error);
@@ -188,8 +184,10 @@ const AdminPlans = () => {
                 name: newPlan.name,
                 description: newPlan.description || '',
                 price: Number(newPlan.price),
-                billingCycle: newPlan.billingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY',
-                features: newPlan.features || []
+                billingCycle: newPlan.billingCycle || 'monthly',
+                features: newPlan.features || [],
+                trialEnabled: newPlan.trialEnabled || false,
+                trialDays: newPlan.trialDays || 0
             });
 
             // Refresh plans list
@@ -202,16 +200,14 @@ const AdminPlans = () => {
                     price: p.price || 0,
                     billingCycle: p.billingCycle?.toLowerCase() === 'yearly' ? 'yearly' : 'monthly',
                     features: p.features || [],
-                    maxUsers: p.maxUsers || 1,
-                    isPopular: p.isPopular || false,
-                    activeSubscribers: p.activeSubscribers || 0,
-                    totalRevenue: p.totalRevenue || 0
+                    trialEnabled: p.trialEnabled || false,
+                    trialDays: p.trialDays || 0
                 }));
                 setPlans(mappedPlans);
             }
 
             setIsPlanDialogOpen(false);
-            setNewPlan({ name: '', description: '', price: 0, billingCycle: 'monthly', features: [], maxUsers: 1, isPopular: false, activeSubscribers: 0, totalRevenue: 0 });
+            setNewPlan({ name: '', description: '', price: 0, billingCycle: 'monthly', features: [], trialEnabled: false, trialDays: 0 });
             alert('Plan created successfully!');
         } catch (error) {
             console.error('Error creating plan:', error);
@@ -221,21 +217,8 @@ const AdminPlans = () => {
         }
     };
 
-    const getCategoryColor = (category: Feature['category']) => {
-        const colors = {
-            core: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-            advanced: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-            premium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-            analytics: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-            support: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-        };
-        return colors[category];
-    };
-
     const totalPlans = plans.length;
-    const totalSubscribers = plans.reduce((sum, p) => sum + p.activeSubscribers, 0);
-    const totalRevenue = plans.reduce((sum, p) => sum + p.totalRevenue, 0);
-    const avgRevenuePerUser = totalSubscribers > 0 ? totalRevenue / totalSubscribers : 0;
+    const totalFeatures = features.length;
 
     return (
         <PageLayout>
@@ -251,7 +234,7 @@ const AdminPlans = () => {
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 dark:from-blue-500/5 dark:to-blue-600/5">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
@@ -267,32 +250,10 @@ const AdminPlans = () => {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Subscribers</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{totalSubscribers}</p>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Features</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{totalFeatures}</p>
                                 </div>
                                 <Users className="h-12 w-12 text-green-500 opacity-75" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 dark:from-purple-500/5 dark:to-purple-600/5">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">${totalRevenue.toFixed(2)}</p>
-                                </div>
-                                <DollarSign className="h-12 w-12 text-purple-500 opacity-75" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 dark:from-orange-500/5 dark:to-orange-600/5">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Revenue/User</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">${avgRevenuePerUser.toFixed(2)}</p>
-                                </div>
-                                <TrendingUp className="h-12 w-12 text-orange-500 opacity-75" />
                             </div>
                         </CardContent>
                     </Card>
@@ -325,8 +286,7 @@ const AdminPlans = () => {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3">
                                                     <h3 className="font-semibold text-gray-900 dark:text-white">{feature.name}</h3>
-                                                    <Badge className={getCategoryColor(feature.category)}>{feature.category}</Badge>
-                                                    {feature.isActive && <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Active</Badge>}
+                                                    <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{feature.code}</Badge>
                                                 </div>
                                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{feature.description}</p>
                                                 <p className="text-xs text-gray-500 mt-2">ID: {feature.id}</p>
@@ -359,12 +319,7 @@ const AdminPlans = () => {
                             <CardContent>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {plans.map((plan) => (
-                                        <Card key={plan.id} className={`relative ${plan.isPopular ? 'border-2 border-blue-500' : ''}`}>
-                                            {plan.isPopular && (
-                                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                                                    <Badge className="bg-blue-500 text-white">Most Popular</Badge>
-                                                </div>
-                                            )}
+                                        <Card key={plan.id} className="relative">
                                             <CardHeader>
                                                 <CardTitle className="flex items-center justify-between">
                                                     <span>{plan.name}</span>
@@ -383,11 +338,16 @@ const AdminPlans = () => {
                                                             <span className="text-sm font-normal text-gray-600 dark:text-gray-400">/{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                                                         </p>
                                                     </div>
+                                                    {plan.trialEnabled && (
+                                                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                                            {plan.trialDays} days trial
+                                                        </Badge>
+                                                    )}
                                                     <div className="space-y-2">
-                                                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Features:</p>
+                                                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Features ({plan.features.length}):</p>
                                                         <ul className="space-y-1">
                                                             {plan.features.map(featId => {
-                                                                const feature = features.find(f => f.id === featId);
+                                                                const feature = features.find(f => f.id === featId.toString());
                                                                 return feature ? (
                                                                     <li key={featId} className="text-sm text-gray-600 dark:text-gray-400 flex items-start">
                                                                         <span className="mr-2">✓</span>
@@ -396,20 +356,6 @@ const AdminPlans = () => {
                                                                 ) : null;
                                                             })}
                                                         </ul>
-                                                    </div>
-                                                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-gray-600 dark:text-gray-400">Max Users:</span>
-                                                            <span className="font-semibold text-gray-900 dark:text-white">{plan.maxUsers === -1 ? 'Unlimited' : plan.maxUsers}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-gray-600 dark:text-gray-400">Active Subscribers:</span>
-                                                            <span className="font-semibold text-gray-900 dark:text-white">{plan.activeSubscribers}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-gray-600 dark:text-gray-400">Total Revenue:</span>
-                                                            <span className="font-semibold text-green-600 dark:text-green-400">${plan.totalRevenue.toFixed(2)}</span>
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </CardContent>
@@ -448,26 +394,12 @@ const AdminPlans = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium">Category</label>
-                                <Select value={newFeature.category || 'core'} onValueChange={(val) => setNewFeature({ ...newFeature, category: val as any })}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="core">Core</SelectItem>
-                                        <SelectItem value="advanced">Advanced</SelectItem>
-                                        <SelectItem value="premium">Premium</SelectItem>
-                                        <SelectItem value="analytics">Analytics</SelectItem>
-                                        <SelectItem value="support">Support</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    checked={newFeature.isActive ?? true}
-                                    onCheckedChange={(checked) => setNewFeature({ ...newFeature, isActive: checked as boolean })}
+                                <label className="text-sm font-medium">Code *</label>
+                                <Input
+                                    placeholder="e.g., ANALYTICS_PRO"
+                                    value={newFeature.code || ''}
+                                    onChange={(e) => setNewFeature({ ...newFeature, code: e.target.value.toUpperCase() })}
                                 />
-                                <label className="text-sm font-medium">Active</label>
                             </div>
                         </div>
                         <div className="flex gap-2 justify-end">
@@ -527,21 +459,44 @@ const AdminPlans = () => {
                                 </Select>
                             </div>
                             <div>
-                                <label className="text-sm font-medium">Max Users</label>
-                                <Input
-                                    type="number"
-                                    placeholder="1"
-                                    value={newPlan.maxUsers || ''}
-                                    onChange={(e) => setNewPlan({ ...newPlan, maxUsers: Number(e.target.value) })}
-                                />
+                                <label className="text-sm font-medium">Features</label>
+                                <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
+                                    {features.map(feat => (
+                                        <div key={feat.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                checked={(newPlan.features || []).includes(Number(feat.id))}
+                                                onCheckedChange={(checked) => {
+                                                    const currentFeatures = newPlan.features || [];
+                                                    if (checked) {
+                                                        setNewPlan({ ...newPlan, features: [...currentFeatures, Number(feat.id)] });
+                                                    } else {
+                                                        setNewPlan({ ...newPlan, features: currentFeatures.filter(id => id !== Number(feat.id)) });
+                                                    }
+                                                }}
+                                            />
+                                            <label className="text-sm">{feat.name}</label>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <Checkbox
-                                    checked={newPlan.isPopular || false}
-                                    onCheckedChange={(checked) => setNewPlan({ ...newPlan, isPopular: checked as boolean })}
+                                    checked={newPlan.trialEnabled || false}
+                                    onCheckedChange={(checked) => setNewPlan({ ...newPlan, trialEnabled: checked as boolean })}
                                 />
-                                <label className="text-sm font-medium">Mark as Popular</label>
+                                <label className="text-sm font-medium">Enable Trial</label>
                             </div>
+                            {newPlan.trialEnabled && (
+                                <div>
+                                    <label className="text-sm font-medium">Trial Days</label>
+                                    <Input
+                                        type="number"
+                                        placeholder="14"
+                                        value={newPlan.trialDays || ''}
+                                        onChange={(e) => setNewPlan({ ...newPlan, trialDays: Number(e.target.value) })}
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div className="flex gap-2 justify-end">
                             <Button variant="outline" onClick={() => setIsPlanDialogOpen(false)} disabled={isCreating}>
