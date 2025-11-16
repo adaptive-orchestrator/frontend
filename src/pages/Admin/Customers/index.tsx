@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '@/components/ui/badge';
 import { Search, Mail, Phone, Eye, Download, Users, DollarSign, ShoppingCart, TrendingUp, Loader2 } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
+import { getAllCustomers } from '@/lib/api/customers';
+import Cookies from 'js-cookie';
 
 interface Customer {
   id: string;
@@ -112,22 +114,43 @@ export default function AdminCustomers() {
 
   useEffect(() => {
     const fetchCustomers = async () => {
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+      const token = Cookies.get('token');
       const isAuthenticated = !!token;
 
       if (isAuthenticated) {
-        // TODO: Implement API call when customer API is ready
-        // try {
-        //   const response = await getAllCustomers();
-        //   setCustomers(response.customers || response);
-        // } catch (error) {
-        //   console.error('Failed to fetch customers:', error);
-        //   setCustomers(DEMO_CUSTOMERS);
-        // }
-        console.log('🎭 API not implemented yet - using demo data');
-        setCustomers(DEMO_CUSTOMERS);
+        console.log('🔐 Authenticated - Fetching customers from API...');
+        try {
+          // Gọi API với các query params phù hợp với backend
+          const response = await getAllCustomers({ 
+            page: 1, 
+            limit: 100,
+            segment: 'bronze'
+            // segment có thể thêm nếu cần filter: 'bronze', 'silver', 'gold', 'platinum'
+          });
+          console.log('✅ Customers fetched from API:', response);
+          
+          // Map backend response to frontend format
+          const apiCustomers = (response.customers || response).map((c: any) => ({
+            id: c.id?.toString() || c.customerId?.toString(),
+            name: c.name,
+            email: c.email,
+            phone: c.phone || 'N/A',
+            type: 'retail', // Default type, can be determined from other fields if available
+            status: c.isActive ? 'active' : 'inactive',
+            totalOrders: c.totalOrders || 0,
+            totalSpent: c.totalSpent || 0,
+            joinDate: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            lastOrderDate: c.lastOrderDate ? new Date(c.lastOrderDate).toISOString().split('T')[0] : undefined,
+          }));
+          
+          setCustomers(apiCustomers);
+        } catch (error) {
+          console.error('❌ Failed to fetch customers:', error);
+          console.log('⚠️ Falling back to demo data');
+          setCustomers(DEMO_CUSTOMERS);
+        }
       } else {
-        console.log('🎭 Demo mode - using sample customers');
+        console.log('👤 Demo mode - using sample customers');
         setCustomers(DEMO_CUSTOMERS);
       }
       

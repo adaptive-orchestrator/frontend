@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect, useContext } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Layers, DollarSign, Users, TrendingUp } from 'lucide-react';
+import { UserContext } from '@/contexts/UserContext';
+import { getAllPlans, createPlan } from '@/lib/api/plans';
+import { getAllFeatures, createFeature } from '@/lib/api/features';
+import Cookies from 'js-cookie';
 
 interface Feature {
     id: string;
@@ -32,29 +36,190 @@ interface SubscriptionPlan {
 }
 
 const AdminPlans = () => {
+    const { user } = useContext(UserContext);
     const [activeTab, setActiveTab] = useState('features');
     const [isFeatureDialogOpen, setIsFeatureDialogOpen] = useState(false);
     const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const [features, setFeatures] = useState<Feature[]>([
+    const DEMO_FEATURES: Feature[] = [
         { id: 'FEAT001', name: 'Task Management', description: 'Create and manage unlimited tasks', category: 'core', isActive: true },
         { id: 'FEAT002', name: 'Team Collaboration', description: 'Share tasks with team members', category: 'core', isActive: true },
         { id: 'FEAT003', name: 'Advanced Analytics', description: 'Detailed insights and reports', category: 'analytics', isActive: true },
         { id: 'FEAT004', name: 'Priority Support', description: '24/7 priority customer support', category: 'support', isActive: true },
         { id: 'FEAT005', name: 'API Access', description: 'Full REST API access', category: 'advanced', isActive: true },
         { id: 'FEAT006', name: 'Custom Branding', description: 'White-label your workspace', category: 'premium', isActive: true }
-    ]);
+    ];
 
-    const [plans, setPlans] = useState<SubscriptionPlan[]>([
+    const DEMO_PLANS: SubscriptionPlan[] = [
         { id: 'PLAN001', name: 'Basic', description: 'Perfect for individuals', price: 9.99, billingCycle: 'monthly', features: ['FEAT001', 'FEAT002'], maxUsers: 1, isPopular: false, activeSubscribers: 120, totalRevenue: 1198.80 },
         { id: 'PLAN002', name: 'Professional', description: 'For growing teams', price: 29.99, billingCycle: 'monthly', features: ['FEAT001', 'FEAT002', 'FEAT003', 'FEAT005'], maxUsers: 10, isPopular: true, activeSubscribers: 85, totalRevenue: 2549.15 },
         { id: 'PLAN003', name: 'Enterprise', description: 'For large organizations', price: 99.99, billingCycle: 'monthly', features: ['FEAT001', 'FEAT002', 'FEAT003', 'FEAT004', 'FEAT005', 'FEAT006'], maxUsers: -1, isPopular: false, activeSubscribers: 45, totalRevenue: 4499.55 }
-    ]);
+    ];
+
+    const [features, setFeatures] = useState<Feature[]>(DEMO_FEATURES);
+    const [plans, setPlans] = useState<SubscriptionPlan[]>(DEMO_PLANS);
 
     const [newFeature, setNewFeature] = useState<Partial<Feature>>({ name: '', description: '', category: 'core', isActive: true });
     const [newPlan, setNewPlan] = useState<Partial<SubscriptionPlan>>({ name: '', description: '', price: 0, billingCycle: 'monthly', features: [], maxUsers: 1, isPopular: false, activeSubscribers: 0, totalRevenue: 0 });
+    const [isCreating, setIsCreating] = useState(false);
+
+    // Fetch data from API when user is authenticated
+    useEffect(() => {
+        const fetchData = async () => {
+            const token = Cookies.get('token');
+            
+            // Nếu không có token → dùng demo data
+            if (!token) {
+                setFeatures(DEMO_FEATURES);
+                setPlans(DEMO_PLANS);
+                setLoading(false);
+                return;
+            }
+
+            // Có token → gọi API (không cần đợi user load xong)
+            try {
+                setLoading(true);
+                
+                // Fetch features and plans in parallel
+                const [featuresRes, plansRes] = await Promise.all([
+                    getAllFeatures(),
+                    getAllPlans()
+                ]);
+
+                console.log('Features API response:', featuresRes);
+                console.log('Plans API response:', plansRes);
+
+                // Map backend features to frontend format
+                if (featuresRes?.features) {
+                    const mappedFeatures = featuresRes.features.map((f: any) => ({
+                        id: f.id?.toString() || '',
+                        name: f.name || '',
+                        description: f.description || '',
+                        category: f.category || 'core',
+                        isActive: f.isActive ?? true
+                    }));
+                    setFeatures(mappedFeatures);
+                } else {
+                    setFeatures(DEMO_FEATURES);
+                }
+
+                // Map backend plans to frontend format
+                if (plansRes?.plans) {
+                    const mappedPlans = plansRes.plans.map((p: any) => ({
+                        id: p.id?.toString() || '',
+                        name: p.name || '',
+                        description: p.description || '',
+                        price: p.price || 0,
+                        billingCycle: p.billingCycle?.toLowerCase() === 'yearly' ? 'yearly' : 'monthly',
+                        features: p.features || [],
+                        maxUsers: p.maxUsers || 1,
+                        isPopular: p.isPopular || false,
+                        activeSubscribers: p.activeSubscribers || 0,
+                        totalRevenue: p.totalRevenue || 0
+                    }));
+                    setPlans(mappedPlans);
+                } else {
+                    setPlans(DEMO_PLANS);
+                }
+            } catch (error) {
+                console.error('Error fetching plans/features:', error);
+                // Fallback to demo data on error
+                setFeatures(DEMO_FEATURES);
+                setPlans(DEMO_PLANS);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []); // Chỉ chạy 1 lần khi component mount, không phụ thuộc vào user
+
+    const handleCreateFeature = async () => {
+        if (!newFeature.name) {
+            alert('Please enter feature name');
+            return;
+        }
+
+        try {
+            setIsCreating(true);
+            await createFeature({
+                name: newFeature.name,
+                description: newFeature.description || '',
+                category: newFeature.category || 'core',
+                isActive: newFeature.isActive ?? true
+            });
+
+            // Refresh features list
+            const featuresRes = await getAllFeatures();
+            if (featuresRes?.features) {
+                const mappedFeatures = featuresRes.features.map((f: any) => ({
+                    id: f.id?.toString() || '',
+                    name: f.name || '',
+                    description: f.description || '',
+                    category: f.category || 'core',
+                    isActive: f.isActive ?? true
+                }));
+                setFeatures(mappedFeatures);
+            }
+
+            setIsFeatureDialogOpen(false);
+            setNewFeature({ name: '', description: '', category: 'core', isActive: true });
+            alert('Feature created successfully!');
+        } catch (error) {
+            console.error('Error creating feature:', error);
+            alert('Failed to create feature');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const handleCreatePlan = async () => {
+        if (!newPlan.name || !newPlan.price) {
+            alert('Please enter plan name and price');
+            return;
+        }
+
+        try {
+            setIsCreating(true);
+            await createPlan({
+                name: newPlan.name,
+                description: newPlan.description || '',
+                price: Number(newPlan.price),
+                billingCycle: newPlan.billingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY',
+                features: newPlan.features || []
+            });
+
+            // Refresh plans list
+            const plansRes = await getAllPlans();
+            if (plansRes?.plans) {
+                const mappedPlans = plansRes.plans.map((p: any) => ({
+                    id: p.id?.toString() || '',
+                    name: p.name || '',
+                    description: p.description || '',
+                    price: p.price || 0,
+                    billingCycle: p.billingCycle?.toLowerCase() === 'yearly' ? 'yearly' : 'monthly',
+                    features: p.features || [],
+                    maxUsers: p.maxUsers || 1,
+                    isPopular: p.isPopular || false,
+                    activeSubscribers: p.activeSubscribers || 0,
+                    totalRevenue: p.totalRevenue || 0
+                }));
+                setPlans(mappedPlans);
+            }
+
+            setIsPlanDialogOpen(false);
+            setNewPlan({ name: '', description: '', price: 0, billingCycle: 'monthly', features: [], maxUsers: 1, isPopular: false, activeSubscribers: 0, totalRevenue: 0 });
+            alert('Plan created successfully!');
+        } catch (error) {
+            console.error('Error creating plan:', error);
+            alert('Failed to create plan');
+        } finally {
+            setIsCreating(false);
+        }
+    };
 
     const getCategoryColor = (category: Feature['category']) => {
         const colors = {
@@ -80,7 +245,13 @@ const AdminPlans = () => {
                     <p className="text-gray-600 dark:text-gray-400 mt-2">Create features and bundle them into subscription plans</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 dark:from-blue-500/5 dark:to-blue-600/5">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
@@ -141,7 +312,7 @@ const AdminPlans = () => {
                                         <CardTitle>Features Library</CardTitle>
                                         <CardDescription>Manage individual features that can be bundled into plans</CardDescription>
                                     </div>
-                                    <Button onClick={() => alert('Add Feature - Coming soon')}>
+                                    <Button onClick={() => setIsFeatureDialogOpen(true)}>
                                         <Plus className="h-4 w-4 mr-2" />
                                         Add Feature
                                     </Button>
@@ -179,7 +350,7 @@ const AdminPlans = () => {
                                         <CardTitle>Subscription Plans</CardTitle>
                                         <CardDescription>Create and manage subscription plans by bundling features</CardDescription>
                                     </div>
-                                    <Button onClick={() => alert('Create Plan - Coming soon')}>
+                                    <Button onClick={() => setIsPlanDialogOpen(true)}>
                                         <Plus className="h-4 w-4 mr-2" />
                                         Create Plan
                                     </Button>
@@ -249,6 +420,139 @@ const AdminPlans = () => {
                         </Card>
                     </TabsContent>
                 </Tabs>
+                    </>
+                )}
+
+                {/* Feature Dialog */}
+                <Dialog open={isFeatureDialogOpen} onOpenChange={setIsFeatureDialogOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Add New Feature</DialogTitle>
+                            <DialogDescription>Create a new feature that can be added to plans</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div>
+                                <label className="text-sm font-medium">Feature Name *</label>
+                                <Input
+                                    placeholder="e.g., Advanced Analytics"
+                                    value={newFeature.name || ''}
+                                    onChange={(e) => setNewFeature({ ...newFeature, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Description</label>
+                                <Input
+                                    placeholder="Describe this feature"
+                                    value={newFeature.description || ''}
+                                    onChange={(e) => setNewFeature({ ...newFeature, description: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Category</label>
+                                <Select value={newFeature.category || 'core'} onValueChange={(val) => setNewFeature({ ...newFeature, category: val as any })}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="core">Core</SelectItem>
+                                        <SelectItem value="advanced">Advanced</SelectItem>
+                                        <SelectItem value="premium">Premium</SelectItem>
+                                        <SelectItem value="analytics">Analytics</SelectItem>
+                                        <SelectItem value="support">Support</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    checked={newFeature.isActive ?? true}
+                                    onCheckedChange={(checked) => setNewFeature({ ...newFeature, isActive: checked as boolean })}
+                                />
+                                <label className="text-sm font-medium">Active</label>
+                            </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="outline" onClick={() => setIsFeatureDialogOpen(false)} disabled={isCreating}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleCreateFeature} disabled={isCreating}>
+                                {isCreating ? 'Creating...' : 'Create Feature'}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Plan Dialog */}
+                <Dialog open={isPlanDialogOpen} onOpenChange={setIsPlanDialogOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Create New Plan</DialogTitle>
+                            <DialogDescription>Bundle features into a subscription plan</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div>
+                                <label className="text-sm font-medium">Plan Name *</label>
+                                <Input
+                                    placeholder="e.g., Professional"
+                                    value={newPlan.name || ''}
+                                    onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Description</label>
+                                <Input
+                                    placeholder="Describe this plan"
+                                    value={newPlan.description || ''}
+                                    onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Price *</label>
+                                <Input
+                                    type="number"
+                                    placeholder="9.99"
+                                    value={newPlan.price || ''}
+                                    onChange={(e) => setNewPlan({ ...newPlan, price: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Billing Cycle</label>
+                                <Select value={newPlan.billingCycle || 'monthly'} onValueChange={(val) => setNewPlan({ ...newPlan, billingCycle: val as any })}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="monthly">Monthly</SelectItem>
+                                        <SelectItem value="yearly">Yearly</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Max Users</label>
+                                <Input
+                                    type="number"
+                                    placeholder="1"
+                                    value={newPlan.maxUsers || ''}
+                                    onChange={(e) => setNewPlan({ ...newPlan, maxUsers: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    checked={newPlan.isPopular || false}
+                                    onCheckedChange={(checked) => setNewPlan({ ...newPlan, isPopular: checked as boolean })}
+                                />
+                                <label className="text-sm font-medium">Mark as Popular</label>
+                            </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="outline" onClick={() => setIsPlanDialogOpen(false)} disabled={isCreating}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleCreatePlan} disabled={isCreating}>
+                                {isCreating ? 'Creating...' : 'Create Plan'}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </PageLayout>
     );

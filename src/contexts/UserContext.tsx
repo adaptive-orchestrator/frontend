@@ -38,6 +38,9 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Export UserContext để các component khác có thể dùng
+export { UserContext };
+
 export function UserProvider({ children }: { children: ReactNode }) {
   // Bắt đầu với null - user chưa đăng nhập
   const [currentUser, setCurrentUser] = useState<User | null>(null);
