@@ -28,11 +28,24 @@ export default function ProductDetail() {
       try {
         setLoading(true);
         
-        // TODO: Uncomment để gọi API thật
-        // const data = await getProductById(Number(id));
-        // setProduct(data.product || data);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         
-        // Mock data cho demo
+        try {
+          console.log(`📥 Fetching product ${id}...`);
+          const response = await fetch(`${API_URL}/products/${id}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            const prod = data.product || data;
+            console.log('✅ Product loaded:', prod);
+            setProduct(prod);
+            return;
+          }
+        } catch (apiError) {
+          console.warn('⚠️ API failed, using mock data:', apiError);
+        }
+        
+        // Fallback to mock data
         const mockProducts: Product[] = [
           {
             id: 1,

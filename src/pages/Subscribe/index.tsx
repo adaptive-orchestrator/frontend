@@ -133,6 +133,7 @@ export default function Subscribe() {
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
+      alert('Vui lòng đăng nhập để đăng ký gói dịch vụ');
       navigate(`${baseURL}login`);
       return;
     }

@@ -1,6 +1,7 @@
 // src/pages/SubscriptionPlans/index.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@/contexts/UserContext';
 // TODO: Uncomment khi dùng API thật
 // import { getAllPlans } from '@/lib/api/plans';
 import { Plan } from '@/types/product';
@@ -11,8 +12,10 @@ import PageLayout from '@/components/layout/PageLayout';
 
 export default function SubscriptionPlans() {
   const navigate = useNavigate();
+  const { currentUser } = useUser();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [subscribing, setSubscribing] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   const baseURL = import.meta.env.BASE_URL;
@@ -21,6 +24,35 @@ export default function SubscriptionPlans() {
     const fetchPlans = async () => {
       try {
         setLoading(true);
+        
+        // Check if user already has active subscription
+        if (currentUser) {
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const customerId = parseInt(currentUser.id);
+          
+          if (!isNaN(customerId)) {
+            try {
+              const subsResponse = await fetch(`${API_URL}/subscriptions/customer/${customerId}`);
+              if (subsResponse.ok) {
+                const subsData = await subsResponse.json();
+                const subscriptions = subsData.subscriptions || [];
+                
+                // Check if user has active or pending subscription
+                const activeOrPending = subscriptions.find(
+                  (s: any) => s.status === 'active' || s.status === 'pending'
+                );
+                
+                if (activeOrPending) {
+                  console.log('✅ User already has subscription, redirecting to dashboard...');
+                  navigate(`${baseURL}subscription-dashboard`);
+                  return;
+                }
+              }
+            } catch (err) {
+              console.log('Could not check existing subscriptions:', err);
+            }
+          }
+        }
         
         // TODO: Uncomment để gọi API thật
         // const data = await getAllPlans();
@@ -58,7 +90,76 @@ export default function SubscriptionPlans() {
     };
 
     fetchPlans();
-  }, []);
+  }, [currentUser, navigate, baseURL]);
+
+  const handleSubscribe = async (planId: number) => {
+    if (!currentUser) {
+      alert('Vui lòng đăng nhập để đăng ký gói dịch vụ');
+      navigate(`${baseURL}login`);
+      return;
+    }
+
+    try {
+      setSubscribing(planId);
+      
+      // Step 1: Create subscription
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const customerId = parseInt(currentUser.id);
+      
+      if (isNaN(customerId)) {
+        throw new Error('Invalid customer ID. Please re-login.');
+      }
+
+      const subscriptionResponse = await fetch(`${API_URL}/subscriptions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerId: customerId,
+          planId: planId,
+          useTrial: false, // Không dùng trial, thanh toán ngay
+        }),
+      });
+
+      if (!subscriptionResponse.ok) {
+        const errorData = await subscriptionResponse.json();
+        throw new Error(errorData.message || 'Không thể tạo subscription');
+      }
+
+      const subscriptionData = await subscriptionResponse.json();
+      const subscription = subscriptionData.subscription || subscriptionData;
+
+      console.log('✅ Subscription created:', subscription);
+      console.log('✅ Tạo subscription thành công! Chuyển sang thanh toán...');
+
+      // Find plan details
+      const selectedPlan = plans.find(p => p.id === planId);
+
+      const checkoutState = {
+        type: 'subscription',
+        subscriptionId: subscription.id,
+        planId: planId,
+        planName: selectedPlan?.name || subscription.planName || 'Subscription Plan',
+        period: subscription.billingCycle === 'monthly' ? 'monthly' : 'yearly',
+        amount: subscription.amount,
+        features: selectedPlan?.features || [],
+      };
+
+      console.log('🔄 Navigating to checkout with state:', checkoutState);
+
+      // Step 2: Redirect to checkout page với subscriptionId
+      navigate(`${baseURL}checkout`, {
+        state: checkoutState,
+      });
+
+    } catch (error: any) {
+      console.error('Error subscribing:', error);
+      alert(error.message || 'Có lỗi xảy ra khi đăng ký');
+    } finally {
+      setSubscribing(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -144,11 +245,19 @@ export default function SubscriptionPlans() {
               </CardContent>
               <CardFooter className="pt-6">
                 <Button
-                  onClick={() => navigate(`${baseURL}subscription-dashboard`)}
+                  onClick={() => handleSubscribe(plan.id)}
+                  disabled={subscribing === plan.id}
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                   size="lg"
                 >
-                  🚀 Đăng Ký Ngay - Tự động gia hạn
+                  {subscribing === plan.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    '🚀 Đăng Ký Ngay - Tự động gia hạn'
+                  )}
                 </Button>
               </CardFooter>
             </Card>

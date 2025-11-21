@@ -20,8 +20,11 @@ export default function MyOrders() {
 
   useEffect(() => {
     const fetchOrders = async () => {
+      // Allow access without login for demo purposes
       if (!currentUser) {
-        navigate(`${baseURL}login`);
+        console.log('⚠️ No user logged in, showing empty state');
+        setOrders([]);
+        setLoading(false);
         return;
       }
 

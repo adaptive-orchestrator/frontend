@@ -1,6 +1,7 @@
 // src/pages/ModeSelection/index.tsx
 import { useNavigate } from 'react-router-dom';
 import { useBusinessMode } from '@/contexts/BusinessModeContext';
+import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Calendar, Gift, Layers } from 'lucide-react';
@@ -10,14 +11,34 @@ import MainNav from '@/components/common/MainNav';
 export default function ModeSelection() {
   const navigate = useNavigate();
   const { setMode } = useBusinessMode();
+  const { currentUser } = useUser();
   const baseURL = import.meta.env.BASE_URL;
 
   const handleModeSelect = (mode: 'retail' | 'subscription' | 'freemium' | 'multi') => {
-    setMode(mode);
+    // Save mode with userId to keep it separate per user
+    const userId = currentUser?.id || currentUser?.email || 'anonymous';
+    setMode(mode, userId);
     
-    // Admin navigates to admin dashboard after selecting mode
-    // Họ có thể quản lý business từ admin dashboard
-    navigate(`${baseURL}admin`);
+    console.log(`✅ Business mode "${mode}" selected for user ${userId}`);
+    
+    // Redirect based on user role and selected mode
+    const userRole = currentUser?.role;
+    
+    if (userRole === 'organization_admin' || userRole === 'super_admin') {
+      // Admin navigates to admin dashboard
+      navigate(`${baseURL}admin`);
+    } else {
+      // Customer navigates based on selected mode
+      if (mode === 'retail') {
+        navigate(`${baseURL}products`);
+      } else if (mode === 'subscription') {
+        navigate(`${baseURL}plans`);
+      } else if (mode === 'freemium') {
+        navigate(`${baseURL}freemium-plans`);
+      } else {
+        navigate(`${baseURL}`); // multi mode - home page
+      }
+    }
   };
 
   const modes = [

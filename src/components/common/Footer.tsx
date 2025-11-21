@@ -1,9 +1,31 @@
 import { MapPin, Github, Linkedin, Mail, Phone } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export function Footer() {
   const darkMode = useTheme();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const baseURL = import.meta.env.BASE_URL;
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail || !newsletterEmail.includes('@')) {
+      setSubscribeStatus('error');
+      setTimeout(() => setSubscribeStatus('idle'), 3000);
+      return;
+    }
+    setSubscribeStatus('loading');
+    // TODO: Call API when backend is ready
+    // await subscribeNewsletter(newsletterEmail);
+    setTimeout(() => {
+      setSubscribeStatus('success');
+      setNewsletterEmail('');
+      setTimeout(() => setSubscribeStatus('idle'), 3000);
+    }, 1000);
+  };
 
   return (
     <footer className="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
@@ -120,16 +142,31 @@ export function Footer() {
 
             <div className="pt-4">
               <p className="text-gray-300 text-sm mb-4">Subscribe to our newsletter</p>
-              <div className="flex">
-                <input
-                  type="email"
-                  placeholder="Your email"
-                  className="bg-gray-800 text-white px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-grow text-sm"
-                />
-                <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r-lg transition-colors text-sm font-medium">
-                  Subscribe
-                </button>
-              </div>
+              <form onSubmit={handleNewsletterSubmit}>
+                <div className="flex">
+                  <input
+                    type="email"
+                    placeholder="Your email"
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    disabled={subscribeStatus === 'loading'}
+                    className="bg-gray-800 text-white px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-grow text-sm disabled:opacity-50"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={subscribeStatus === 'loading'}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r-lg transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {subscribeStatus === 'loading' ? 'Subscribing...' : subscribeStatus === 'success' ? '✓ Subscribed!' : 'Subscribe'}
+                  </button>
+                </div>
+                {subscribeStatus === 'error' && (
+                  <p className="text-red-400 text-xs mt-2">Please enter a valid email address</p>
+                )}
+                {subscribeStatus === 'success' && (
+                  <p className="text-green-400 text-xs mt-2">Successfully subscribed to our newsletter!</p>
+                )}
+              </form>
             </div>
           </div>
         </div>
@@ -142,13 +179,13 @@ export function Footer() {
           </p>
 
           <div className="mt-4 md:mt-0 flex space-x-4 text-sm text-gray-400">
-            <a href="#" className="hover:text-blue-400 transition-colors">
+            <Link to={`${baseURL}privacy-policy`} className="hover:text-blue-400 transition-colors">
               Privacy Policy
-            </a>
+            </Link>
             <span className="text-gray-600">•</span>
-            <a href="#" className="hover:text-blue-400 transition-colors">
+            <Link to={`${baseURL}terms-of-service`} className="hover:text-blue-400 transition-colors">
               Terms of Service
-            </a>
+            </Link>
           </div>
         </div>
       </div>

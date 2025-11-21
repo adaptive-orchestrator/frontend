@@ -72,8 +72,9 @@ const Login = () => {
                     // Admin users go to mode selection
                     window.location.href = `${baseURL}mode-selection`;
                 } else {
-                    // Regular users (customers) go to products
-                    window.location.href = `${baseURL}products`;
+                    // Regular users (customers) also go to mode selection to choose their preference
+                    // They can browse products, subscriptions, or freemium based on their choice
+                    window.location.href = `${baseURL}mode-selection`;
                 }
             } else {
                 setLoginError('An unexpected error occurred');

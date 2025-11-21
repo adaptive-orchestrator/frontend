@@ -6,6 +6,7 @@ import { UserProvider } from './contexts/UserContext'
 import { TaskProvider } from './contexts/TaskContext'
 import { CartProvider } from './contexts/CartContext'
 import { BusinessModeProvider } from './contexts/BusinessModeContext'
+import BusinessModeLoader from './components/common/BusinessModeLoader'
 import Chatbot from './components/chatbot/ChatBot'
 import AdminToggle from './components/common/AdminToggle'
 import { MessageCircle } from 'lucide-react'
@@ -21,6 +22,7 @@ function App() {
                 <TaskProvider>
                     <CartProvider>
                         <BusinessModeProvider>
+                            <BusinessModeLoader />
                             <BrowserRouter>
                                 <div className="min-h-screen flex flex-col">
                                     {/* Khu vực route chính */}

@@ -62,3 +62,19 @@ export const authInformation = async () => {
     throw err.response?.data || err;
   }
 };
+
+export const updateUserProfile = async (data: { name?: string; email?: string }) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.patch(`${API_BASE}/customers/me`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};

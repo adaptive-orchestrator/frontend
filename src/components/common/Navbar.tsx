@@ -115,13 +115,13 @@ export default function Navbar({ activeSection = '' }: NavbarProps) {
                                             <DropdownMenuContent align="end" className="w-48">
                                                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => navigate(`${baseURL}settings`)}>
-                                                    <Settings size={16} className="mr-2" />
-                                                    Settings
-                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => navigate(`${baseURL}profile`)}>
                                                     <User size={16} className="mr-2" />
                                                     Profile
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => navigate(`${baseURL}mode-selection`)}>
+                                                    <Settings size={16} className="mr-2" />
+                                                    Select Business Mode
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem 
@@ -180,17 +180,6 @@ export default function Navbar({ activeSection = '' }: NavbarProps) {
                                     <Button
                                         variant="ghost"
                                         onClick={() => {
-                                            navigate(`${baseURL}settings`);
-                                            setIsMenuOpen(false);
-                                        }}
-                                        className="justify-start"
-                                    >
-                                        <Settings size={16} className="mr-2" />
-                                        Settings
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => {
                                             navigate(`${baseURL}profile`);
                                             setIsMenuOpen(false);
                                         }}
@@ -198,6 +187,17 @@ export default function Navbar({ activeSection = '' }: NavbarProps) {
                                     >
                                         <User size={16} className="mr-2" />
                                         Profile
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => {
+                                            navigate(`${baseURL}mode-selection`);
+                                            setIsMenuOpen(false);
+                                        }}
+                                        className="justify-start"
+                                    >
+                                        <Settings size={16} className="mr-2" />
+                                        Select Business Mode
                                     </Button>
                                     <Button
                                         variant="ghost"

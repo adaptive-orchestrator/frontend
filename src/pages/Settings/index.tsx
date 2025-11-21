@@ -46,9 +46,8 @@ export default function Settings() {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="sticky top-0 z-10 py-4 bg-white border-b border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center max-w-5xl px-6 mx-auto">
-          {/* better logic here */}
           <Link
-            to={`${baseURL}tasks`}
+            to={baseURL}
             className="p-1 mr-4 text-gray-500 transition-colors rounded-full hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <ArrowLeft className="w-5 h-5" />

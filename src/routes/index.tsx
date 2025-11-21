@@ -33,6 +33,8 @@ import AdminAddons from '@/pages/Admin/Addons';
 import AdminAnalytics from '@/pages/Admin/Analytics';
 import AdminSettings from '@/pages/Admin/Settings';
 import LLMRecommendation from '@/pages/LLMRecommendation';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { Route, Routes } from 'react-router-dom';
 // import { Navigate } from 'react-router-dom';
@@ -42,20 +44,21 @@ export default function AppRoutes() {
 
     return (
         <Routes>
-            {/* Quick Login - Trang chính cho demo không cần API */}
-            <Route path={`${baseURL}`} element={<QuickLogin />} />
+            {/* Landing Page - Main page */}
+            <Route path={`${baseURL}`} element={<LandingPage />} />
+            <Route path={`${baseURL}quick-login`} element={<QuickLogin />} />
             <Route path={`${baseURL}welcome`} element={<Welcome />} />
             <Route path={`${baseURL}landing`} element={<LandingPage />} />
-            <Route path={`${baseURL}mode-selection`} element={
-                <ProtectedRoute requireAuth requireAdmin>
-                    <ModeSelection />
-                </ProtectedRoute>
-            } />
+            <Route path={`${baseURL}mode-selection`} element={<ModeSelection />} />
             <Route path={`${baseURL}model-recommendation`} element={<LLMRecommendation />} />
             <Route path={`${baseURL}login`} element={<Login />} />
             <Route path={`${baseURL}signup`} element={<Signup />} />
             <Route path={`${baseURL}password-recovery`} element={<PasswordRecovery />} />
             <Route path={`${baseURL}reset-password`} element={<ResetPassword />} />
+            
+            {/* Legal Pages */}
+            <Route path={`${baseURL}privacy-policy`} element={<PrivacyPolicy />} />
+            <Route path={`${baseURL}terms-of-service`} element={<TermsOfService />} />
             
             {/* Protected Routes - Require Authentication */}
             <Route path={`${baseURL}tasks`} element={

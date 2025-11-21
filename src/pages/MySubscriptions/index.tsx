@@ -30,44 +30,61 @@ export default function MySubscriptions() {
   const baseURL = import.meta.env.BASE_URL;
 
   useEffect(() => {
-    // TODO: Uncomment để gọi API thật
-    // const fetchSubscriptions = async () => {
-    //   if (!currentUser) {
-    //     navigate('/login');
-    //     return;
-    //   }
-    //   try {
-    //     const data = await getSubscriptionsByCustomer(currentUser.id || currentUser.email);
-    //     setSubscriptions(data.subscriptions || data);
-    //   } catch (err: any) {
-    //     console.error('Failed to load subscriptions:', err);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    
-    // Mock data - load from localStorage cho demo
     const fetchSubscriptions = async () => {
+      // Allow viewing without login for demo
       if (!currentUser) {
-        navigate(`${baseURL}login`);
+        console.log('⚠️ No user logged in, showing empty subscriptions');
+        setSubscriptions([]);
+        setLoading(false);
         return;
       }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        setLoading(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const customerId = parseInt(currentUser.id);
 
-      // Load from localStorage
-      const demoSubs = JSON.parse(localStorage.getItem('demoSubscriptions') || '[]');
-      const userSubs = demoSubs.filter(
-        (sub: Subscription) => sub.customerId === (currentUser.id || currentUser.email)
-      );
+        if (isNaN(customerId)) {
+          throw new Error('Invalid customer ID');
+        }
 
-      setSubscriptions(userSubs);
-      setLoading(false);
+        console.log(`📥 Fetching subscriptions for customer ${customerId}...`);
+        
+        const response = await fetch(`${API_URL}/subscriptions/customer/${customerId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch subscriptions');
+        }
+
+        const data = await response.json();
+        const subs = data.subscriptions || [];
+        
+        console.log(`✅ Loaded ${subs.length} subscriptions:`, subs);
+        
+        // Map backend data to frontend format
+        const mappedSubs = subs.map((s: any) => ({
+          id: s.id,
+          planName: s.planName,
+          planDescription: `Subscription ID: ${s.id}`,
+          price: s.amount,
+          billingCycle: s.billingCycle?.toUpperCase() || 'MONTHLY',
+          status: s.status?.toUpperCase() || 'ACTIVE',
+          startDate: s.currentPeriodStart || s.createdAt,
+          endDate: s.currentPeriodEnd,
+          autoRenew: !s.cancelAtPeriodEnd,
+        }));
+
+        setSubscriptions(mappedSubs);
+      } catch (err: any) {
+        console.error('❌ Failed to load subscriptions:', err);
+        setSubscriptions([]);
+      } finally {
+        setLoading(false);
+      }
     };
-
+    
     fetchSubscriptions();
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, baseURL]);
 
   if (loading) {
     return (
