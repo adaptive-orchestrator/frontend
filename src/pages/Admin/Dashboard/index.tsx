@@ -16,12 +16,39 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
+import { getAdminDashboardStats } from '@/lib/api/admin';
 
 export default function AdminDashboard() {
   const { currentUser } = useUser();
   const { mode } = useBusinessMode();
   const baseURL = import.meta.env.BASE_URL;
   const [selectedModel, setSelectedModel] = useState<'all' | 'retail' | 'subscription' | 'freemium'>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Real statistics from backend
+  const [retailStats, setRetailStats] = useState({
+    revenue: 0,
+    orders: 0,
+    customers: 0,
+    avgOrderValue: 0,
+  });
+
+  const [subscriptionStats, setSubscriptionStats] = useState({
+    mrr: 0,
+    activeSubscriptions: 0,
+    churnRate: 0,
+    ltv: 0,
+  });
+
+  const [freemiumStats, setFreemiumStats] = useState({
+    freeUsers: 0,
+    paidAddOns: 0,
+    conversionRate: 0,
+    addOnRevenue: 0,
+  });
+
+  const [overallStats, setOverallStats] = useState<any[]>([]);
 
   // Auto-set selectedModel based on business mode when component mounts
   useEffect(() => {
@@ -34,67 +61,28 @@ export default function AdminDashboard() {
     }
   }, [mode]);
 
-  // Mock statistics data by business model
-  const retailStats = {
-    revenue: '$25,430.00',
-    orders: 1847,
-    customers: 2245,
-    avgOrderValue: '$13.77',
-  };
+  // Fetch real statistics from backend
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getAdminDashboardStats();
+        
+        setRetailStats(data.retail);
+        setSubscriptionStats(data.subscription);
+        setFreemiumStats(data.freemium);
+        setOverallStats(data.overall);
+      } catch (err: any) {
+        console.error('Failed to fetch dashboard stats:', err);
+        setError(err.message || 'Failed to load dashboard statistics');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const subscriptionStats = {
-    mrr: '$12,480.00', // Monthly Recurring Revenue
-    activeSubscriptions: 249,
-    churnRate: '2.3%',
-    ltv: '$598.40', // Lifetime Value
-  };
-
-  const freemiumStats = {
-    freeUsers: 3580,
-    paidAddOns: 342,
-    conversionRate: '9.6%',
-    addOnRevenue: '$7,321.89',
-  };
-
-  // Overall stats
-  const overallStats = [
-    {
-      title: 'Total Revenue (All Models)',
-      value: '$45,231.89',
-      change: '+20.1%',
-      icon: DollarSign,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-      description: 'Retail + Subscription + Add-ons',
-    },
-    {
-      title: 'Retail Orders',
-      value: retailStats.orders.toLocaleString(),
-      change: '+15.3%',
-      icon: ShoppingCart,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-      description: 'One-time purchases',
-    },
-    {
-      title: 'Active Subscriptions',
-      value: subscriptionStats.activeSubscriptions.toString(),
-      change: '+8.2%',
-      icon: Calendar,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-      description: 'Recurring revenue',
-    },
-    {
-      title: 'Freemium Users',
-      value: freemiumStats.freeUsers.toLocaleString(),
-      change: '+25.8%',
-      icon: Gift,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-      description: `${freemiumStats.paidAddOns} paid add-ons`,
-    },
-  ];
+    fetchStats();
+  }, []);
 
   const quickActions = [
     {
@@ -163,8 +151,25 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        {/* Business Model Tabs */}
-        <div className="mb-6 flex gap-2 flex-wrap">
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+            <p className="text-red-800 dark:text-red-200">{error}</p>
+          </div>
+        )}
+
+        {/* Dashboard Content */}
+        {!loading && !error && (
+          <>
+            {/* Business Model Tabs */}
+            <div className="mb-6 flex gap-2 flex-wrap">
           {mode === 'multi' ? (
             // Multi mode - allow switching between all models
             <>
@@ -393,6 +398,8 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </PageLayout>
   );
