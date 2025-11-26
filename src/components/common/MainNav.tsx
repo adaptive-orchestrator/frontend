@@ -98,12 +98,12 @@ export default function MainNav() {
                   </Link>
                 )}
                 
-                <Link
+               {/* <Link
                   to={`${baseURL}tasks`}
                   className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
                 >
                   Tasks
-                </Link>
+                </Link> */}
               </>
             )}
           </nav>
@@ -141,6 +141,12 @@ export default function MainNav() {
                 <UserMenu user={currentUser} onLogout={logout} />
               ) : !isAuthenticated ? (
                 <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(`${baseURL}quick-login`)}
+                  >
+                    Quick login
+                  </Button>
                   <Button
                     variant="ghost"
                     onClick={() => navigate(`${baseURL}login`)}

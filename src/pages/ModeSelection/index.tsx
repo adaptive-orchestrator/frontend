@@ -19,7 +19,7 @@ export default function ModeSelection() {
     const userId = currentUser?.id || currentUser?.email || 'anonymous';
     setMode(mode, userId);
     
-    console.log(`✅ Business mode "${mode}" selected for user ${userId}`);
+    console.log(`Business mode "${mode}" selected for user ${userId}`);
     
     // Redirect based on user role and selected mode
     const userRole = currentUser?.role;
@@ -49,11 +49,11 @@ export default function ModeSelection() {
       icon: ShoppingCart,
       color: 'from-blue-500 to-cyan-500',
       features: [
-        '🏪 Tạo shop bán hàng online',
-        '� Quản lý sản phẩm & kho',
-        '� Thanh toán một lần',
-        '� Theo dõi đơn hàng',
-        '� Quản lý khách hàng'
+        ' Tạo shop bán hàng online',
+        ' Quản lý sản phẩm & kho',
+        ' Thanh toán một lần',
+        ' Theo dõi đơn hàng',
+        ' Quản lý khách hàng'
       ],
       businessModel: 'E-commerce • One-time Purchase'
     },
@@ -64,11 +64,11 @@ export default function ModeSelection() {
       icon: Calendar,
       color: 'from-purple-500 to-pink-500',
       features: [
-        '� Tạo gói dịch vụ (Basic, Pro, Enterprise)',
-        '🔄 Thu phí định kỳ tự động',
-        '⭐ Quản lý tính năng theo gói',
-        '� Quản lý subscribers',
-        '📈 Doanh thu dự đoán được',
+        'Tạo gói dịch vụ (Basic, Pro, Enterprise)',
+        'Thu phí định kỳ tự động',
+        'Quản lý tính năng theo gói',
+        'Quản lý subscribers',
+        'Doanh thu dự đoán được',
       ],
       businessModel: 'SaaS • Recurring Revenue'
     },
@@ -79,11 +79,11 @@ export default function ModeSelection() {
       icon: Gift,
       color: 'from-green-500 to-emerald-500',
       features: [
-        '🎁 Setup gói miễn phí cơ bản',
-        '🛍️ Tạo Add-ons trả phí',
-        '💡 Linh hoạt theo nhu cầu',
-        '📈 Chuyển đổi từ free sang paid',
-        '🎯 Tối ưu conversion rate',
+        'Setup gói miễn phí cơ bản',
+        'Tạo Add-ons trả phí',
+        'Linh hoạt theo nhu cầu',
+        'Chuyển đổi từ free sang paid',
+        'Tối ưu conversion rate',
       ],
       businessModel: 'Free Base + Pay-per-Feature'
     },
@@ -94,11 +94,11 @@ export default function ModeSelection() {
       icon: Layers,
       color: 'from-orange-500 to-red-500',
       features: [
-        '🎯 Quản lý Retail + Subscription + Freemium',
-        '🔀 Nhiều instances riêng biệt',
-        '📊 Dashboard tổng hợp',
-        '⚡ Chuyển đổi linh hoạt',
-        '🚀 Mở rộng không giới hạn',
+        'Quản lý Retail + Subscription + Freemium',
+        'Nhiều instances riêng biệt',
+        'Dashboard tổng hợp',
+        'Chuyển đổi linh hoạt',
+        'Mở rộng không giới hạn',
       ],
       businessModel: 'Hybrid • Multi-Revenue Streams'
     },

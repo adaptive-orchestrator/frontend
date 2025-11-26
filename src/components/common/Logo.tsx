@@ -39,7 +39,7 @@ export function Logo({ size = 'md', showText = true, color = 'blueLight', classN
     <Link to={`${baseURL}`} className={`flex items-center gap-2 ${className}`}>
       <div className="relative">
         <img
-          src="./logo.png"
+          src={`${baseURL}logo.png`}
           alt="OctalTask Logo"
           className={`${sizeClasses[size]}`}
         />
