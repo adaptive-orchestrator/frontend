@@ -35,6 +35,7 @@ export const createProduct = async (data: {
   price: number;
   category?: string;
   sku?: string;
+  imageUrl?: string;
   isActive?: boolean;
 }) => {
   try {
@@ -42,6 +43,28 @@ export const createProduct = async (data: {
     if (!token) throw new Error('No token found');
 
     const res = await axios.post(`${API_BASE}/catalogue/products`, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
+export const updateProduct = async (id: number, data: {
+  name?: string;
+  description?: string;
+  price?: number;
+  category?: string;
+  sku?: string;
+  imageUrl?: string;
+  isActive?: boolean;
+}) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.put(`${API_BASE}/catalogue/products/${id}`, data, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return res.data;

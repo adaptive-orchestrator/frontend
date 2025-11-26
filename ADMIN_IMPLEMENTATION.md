@@ -82,7 +82,7 @@ Hiển thị đầy đủ thông tin:
 - **Users**: Số người đã mua
 - **Revenue**: Doanh thu từ add-on này
 - **Status**: active, inactive, draft (colored badges)
-- **Actions**: View 👁️, Edit ✏️, Delete 🗑️
+- **Actions**: View, Edit ✏️, Delete 🗑️
 
 #### **Mock Data (6 Add-ons)**
 

@@ -158,55 +158,81 @@ export default function ProductDetail() {
 
   return (
     <PageLayout>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
     <div className="container mx-auto px-4 py-8">
-      <Button variant="ghost" onClick={() => navigate(`${baseURL}products`)} className="mb-6">
+      <Button 
+        variant="ghost" 
+        onClick={() => navigate(`${baseURL}products`)} 
+        className="mb-6 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+      >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Products
       </Button>
 
       <div className="grid md:grid-cols-2 gap-8">
-        <div className="bg-gray-100 rounded-lg aspect-square flex items-center justify-center">
+        {/* Product Image */}
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-lg aspect-square flex items-center justify-center overflow-hidden hover:shadow-2xl transition-shadow duration-300">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="max-h-full max-w-full object-contain" />
+            <img 
+              src={product.imageUrl} 
+              alt={product.name} 
+              className="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-300"
+              onError={(e) => {
+                // Fallback về logo khi ảnh lỗi
+                const logo = `${baseURL}logo.png`;
+                e.currentTarget.src = logo;
+                e.currentTarget.className = "w-32 h-32 object-contain";
+              }}
+            />
           ) : (
-            <p className="text-gray-400">No image available</p>
+            <img
+              src={`${baseURL}logo.png`}
+              alt="OctalTask Logo"
+              className="w-32 h-32 object-contain"
+            />
           )}
         </div>
 
-        <Card>
+        <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <CardHeader>
-            <CardTitle className="text-3xl">{product.name}</CardTitle>
+            <CardTitle className="text-3xl text-slate-800 dark:text-slate-100">{product.name}</CardTitle>
             <CardDescription>
               {product.category && (
-                <span className="text-sm bg-gray-100 px-3 py-1 rounded">
+                <span className="text-sm px-3 py-1 rounded-full font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
                   {product.category}
                 </span>
               )}
               {product.sku && (
-                <span className="text-sm text-gray-500 ml-2">SKU: {product.sku}</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">SKU: {product.sku}</span>
               )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-4xl font-bold">${product.price.toFixed(2)}</div>
+            <div className="text-4xl font-bold text-purple-600 dark:text-purple-400">${product.price.toFixed(2)}</div>
             
             {product.stock !== undefined && (
               <div className="text-sm">
-                <span className={product.stock > 0 ? 'text-green-600' : 'text-red-600'}>
-                  {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                <span className={
+                  product.stock === 0 
+                    ? 'text-red-600 dark:text-red-400 font-semibold' 
+                    : product.stock < 10 
+                    ? 'text-orange-600 dark:text-orange-400 font-medium' 
+                    : 'text-green-600 dark:text-green-400'
+                }>
+                  {product.stock === 0 ? '⚠️ Out of Stock' : product.stock < 10 ? `⚡ Only ${product.stock} left` : `✓ ${product.stock} in stock`}
                 </span>
               </div>
             )}
 
             <div>
-              <h3 className="font-semibold mb-2">Description</h3>
-              <p className="text-gray-600">
+              <h3 className="font-semibold mb-2 text-slate-800 dark:text-slate-100">Description</h3>
+              <p className="text-slate-600 dark:text-slate-400">
                 {product.description || 'No description available'}
               </p>
             </div>
 
             <div className="flex items-center gap-4">
-              <label htmlFor="quantity" className="font-semibold">
+              <label htmlFor="quantity" className="font-semibold text-slate-800 dark:text-slate-100">
                 Quantity:
               </label>
               <Input
@@ -224,7 +250,7 @@ export default function ProductDetail() {
             <Button
               onClick={handleAddToCart}
               disabled={product.stock === 0}
-              className="w-full"
+              className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all"
               size="lg"
             >
               <ShoppingCart className="h-5 w-5 mr-2" />
@@ -233,6 +259,7 @@ export default function ProductDetail() {
           </CardFooter>
         </Card>
       </div>
+    </div>
     </div>
     </PageLayout>
   );

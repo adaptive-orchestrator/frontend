@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Edit, Trash2, Package, TrendingUp, AlertTriangle, DollarSign } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, TrendingUp, AlertTriangle, DollarSign, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import PageLayout from '@/components/layout/PageLayout';
 import { getAllProducts, createProduct, createInventory, getAllInventory, adjustStock } from '@/lib/api/products';
@@ -44,6 +44,7 @@ interface InventoryItem {
 export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,7 +58,18 @@ export default function AdminProducts() {
     stock: '',
     category: '',
     supplier: '',
-    sku: ''
+    sku: '',
+    imageUrl: ''
+  });
+
+  // Form states for editing product
+  const [editProduct, setEditProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: '',
+    sku: '',
+    imageUrl: ''
   });
 
   // Stock update state
@@ -180,6 +192,7 @@ export default function AdminProducts() {
         price: parseFloat(newProduct.price),
         category: newProduct.category || undefined,
         sku: newProduct.sku || undefined,
+        imageUrl: newProduct.imageUrl || undefined,
         isActive: true
       });
 
@@ -200,7 +213,7 @@ export default function AdminProducts() {
       await fetchProducts();
 
       // Reset form and close dialog
-      setNewProduct({ name: '', description: '', price: '', stock: '', category: '', supplier: '', sku: '' });
+      setNewProduct({ name: '', description: '', price: '', stock: '', category: '', supplier: '', sku: '', imageUrl: '' });
       setIsAddDialogOpen(false);
       alert('Thêm sản phẩm mới thành công!');
     } catch (error: any) {
@@ -267,6 +280,65 @@ export default function AdminProducts() {
   const openStockDialog = (product: Product) => {
     setSelectedProduct(product);
     setIsStockDialogOpen(true);
+  };
+
+  const openEditDialog = (product: Product) => {
+    setSelectedProduct(product);
+    setEditProduct({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      category: product.category,
+      sku: product.sku || '',
+      imageUrl: ''  // User can update with new URL
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!selectedProduct) return;
+
+    if (!editProduct.name || !editProduct.price) {
+      alert('Vui lòng điền đầy đủ tên và giá!');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      const updateData: any = {
+        name: editProduct.name,
+        description: editProduct.description,
+        price: parseFloat(editProduct.price),
+        category: editProduct.category,
+        sku: editProduct.sku
+      };
+
+      // Only include imageUrl if user provided one
+      if (editProduct.imageUrl.trim()) {
+        updateData.imageUrl = editProduct.imageUrl;
+      }
+
+      const response = await fetch(`http://localhost:3000/catalogue/products/${selectedProduct.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update product');
+      }
+
+      await fetchProducts();
+      setIsEditDialogOpen(false);
+      alert('Cập nhật sản phẩm thành công!');
+    } catch (error: any) {
+      console.error('Error updating product:', error);
+      alert('Lỗi khi cập nhật sản phẩm: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -353,6 +425,15 @@ export default function AdminProducts() {
                     value={newProduct.stock}
                     onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
                   />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <label className="text-sm font-medium">URL Hình ảnh</label>
+                  <Input
+                    placeholder="https://example.com/product-image.jpg"
+                    value={newProduct.imageUrl}
+                    onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})}
+                  />
+                  <p className="text-xs text-muted-foreground">Để trống sẽ hiển thị logo mặc định</p>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
@@ -485,7 +566,12 @@ export default function AdminProducts() {
                             >
                               <Package className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => openEditDialog(product)}
+                              title="Chỉnh sửa sản phẩm"
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
@@ -534,6 +620,78 @@ export default function AdminProducts() {
               <Button variant="outline" onClick={() => setIsStockDialogOpen(false)}>Hủy</Button>
               <Button onClick={handleUpdateStock} disabled={isLoading}>
                 {isLoading ? 'Đang xử lý...' : 'Cập Nhật'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Product Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Chỉnh Sửa Sản Phẩm</DialogTitle>
+              <DialogDescription>
+                Cập nhật thông tin sản phẩm
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tên sản phẩm *</label>
+                <Input
+                  placeholder="VD: Laptop Dell XPS 15"
+                  value={editProduct.name}
+                  onChange={(e) => setEditProduct({...editProduct, name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">SKU</label>
+                <Input
+                  placeholder="Mã SKU"
+                  value={editProduct.sku}
+                  onChange={(e) => setEditProduct({...editProduct, sku: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <label className="text-sm font-medium">Mô tả</label>
+                <Input
+                  placeholder="Mô tả chi tiết sản phẩm"
+                  value={editProduct.description}
+                  onChange={(e) => setEditProduct({...editProduct, description: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Danh mục</label>
+                <Input
+                  placeholder="VD: Electronics"
+                  value={editProduct.category}
+                  onChange={(e) => setEditProduct({...editProduct, category: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Giá bán *</label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={editProduct.price}
+                  onChange={(e) => setEditProduct({...editProduct, price: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <label className="text-sm font-medium">URL hình ảnh</label>
+                <Input
+                  type="url"
+                  placeholder="https://example.com/product-image.jpg"
+                  value={editProduct.imageUrl}
+                  onChange={(e) => setEditProduct({...editProduct, imageUrl: e.target.value})}
+                />
+                <p className="text-xs text-muted-foreground">Để trống sẽ giữ hình ảnh hiện tại hoặc hiển thị logo mặc định</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
+              <Button onClick={handleUpdateProduct} disabled={isLoading} className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                {isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
               </Button>
             </div>
           </DialogContent>

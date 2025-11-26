@@ -143,11 +143,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     //     loadData();
     // }, [currentUser?.id]);
 
-    useEffect(() => {
-    const loadData = async () => {
-        try {
-            // get tasks
-            const fetchedTasks = await getTasks();
+    // DISABLED - Old Tasks API no longer in use
+    // useEffect(() => {
+    // const loadData = async () => {
+    //     try {
+    //         // get tasks
+    //         const fetchedTasks = await getTasks();
 
             
     //         const mappedTasks = fetchedTasks.tasks.map((task: any) => ({
@@ -167,76 +168,76 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
     //   setTasks(mappedTasks);
             
-            const mappedTasks = await Promise.all(fetchedTasks.tasks.map(async (task: any) => {
-                    let subtasksData: any = {};
-                    let commentsData: any = {};
+    //         const mappedTasks = await Promise.all(fetchedTasks.tasks.map(async (task: any) => {
+    //                 let subtasksData: any = {};
+    //                 let commentsData: any = {};
 
-                    try {
-                        subtasksData = await getSubtasksByTaskId(task.id);
-                    } catch (err) {
-                        console.error(`Failed to fetch subtasks for task ${task.id}`, err);
-                    }
+    //                 try {
+    //                     subtasksData = await getSubtasksByTaskId(task.id);
+    //                 } catch (err) {
+    //                     console.error(`Failed to fetch subtasks for task ${task.id}`, err);
+    //                 }
 
-                    try {
-                        commentsData = await getCommentsByTaskId(task.id);
-                    } catch (err) {
-                        console.error(`Failed to fetch comments for task ${task.id}`, err);
-                    }
+    //                 try {
+    //                     commentsData = await getCommentsByTaskId(task.id);
+    //                 } catch (err) {
+    //                     console.error(`Failed to fetch comments for task ${task.id}`, err);
+    //                 }
 
-                    return {
-                        id: task.id.toString(),
-                        title: task.title,
-                        completed: task.isCompleted,
-                        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : undefined,
-                        notes: task.description || '',
-                        isStarred: task.isStarred,
-                        listId: task.listId?.toString(),
-                        subtasks: Array.isArray(subtasksData?.subtasks) ? subtasksData.subtasks.map((subtask: any) => ({
-                            id: subtask.id.toString(),
-                            title: subtask.content,
-                            isCompleted: subtask.isCompleted,
-                        })) : [],
-                        comments: Array.isArray(commentsData?.comments) ? commentsData.comments.map((comment: any) => ({
-                            id: comment.id.toString(),
-                            content: comment.content,
-                            taskId: task.id.toString(),
-                            userId: comment.user?.userId?.toString(),
-                            createdAt: comment.createdAt,
-                            userName: comment.user?.email || 'Unknown',  
-                            //userPhotoUrl: comment.user?.photoUrl || '',  
-                        })) : [],
-                        assignedTo: undefined,
-                        sharedWith: [],
-                        attachments: [],
-                    };
-                }));
+    //                 return {
+    //                     id: task.id.toString(),
+    //                     title: task.title,
+    //                     completed: task.isCompleted,
+    //                     dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : undefined,
+    //                     notes: task.description || '',
+    //                     isStarred: task.isStarred,
+    //                     listId: task.listId?.toString(),
+    //                     subtasks: Array.isArray(subtasksData?.subtasks) ? subtasksData.subtasks.map((subtask: any) => ({
+    //                         id: subtask.id.toString(),
+    //                         title: subtask.content,
+    //                         isCompleted: subtask.isCompleted,
+    //                     })) : [],
+    //                     comments: Array.isArray(commentsData?.comments) ? commentsData.comments.map((comment: any) => ({
+    //                         id: comment.id.toString(),
+    //                         content: comment.content,
+    //                         taskId: task.id.toString(),
+    //                         userId: comment.user?.userId?.toString(),
+    //                         createdAt: comment.createdAt,
+    //                         userName: comment.user?.email || 'Unknown',  
+    //                         //userPhotoUrl: comment.user?.photoUrl || '',  
+    //                     })) : [],
+    //                     assignedTo: undefined,
+    //                     sharedWith: [],
+    //                     attachments: [],
+    //                 };
+    //             }));
 
 
-            setTasks(mappedTasks);
+    //         setTasks(mappedTasks);
 
             
-            // get lists
-            const fetchedLists = await getLists();
-            const mappedLists = fetchedLists.lists.map((list: any) => ({
-                id: list.id.toString(),
-                name: list.name,
-                color: list.color,
-                icon: list.icon,
-                ownerId: list.user?.email,
-                isShared: false, // giả định, vì chưa có isShared từ API
-                sharedWith: []   // giả định trống vì chưa được trả về
-            }));
-            setLists(mappedLists);
-        } catch (err) {
-            setError('Failed to load data from API');
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    //         // get lists
+    //         const fetchedLists = await getLists();
+    //         const mappedLists = fetchedLists.lists.map((list: any) => ({
+    //             id: list.id.toString(),
+    //             name: list.name,
+    //             color: list.color,
+    //             icon: list.icon,
+    //             ownerId: list.user?.email,
+    //             isShared: false, // giả định, vì chưa có isShared từ API
+    //             sharedWith: []   // giả định trống vì chưa được trả về
+    //         }));
+    //         setLists(mappedLists);
+    //     } catch (err) {
+    //         setError('Failed to load data from API');
+    //         console.error(err);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
 
-    loadData();
-}, []);
+    // loadData();
+    // }, []);
 
 
     // // Save data to localStorage whenever it changes

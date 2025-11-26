@@ -51,7 +51,7 @@ export default function Products() {
             sku: product.sku,
             category: product.category,
             stock: inventoryMap.get(product.id) || 0,
-            imageUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&size=300&background=random`,
+            imageUrl: product.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&size=300&background=random`,
           }));
           
           setProducts(productsWithStock);
@@ -68,7 +68,7 @@ export default function Products() {
               sku: 'DELL-XPS-001',
               category: 'Electronics',
               stock: 15,
-              imageUrl: 'https://via.placeholder.com/300x300?text=Dell+XPS+15',
+              imageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=300&h=300&fit=crop',
             },
             {
               id: 2,
@@ -78,7 +78,7 @@ export default function Products() {
               sku: 'APPLE-IP15-001',
               category: 'Electronics',
               stock: 30,
-              imageUrl: 'https://via.placeholder.com/300x300?text=iPhone+15',
+              imageUrl: 'https://images.unsplash.com/photo-1592286927505-24cdf4a46b5c?w=300&h=300&fit=crop',
             },
             {
               id: 3,
@@ -88,7 +88,7 @@ export default function Products() {
               sku: 'SONY-WH-001',
               category: 'Audio',
               stock: 25,
-              imageUrl: 'https://via.placeholder.com/300x300?text=Sony+Headphones',
+              imageUrl: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&h=300&fit=crop',
             },
             {
               id: 4,
@@ -98,6 +98,7 @@ export default function Products() {
               sku: 'SAMSUNG-MON-001',
               category: 'Electronics',
               stock: 12,
+              imageUrl: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=300&h=300&fit=crop',
             },
             {
               id: 5,
@@ -107,6 +108,7 @@ export default function Products() {
               sku: 'LOGI-MX3-001',
               category: 'Accessories',
               stock: 50,
+              imageUrl: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=300&h=300&fit=crop',
             },
             {
               id: 6,
@@ -116,6 +118,7 @@ export default function Products() {
               sku: 'APPLE-IPAD-001',
               category: 'Electronics',
               stock: 8,
+              imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=300&h=300&fit=crop',
             },
           ];
           
@@ -156,21 +159,39 @@ export default function Products() {
     );
   }
 
+  // Helper function để lấy màu theo category
+  const getCategoryColor = (category?: string) => {
+    const colors: Record<string, string> = {
+      'Electronics': 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300',
+      'Audio': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
+      'Accessories': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
+      'default': 'bg-slate-100 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300'
+    };
+    return colors[category || 'default'] || colors['default'];
+  };
+
+  // Helper function để lấy màu stock status
+  const getStockColor = (stock: number) => {
+    if (stock === 0) return 'text-red-600 dark:text-red-400 font-semibold';
+    if (stock < 10) return 'text-orange-600 dark:text-orange-400 font-medium';
+    return 'text-green-600 dark:text-green-400';
+  };
+
   return (
     <PageLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 dark:from-blue-950/20 dark:via-cyan-950/20 dark:to-teal-950/20">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold text-indigo-700 dark:text-indigo-400">
                 Retail Products
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-slate-600 dark:text-slate-400 mt-2">
                 🛒 Mua sắm sản phẩm - Thanh toán một lần
               </p>
             </div>
             <Link to={`${baseURL}cart`}>
-              <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+              <Button className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 shadow-lg">
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 View Cart
               </Button>
@@ -184,45 +205,70 @@ export default function Products() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
-                <Card key={product.id} className="flex flex-col hover:shadow-xl transition-shadow border-blue-200 dark:border-blue-800">
+                <Card key={product.id} className="flex flex-col hover:shadow-2xl hover:scale-105 transition-all duration-300 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                  {/* Product Image */}
+                  <div className="relative w-full h-48 bg-slate-100 dark:bg-slate-800 overflow-hidden rounded-t-lg">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          // Fallback về logo khi ảnh lỗi
+                          const logo = `${baseURL}logo.png`;
+                          e.currentTarget.src = logo;
+                          e.currentTarget.className = "w-20 h-20 object-contain mx-auto my-14";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <img
+                          src={`${baseURL}logo.png`}
+                          alt="OctalTask Logo"
+                          className="w-20 h-20 object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
                   <CardHeader>
-                    <CardTitle className="text-blue-600 dark:text-blue-400">{product.name}</CardTitle>
+                    <CardTitle className="text-slate-800 dark:text-slate-100">{product.name}</CardTitle>
                     <CardDescription>
                       {product.category && (
-                        <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getCategoryColor(product.category)}`}>
                           {product.category}
                         </span>
                       )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
                       {product.description || 'No description available'}
                     </p>
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         ${product.price.toFixed(2)}
                       </span>
                       {product.stock !== undefined && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          Stock: {product.stock}
+                        <span className={`text-sm ${getStockColor(product.stock)}`}>
+                          {product.stock === 0 ? '⚠️ Out of Stock' : product.stock < 10 ? `⚡ Only ${product.stock}` : `✓ ${product.stock} in stock`}
                         </span>
                       )}
                     </div>
                   </CardContent>
                   <CardFooter className="flex gap-2">
                     <Link to={`${baseURL}products/${product.id}`} className="flex-1">
-                      <Button variant="outline" className="w-full border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/20">
-                        View Details
+                      <Button variant="outline" className="w-full border-indigo-300 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-950/20 transition-colors">
+                        View
                       </Button>
                     </Link>
                     <Button
                       onClick={() => handleAddToCart(product)}
                       disabled={product.stock === 0}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all"
                     >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
+                      <ShoppingCart className="h-4 w-4 mr-1.5" />
+                      Add
                     </Button>
                   </CardFooter>
                 </Card>
