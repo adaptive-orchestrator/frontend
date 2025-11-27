@@ -10,7 +10,7 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
-    base: "/octaltask/",
+    base: "/",
     server: {
         host: true,
         port: 5173,
