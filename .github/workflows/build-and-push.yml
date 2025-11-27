@@ -11,6 +11,7 @@ on:
       - 'package*.json'
       - 'src/**'
       - '.github/workflows/build-and-push.yml'
+      - 'nginx'
   pull_request:
     branches:
       - main
