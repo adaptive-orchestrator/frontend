@@ -5,10 +5,11 @@ import Cookies from 'js-cookie';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 // ============= CATALOGUE API =============
-export const getAllProducts = async () => {
+export const getAllProducts = async (page: number = 1, limit: number = 20) => {
   try {
     const token = Cookies.get('token');
     const res = await axios.get(`${API_BASE}/catalogue/products`, {
+      params: { page, limit },
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     return res.data;

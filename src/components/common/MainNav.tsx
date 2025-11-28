@@ -17,7 +17,7 @@ export default function MainNav() {
   const navigate = useNavigate();
   const { currentUser, logout } = useUser();
   const { totalItems } = useCart();
-  const { isRetailMode, isSubscriptionMode, isMultiMode } = useBusinessMode();
+  const { isRetailMode, isSubscriptionMode, isFreemiumMode, isMultiMode } = useBusinessMode();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -47,7 +47,7 @@ export default function MainNav() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             {/* Admin Dashboard - chỉ hiển thị cho organization_admin VÀ đã chọn business mode */}
-            {currentUser && currentUser.role === 'organization_admin' && (isRetailMode || isSubscriptionMode || isMultiMode) && (
+            {currentUser && currentUser.role === 'organization_admin' && (isRetailMode || isSubscriptionMode || isFreemiumMode || isMultiMode) && (
               <Link
                 to={`${baseURL}admin/dashboard`}
                 className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
@@ -76,6 +76,16 @@ export default function MainNav() {
               </Link>
             )}
             
+            {/* Freemium Mode Links */}
+            {(isFreemiumMode || isMultiMode) && (
+              <Link
+                to={`${baseURL}freemium-plans`}
+                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+              >
+                Freemium Addons
+              </Link>
+            )}
+            
             {currentUser && (
               <>
                 {/* My Orders - chỉ hiển thị trong Retail hoặc Multi mode */}
@@ -95,6 +105,16 @@ export default function MainNav() {
                     className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
                   >
                     My Subscriptions
+                  </Link>
+                )}
+                
+                {/* My Addons - chỉ hiển thị trong Freemium hoặc Multi mode */}
+                {(isFreemiumMode || isMultiMode) && (
+                  <Link
+                    to={`${baseURL}my-addons`}
+                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+                  >
+                    My Addons
                   </Link>
                 )}
                 
@@ -169,7 +189,7 @@ export default function MainNav() {
               {/* Admin Dashboard - mobile (only if mode selected) */}
               {currentUser && 
                currentUser.role === 'organization_admin' && 
-               (isRetailMode || isSubscriptionMode || isMultiMode) && (
+               (isRetailMode || isSubscriptionMode || isFreemiumMode || isMultiMode) && (
                 <Link
                   to={`${baseURL}admin/dashboard`}
                   className="py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600"
@@ -201,6 +221,17 @@ export default function MainNav() {
                 </Link>
               )}
               
+              {/* Freemium Mode Links */}
+              {(isFreemiumMode || isMultiMode) && (
+                <Link
+                  to={`${baseURL}freemium-plans`}
+                  className="py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Freemium Addons
+                </Link>
+              )}
+              
               {isAuthenticated && currentUser && (
                 <>
                   {(isRetailMode || isMultiMode) && (
@@ -220,6 +251,16 @@ export default function MainNav() {
                       onClick={() => setIsMenuOpen(false)}
                     >
                       My Subscriptions
+                    </Link>
+                  )}
+                  
+                  {(isFreemiumMode || isMultiMode) && (
+                    <Link
+                      to={`${baseURL}my-addons`}
+                      className="py-2 text-gray-700 dark:text-gray-300 hover:text-blue-600"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      My Addons
                     </Link>
                   )}
                 </>

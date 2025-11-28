@@ -18,6 +18,7 @@ import SubscriptionDashboard from '@/pages/SubscriptionDashboard';
 import ProjectDashboard from '@/pages/ProjectDashboard';
 import FreemiumPlans from '@/pages/FreemiumPlans';
 import FreemiumDashboard from '@/pages/FreemiumDashboard';
+import MyAddons from '@/pages/MyAddons';
 import Subscribe from '@/pages/Subscribe';
 import MySubscriptions from '@/pages/MySubscriptions';
 import ModeSelection from '@/pages/ModeSelection';
@@ -193,6 +194,11 @@ export default function AppRoutes() {
             <Route path={`${baseURL}freemium-plans`} element={
                 <ProtectedRoute requireMode allowedModes={['freemium', 'multi']}>
                     <FreemiumPlans />
+                </ProtectedRoute>
+            } />
+            <Route path={`${baseURL}my-addons`} element={
+                <ProtectedRoute requireAuth requireMode allowedModes={['freemium', 'multi']}>
+                    <MyAddons />
                 </ProtectedRoute>
             } />
             
