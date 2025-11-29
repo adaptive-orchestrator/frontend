@@ -22,6 +22,8 @@ export default function Checkout() {
   
   const baseURL = import.meta.env.BASE_URL;
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Payment service URL - trực tiếp đến payment-svc, sau này sẽ thay bằng VNPay/Momo
+  const PAYMENT_SVC_URL = import.meta.env.VITE_PAYMENT_SVC_URL || 'http://localhost:3013';
 
   // Get checkout type from location state
   const checkoutState = location.state as {
@@ -58,74 +60,40 @@ export default function Checkout() {
       setError(null);
 
       if (isSubscription) {
-        // Handle subscription payment
+        // Handle subscription payment - gọi trực tiếp payment-svc
         const paymentData = {
           subscriptionId: checkoutState.subscriptionId,
-          amount: checkoutState.amount,
-          paymentMethod: formData.paymentMethod,
           customerId: user?.id || parseInt(currentUser?.id || '0'),
+          amount: checkoutState.amount,
+          planName: checkoutState.planName || 'Subscription Plan',
+          paymentMethod: formData.paymentMethod,
+          currency: 'VND',
+          notes: 'Subscription payment via checkout',
         };
 
-        console.log('💳 Processing subscription payment:', paymentData);
+        console.log('💳 Processing subscription payment via payment-svc:', paymentData);
 
-        // Call payment API
-        const paymentResponse = await fetch(`${API_URL}/billing/create-invoice`, {
+        // Gọi payment-svc trực tiếp (port 3013)
+        // Sau này sẽ thay bằng VNPay/Momo redirect flow
+        const paymentResponse = await fetch(`${PAYMENT_SVC_URL}/payments/subscription/pay`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            customerId: paymentData.customerId,
-            subscriptionId: paymentData.subscriptionId,
-            amount: paymentData.amount,
-            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-            notes: 'First subscription payment',
-          }),
+          body: JSON.stringify(paymentData),
         });
 
         if (!paymentResponse.ok) {
-          throw new Error('Không thể tạo hóa đơn thanh toán');
+          const errorData = await paymentResponse.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Thanh toán thất bại');
         }
 
-        const invoiceData = await paymentResponse.json();
-        const invoice = invoiceData.invoice || invoiceData;
-
-        console.log('✅ Invoice created:', invoice);
-
-        // Process payment immediately
-        const payResponse = await fetch(`${API_URL}/payments/pay`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            invoiceId: invoice.id,
-            amount: paymentData.amount,
-            paymentMethod: 'CREDIT_CARD',
-          }),
-        });
-
-        if (!payResponse.ok) {
-          throw new Error('Thanh toán thất bại');
-        }
-
-        const paymentResult = await payResponse.json();
+        const paymentResult = await paymentResponse.json();
         console.log('✅ Payment successful:', paymentResult);
 
-        // Activate subscription after successful payment
-        console.log(`🔄 Activating subscription ${checkoutState.subscriptionId}...`);
-        const activateResponse = await fetch(`${API_URL}/subscriptions/${checkoutState.subscriptionId}/activate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (activateResponse.ok) {
-          console.log('✅ Subscription activated successfully');
-        } else {
-          console.warn('⚠️ Could not activate subscription, but payment succeeded');
-        }
+        // Payment-svc sẽ emit event để subscription-svc tự động activate
+        // Không cần gọi activate API nữa
+        console.log('✅ Subscription sẽ được activate tự động qua event');
 
         console.log('✅ Thanh toán thành công! Chuyển sang dashboard...');
         navigate(`${baseURL}subscription-dashboard`);

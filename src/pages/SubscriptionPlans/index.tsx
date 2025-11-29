@@ -7,8 +7,18 @@ import { useUser } from '@/contexts/UserContext';
 import { Plan } from '@/types/product';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Check, Loader2, AlertCircle, CreditCard, Trash2 } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
+
+interface PendingSubscription {
+  id: number;
+  planId: number;
+  planName: string;
+  amount: number;
+  billingCycle: string;
+  createdAt: string;
+}
 
 export default function SubscriptionPlans() {
   const navigate = useNavigate();
@@ -17,17 +27,20 @@ export default function SubscriptionPlans() {
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingSubscription, setPendingSubscription] = useState<PendingSubscription | null>(null);
+  const [showPendingDialog, setShowPendingDialog] = useState(false);
+  const [cancellingPending, setCancellingPending] = useState(false);
   
   const baseURL = import.meta.env.BASE_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   useEffect(() => {
     const fetchPlans = async () => {
       try {
         setLoading(true);
         
-        // Check if user already has active subscription
+        // Check if user already has active or pending subscription
         if (currentUser) {
-          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
           const customerId = parseInt(currentUser.id);
           
           if (!isNaN(customerId)) {
@@ -37,15 +50,33 @@ export default function SubscriptionPlans() {
                 const subsData = await subsResponse.json();
                 const subscriptions = subsData.subscriptions || [];
                 
-                // Check if user has active or pending subscription
-                const activeOrPending = subscriptions.find(
-                  (s: any) => s.status === 'active' || s.status === 'pending'
+                // Check for ACTIVE subscription → redirect to dashboard
+                const activeSubscription = subscriptions.find(
+                  (s: any) => s.status === 'active' || s.status === 'ACTIVE'
                 );
                 
-                if (activeOrPending) {
-                  console.log('✅ User already has subscription, redirecting to dashboard...');
+                if (activeSubscription) {
+                  console.log('✅ User has ACTIVE subscription, redirecting to dashboard...');
                   navigate(`${baseURL}subscription-dashboard`);
                   return;
+                }
+
+                // Check for PENDING subscription → show dialog
+                const pendingSub = subscriptions.find(
+                  (s: any) => s.status === 'pending' || s.status === 'PENDING'
+                );
+                
+                if (pendingSub) {
+                  console.log('⏳ User has PENDING subscription:', pendingSub);
+                  setPendingSubscription({
+                    id: pendingSub.id,
+                    planId: pendingSub.planId,
+                    planName: pendingSub.planName,
+                    amount: pendingSub.amount,
+                    billingCycle: pendingSub.billingCycle,
+                    createdAt: pendingSub.createdAt,
+                  });
+                  setShowPendingDialog(true);
                 }
               }
             } catch (err) {
@@ -161,6 +192,64 @@ export default function SubscriptionPlans() {
     }
   };
 
+  // Handle continue payment for pending subscription
+  const handleContinuePayment = () => {
+    if (!pendingSubscription) return;
+    
+    const selectedPlan = plans.find(p => p.id === pendingSubscription.planId);
+    
+    const checkoutState = {
+      type: 'subscription',
+      subscriptionId: pendingSubscription.id,
+      planId: pendingSubscription.planId,
+      planName: pendingSubscription.planName,
+      period: pendingSubscription.billingCycle === 'monthly' ? 'monthly' : 'yearly',
+      amount: pendingSubscription.amount,
+      features: selectedPlan?.features || [],
+    };
+
+    console.log('🔄 Continuing payment for pending subscription:', checkoutState);
+    setShowPendingDialog(false);
+    navigate(`${baseURL}checkout`, { state: checkoutState });
+  };
+
+  // Handle cancel pending subscription
+  const handleCancelPending = async () => {
+    if (!pendingSubscription) return;
+    
+    try {
+      setCancellingPending(true);
+      
+      const response = await fetch(`${API_URL}/subscriptions/${pendingSubscription.id}/cancel`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: 'User cancelled pending subscription to create new one',
+          cancelAtPeriodEnd: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể hủy subscription cũ');
+      }
+
+      console.log('✅ Pending subscription cancelled');
+      setPendingSubscription(null);
+      setShowPendingDialog(false);
+      
+      // Show success message
+      alert('Đã hủy gói đăng ký cũ. Bạn có thể đăng ký gói mới.');
+      
+    } catch (error: any) {
+      console.error('Error cancelling pending subscription:', error);
+      alert(error.message || 'Có lỗi xảy ra khi hủy subscription');
+    } finally {
+      setCancellingPending(false);
+    }
+  };
+
   if (loading) {
     return (
       <PageLayout>
@@ -246,7 +335,7 @@ export default function SubscriptionPlans() {
               <CardFooter className="pt-6">
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
-                  disabled={subscribing === plan.id}
+                  disabled={subscribing === plan.id || !!pendingSubscription}
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                   size="lg"
                 >
@@ -264,6 +353,76 @@ export default function SubscriptionPlans() {
           ))}
         </div>
       )}
+
+      {/* Pending Subscription Dialog */}
+      <Dialog open={showPendingDialog} onOpenChange={setShowPendingDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <AlertCircle className="h-6 w-6 text-yellow-500" />
+              Bạn có gói đăng ký chưa thanh toán
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Bạn đã đăng ký gói <strong>{pendingSubscription?.planName}</strong> nhưng chưa hoàn tất thanh toán.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {pendingSubscription && (
+            <div className="py-4">
+              <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200">
+                <CardContent className="pt-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Gói:</span>
+                      <span className="font-semibold">{pendingSubscription.planName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Giá:</span>
+                      <span className="font-semibold">${pendingSubscription.amount}/{pendingSubscription.billingCycle}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Đăng ký lúc:</span>
+                      <span className="font-semibold">
+                        {new Date(pendingSubscription.createdAt).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button 
+              onClick={handleContinuePayment}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              size="lg"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Tiếp tục thanh toán
+            </Button>
+            <Button 
+              onClick={handleCancelPending}
+              variant="outline"
+              className="w-full border-red-300 text-red-600 hover:bg-red-50"
+              size="lg"
+              disabled={cancellingPending}
+            >
+              {cancellingPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang hủy...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Hủy gói cũ & Đăng ký mới
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </PageLayout>
   );

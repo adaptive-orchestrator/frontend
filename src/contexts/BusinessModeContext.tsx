@@ -11,6 +11,7 @@ interface BusinessModeContextType {
   isSubscriptionMode: boolean;
   isFreemiumMode: boolean;
   isMultiMode: boolean;
+  isLoading: boolean;
   loadModeForUser: (userId: string) => void;
 }
 
@@ -25,8 +26,17 @@ const getUserModeKey = (userId: string) => `businessMode_${userId}`;
 const getGlobalModeKey = () => 'businessMode'; // Fallback for backward compatibility
 
 export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) => {
-  const [mode, setModeState] = useState<BusinessMode>(null);
+  // Load mode synchronously from localStorage on init
+  const [mode, setModeState] = useState<BusinessMode>(() => {
+    const globalMode = localStorage.getItem(getGlobalModeKey());
+    if (globalMode) {
+      console.log(`🔄 Initial load business mode:`, globalMode);
+      return globalMode as BusinessMode;
+    }
+    return null;
+  });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false); // No need to wait anymore
 
   // Load mode for specific user
   const loadModeForUser = (userId: string) => {
@@ -58,6 +68,14 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
     
     setModeState(newMode);
     
+    // Always save to global key for auto-load on refresh
+    if (newMode) {
+      localStorage.setItem(getGlobalModeKey(), newMode);
+    } else {
+      localStorage.removeItem(getGlobalModeKey());
+    }
+    
+    // Also save to user-specific key if we have userId
     if (userIdToUse) {
       const userModeKey = getUserModeKey(userIdToUse);
       if (newMode) {
@@ -65,13 +83,6 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
         console.log(`💾 Saved business mode for user ${userIdToUse}:`, newMode);
       } else {
         localStorage.removeItem(userModeKey);
-      }
-    } else {
-      // Fallback to global mode if no user
-      if (newMode) {
-        localStorage.setItem(getGlobalModeKey(), newMode);
-      } else {
-        localStorage.removeItem(getGlobalModeKey());
       }
     }
   };
@@ -89,6 +100,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
     setMode,
     clearMode,
     loadModeForUser,
+    isLoading,
     isRetailMode: mode === 'retail',
     isSubscriptionMode: mode === 'subscription',
     isFreemiumMode: mode === 'freemium',

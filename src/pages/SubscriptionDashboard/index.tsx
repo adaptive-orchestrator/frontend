@@ -1,6 +1,7 @@
 // src/pages/SubscriptionDashboard/index.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,13 +25,42 @@ import {
   User,
   Tag,
   Trash2,
-  Save
+  Save,
+  Loader2,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// Types
+interface Subscription {
+  id: number;
+  customerId: number;
+  planId: number;
+  planName: string;
+  status: string;
+  amount: number;
+  billingCycle: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  createdAt: string;
+}
+
+interface Invoice {
+  id: number;
+  invoiceNumber: string;
+  totalAmount: number;
+  status: string;
+  dueDate: string;
+  createdAt: string;
+}
+
 export default function SubscriptionDashboard() {
   const navigate = useNavigate();
+  const { currentUser } = useUser();
   const baseURL = import.meta.env.BASE_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'ai' | 'analytics' | 'team'>('overview');
   const [aiPrompt, setAiPrompt] = useState('');
   const [chatMessages, setChatMessages] = useState([
@@ -39,27 +69,28 @@ export default function SubscriptionDashboard() {
   ]);
   const [newMessage, setNewMessage] = useState('');
   
+  // Loading and error states
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Real data from API
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  
   // Dialog states
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
   const [settingsProjectDialog, setSettingsProjectDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
 
-  // Mock data
-  const [subscription] = useState({
-    planName: 'Professional Plan',
-    status: 'ACTIVE',
-    price: 49.99,
-    nextBillingDate: '2025-11-27',
+  // Usage stats (calculated from real data or defaults)
+  const [usage, setUsage] = useState({
+    storage: { used: 0, total: 100, unit: 'GB' },
+    aiCredits: { used: 0, total: 1000 },
+    projects: { used: 0, total: 'Unlimited' },
+    teamMembers: { used: 1, total: 10 },
   });
 
-  const [usage] = useState({
-    storage: { used: 45, total: 100, unit: 'GB' },
-    aiCredits: { used: 650, total: 1000 },
-    projects: { used: 8, total: 'Unlimited' },
-    teamMembers: { used: 5, total: 10 },
-  });
-
-  // Demo Projects with full details
+  // Demo Projects with full details (will be replaced with real project API later)
   const [projects] = useState([
     { 
       id: 1, 
@@ -131,6 +162,81 @@ export default function SubscriptionDashboard() {
     ]
   });
 
+  // Fetch subscription data from API
+  useEffect(() => {
+    const fetchSubscriptionData = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const customerId = parseInt(currentUser.id);
+        if (isNaN(customerId)) {
+          throw new Error('Invalid customer ID');
+        }
+
+        // Fetch subscriptions
+        console.log('📡 Fetching subscriptions for customer:', customerId);
+        const subsResponse = await fetch(`${API_URL}/subscriptions/customer/${customerId}`);
+        
+        if (!subsResponse.ok) {
+          throw new Error('Failed to fetch subscriptions');
+        }
+        
+        const subsData = await subsResponse.json();
+        const subscriptions = subsData.subscriptions || [];
+        console.log('✅ Subscriptions fetched:', subscriptions);
+
+        // Find active or pending subscription
+        const activeSubscription = subscriptions.find(
+          (s: Subscription) => s.status === 'active' || s.status === 'ACTIVE' || 
+                               s.status === 'pending' || s.status === 'PENDING'
+        );
+
+        if (activeSubscription) {
+          setSubscription(activeSubscription);
+          
+          // Only fetch invoices for active subscriptions
+          if (activeSubscription.status === 'active' || activeSubscription.status === 'ACTIVE') {
+            try {
+              const invoicesResponse = await fetch(`${API_URL}/billing/subscription/${activeSubscription.id}`);
+              if (invoicesResponse.ok) {
+                const invoicesData = await invoicesResponse.json();
+                setInvoices(invoicesData.invoices || []);
+                console.log('✅ Invoices fetched:', invoicesData.invoices);
+              }
+            } catch (err) {
+              console.log('Could not fetch invoices:', err);
+            }
+          }
+          
+          // Update usage based on subscription data
+          setUsage(prev => ({
+            ...prev,
+            projects: { used: projects.length, total: 'Unlimited' },
+          }));
+        } else {
+          // No active subscription, redirect to plans
+          console.log('⚠️ No active subscription found, redirecting to plans...');
+          navigate(`${baseURL}subscription-plans`);
+          return;
+        }
+        
+      } catch (err: any) {
+        console.error('❌ Error fetching subscription data:', err);
+        setError(err.message || 'Failed to load subscription data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubscriptionData();
+  }, [currentUser, API_URL, navigate, baseURL]);
+
   const handleAiSubmit = () => {
     if (aiPrompt.trim()) {
       alert(`AI Processing: "${aiPrompt}"\n\nResult: Tính năng AI đang xử lý yêu cầu của bạn...`);
@@ -160,9 +266,123 @@ export default function SubscriptionDashboard() {
     setSettingsProjectDialog(true);
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return 'bg-green-500';
+      case 'pending':
+        return 'bg-yellow-500';
+      case 'cancelled':
+        return 'bg-red-500';
+      case 'expired':
+        return 'bg-gray-500';
+      default:
+        return 'bg-blue-500';
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-purple-600" />
+            <p className="mt-4 text-muted-foreground">Loading subscription data...</p>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="max-w-md text-center py-12 px-6">
+            <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">Error Loading Data</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // No subscription state
+  if (!subscription) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="max-w-md text-center py-12 px-6">
+            <AlertCircle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">No Active Subscription</h2>
+            <p className="text-muted-foreground mb-4">You don't have an active subscription yet.</p>
+            <Button onClick={() => navigate(`${baseURL}subscription-plans`)} className="bg-purple-600">
+              View Plans
+            </Button>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Check if subscription is pending (waiting for payment)
+  const isPending = subscription.status?.toLowerCase() === 'pending';
+
   return (
     <PageLayout>
       <div className="container mx-auto px-4 py-8">
+        {/* Pending Payment Banner */}
+        {isPending && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-6 w-6 text-yellow-600" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">
+                  ⏳ Đang chờ thanh toán
+                </h3>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Subscription của bạn đang chờ thanh toán. Vui lòng hoàn tất thanh toán để kích hoạt tất cả tính năng.
+                </p>
+              </div>
+              <Button 
+                onClick={() => navigate(`${baseURL}checkout`, {
+                  state: {
+                    type: 'subscription',
+                    subscriptionId: subscription.id,
+                    planId: subscription.planId,
+                    planName: subscription.planName,
+                    period: subscription.billingCycle,
+                    amount: subscription.amount,
+                  }
+                })}
+                className="bg-yellow-600 hover:bg-yellow-700"
+              >
+                Thanh toán ngay
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -171,11 +391,11 @@ export default function SubscriptionDashboard() {
                 Professional Workspace
               </h1>
               <p className="text-muted-foreground mt-2">
-                {subscription.planName} - Tất cả tính năng đã mở khóa
+                {subscription.planName} - {isPending ? 'Đang chờ kích hoạt' : 'Tất cả tính năng đã mở khóa'}
               </p>
             </div>
-            <Badge className="bg-green-500 text-white text-lg px-4 py-2">
-              ✓ ACTIVE
+            <Badge className={`${getStatusBadgeColor(subscription.status)} text-white text-lg px-4 py-2`}>
+              {isPending ? '⏳ PENDING' : '✓ ACTIVE'}
             </Badge>
           </div>
 
@@ -287,26 +507,59 @@ export default function SubscriptionDashboard() {
               </Card>
             </div>
 
-            {/* Subscription Info */}
-            <Card className="border-2 border-purple-300">
+            {/* Subscription Info - Now with Real Data */}
+            <Card className="border-2 border-purple-300 mb-6">
               <CardHeader>
                 <CardTitle>💳 Subscription Details</CardTitle>
               </CardHeader>
-              <CardContent className="grid md:grid-cols-3 gap-4">
+              <CardContent className="grid md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Plan</p>
                   <p className="text-xl font-bold">{subscription.planName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Price</p>
-                  <p className="text-xl font-bold">${subscription.price}/month</p>
+                  <p className="text-xl font-bold">${subscription.amount}/{subscription.billingCycle}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Period</p>
+                  <p className="text-lg font-semibold">
+                    {formatDate(subscription.currentPeriodStart)} - {formatDate(subscription.currentPeriodEnd)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Next Billing</p>
-                  <p className="text-xl font-bold">{subscription.nextBillingDate}</p>
+                  <p className="text-xl font-bold">{formatDate(subscription.currentPeriodEnd)}</p>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Billing History */}
+            {invoices.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>📄 Billing History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {invoices.slice(0, 5).map((invoice) => (
+                      <div key={invoice.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <div>
+                          <p className="font-semibold">{invoice.invoiceNumber}</p>
+                          <p className="text-sm text-muted-foreground">{formatDate(invoice.createdAt)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">${invoice.totalAmount}</p>
+                          <Badge className={invoice.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}>
+                            {invoice.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         )}
 
