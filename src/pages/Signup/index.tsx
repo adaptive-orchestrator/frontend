@@ -56,42 +56,40 @@ const Signup = () => {
             const backendRole = isBusinessOwner ? 'admin' : 'user';
 
             // Try to call backend API to create real account
-            let apiSuccess = false;
-            
             try {
-                console.log('🚀 Calling signup API...');
                 const response = await signup(data.email, data.password, data.name, backendRole);
-                console.log('✅ Signup API response:', response);
                 
                 // Signup successful - backend only creates user, doesn't return token
-                if (response.user || response.message) {
-                    apiSuccess = true;
-                    console.log('✅ Account created successfully, redirecting to login...');
-                    
+                if (response.id || response.email || response.message) {
                     // Redirect to login page to get token
                     alert('Registration successful! Please login with your credentials.');
                     navigate(`${baseURL}login`);
                     return;
                 }
             } catch (apiError: any) {
-                console.warn('⚠️ API signup failed, falling back to demo mode:', apiError);
-                const errorMsg = apiError?.response?.data?.message || 'API not available';
-                console.log('Error details:', errorMsg);
-                // Continue in demo mode if API fails
+                const statusCode = apiError?.response?.status;
+                const errorMsg = apiError?.response?.data?.message || apiError?.message || 'Unknown error';
+                
+                // 4xx errors = user/validation errors, show message and stop
+                if (statusCode && statusCode >= 400 && statusCode < 500) {
+                    alert(`Registration failed: ${errorMsg}`);
+                    return;
+                }
+                
+                // Network error or 5xx = API not available, fallback to demo mode
+                console.warn('⚠️ API not available, falling back to demo mode');
             }
 
-            // Demo mode fallback: register in UserContext
-            if (!apiSuccess) {
-                console.log('🎭 Using demo mode for signup');
-                await registerUser(data.name, data.email, data.password, role);
-                
-                if (isBusinessOwner) {
-                    alert(`Registration successful! (Demo mode) Please select your business model.`);
-                    navigate(`${baseURL}mode-selection`);
-                } else {
-                    alert(`Registration successful! (Demo mode) Welcome to OctalTask.`);
-                    navigate(`${baseURL}products`);
-                }
+            // Demo mode fallback: only when API is not available (network error or 5xx)
+            console.log('🎭 Using demo mode for signup');
+            await registerUser(data.name, data.email, data.password, role);
+            
+            if (isBusinessOwner) {
+                alert(`Registration successful! (Demo mode) Please select your business model.`);
+                navigate(`${baseURL}mode-selection`);
+            } else {
+                alert(`Registration successful! (Demo mode) Welcome to OctalTask.`);
+                navigate(`${baseURL}products`);
             }
         } catch (error) {
             console.error('Signup error:', error);
