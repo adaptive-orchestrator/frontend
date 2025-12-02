@@ -1,16 +1,19 @@
 import { Footer } from '@/components/common/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBusinessMode } from '@/contexts/BusinessModeContext';
 import { useUser } from '@/contexts/UserContext';
-import { ArrowLeft, Bell, EyeOff, Globe, Moon, Smartphone, ShoppingCart, Calendar, Layers, Shield, Brain, Sparkles, Gift } from 'lucide-react';
+import { ArrowLeft, Bell, EyeOff, Globe, Moon, Smartphone, ShoppingCart, Calendar, Layers, Shield, Brain, Sparkles, Gift, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { useEffect } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Settings() {
   const { darkMode, toggleDarkMode } = useTheme();
-  const { mode, setMode } = useBusinessMode();
+  const { mode, switchMode, isSwitching } = useBusinessMode();
   const { currentUser, updateUserRole } = useUser();
   const navigate = useNavigate();
   const [settings, setSettings] = useState({
@@ -22,6 +25,11 @@ export default function Settings() {
       showTaskDetails: true,
     },
   });
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<'retail' | 'subscription' | 'freemium' | 'multi' | null>(null);
+  const [dryRun, setDryRun] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
 
   const baseURL = import.meta.env.BASE_URL;
 
@@ -40,6 +48,44 @@ export default function Settings() {
       },
     });
   };
+
+  // Handler để switch mode với API call
+  const handleSwitchMode = async (newMode: 'retail' | 'subscription' | 'freemium' | 'multi') => {
+    if (mode === newMode) return; // Already on this mode
+    
+    setSwitchingTo(newMode);
+    const result = await switchMode(newMode, { dryRun, tenantId: currentUser?.id || undefined });
+    setSwitchingTo(null);
+
+    if (result.success) {
+      // Navigate to appropriate page
+      const routes: Record<string, string> = {
+        retail: 'products',
+        subscription: 'subscription-plans',
+        freemium: 'freemium-plans',
+        multi: 'multi-dashboard',
+      };
+      navigate(`${baseURL}${routes[newMode]}`);
+    } else {
+      alert(`Lỗi: ${result.error || result.message}`);
+    }
+  };
+
+  const confirmAndSwitch = (modeTo: 'retail' | 'subscription' | 'freemium' | 'multi') => {
+    setSelectedMode(modeTo);
+    setConfirmOpen(true);
+  };
+
+  useEffect(() => {
+    // Load history from localStorage
+    try {
+      const key = currentUser?.id ? `businessMode_history_${currentUser.id}` : 'businessMode_history';
+      const raw = localStorage.getItem(key);
+      setHistory(raw ? JSON.parse(raw) : []);
+    } catch (e) {
+      setHistory([]);
+    }
+  }, [currentUser?.id]);
 
 
   return (
@@ -76,17 +122,19 @@ export default function Settings() {
               <div className="space-y-3">
                 {/* Retail Mode */}
                 <button
-                  onClick={() => {
-                    setMode('retail');
-                    navigate(`${baseURL}products`);
-                  }}
+                  onClick={() => confirmAndSwitch('retail')}
+                  disabled={isSwitching}
                   className={`w-full flex items-center p-4 rounded-lg border-2 transition-all ${
                     mode === 'retail'
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
+                  } ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <ShoppingCart className={`w-5 h-5 mr-3 ${mode === 'retail' ? 'text-blue-600' : 'text-gray-400'}`} />
+                  {switchingTo === 'retail' ? (
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin text-blue-600" />
+                  ) : (
+                    <ShoppingCart className={`w-5 h-5 mr-3 ${mode === 'retail' ? 'text-blue-600' : 'text-gray-400'}`} />
+                  )}
                   <div className="flex-1 text-left">
                     <div className="font-medium text-gray-800 dark:text-gray-200">Retail Mode</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Mua sắm sản phẩm một lần</div>
@@ -98,17 +146,19 @@ export default function Settings() {
 
                 {/* Subscription Mode */}
                 <button
-                  onClick={() => {
-                    setMode('subscription');
-                    navigate(`${baseURL}subscription-plans`);
-                  }}
+                  onClick={() => confirmAndSwitch('subscription')}
+                  disabled={isSwitching}
                   className={`w-full flex items-center p-4 rounded-lg border-2 transition-all ${
                     mode === 'subscription'
                       ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
+                  } ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Calendar className={`w-5 h-5 mr-3 ${mode === 'subscription' ? 'text-purple-600' : 'text-gray-400'}`} />
+                  {switchingTo === 'subscription' ? (
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin text-purple-600" />
+                  ) : (
+                    <Calendar className={`w-5 h-5 mr-3 ${mode === 'subscription' ? 'text-purple-600' : 'text-gray-400'}`} />
+                  )}
                   <div className="flex-1 text-left">
                     <div className="font-medium text-gray-800 dark:text-gray-200">Subscription Mode</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Đăng ký gói định kỳ</div>
@@ -120,17 +170,19 @@ export default function Settings() {
 
                 {/* Freemium Mode */}
                 <button
-                  onClick={() => {
-                    setMode('freemium');
-                    navigate(`${baseURL}freemium-plans`);
-                  }}
+                  onClick={() => confirmAndSwitch('freemium')}
+                  disabled={isSwitching}
                   className={`w-full flex items-center p-4 rounded-lg border-2 transition-all ${
                     mode === 'freemium'
                       ? 'border-green-600 bg-green-50 dark:bg-green-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
+                  } ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Gift className={`w-5 h-5 mr-3 ${mode === 'freemium' ? 'text-green-600' : 'text-gray-400'}`} />
+                  {switchingTo === 'freemium' ? (
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin text-green-600" />
+                  ) : (
+                    <Gift className={`w-5 h-5 mr-3 ${mode === 'freemium' ? 'text-green-600' : 'text-gray-400'}`} />
+                  )}
                   <div className="flex-1 text-left">
                     <div className="font-medium text-gray-800 dark:text-gray-200">Freemium Mode</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Miễn phí + Trả tiền theo tính năng</div>
@@ -142,17 +194,19 @@ export default function Settings() {
 
                 {/* Multi Mode */}
                 <button
-                  onClick={() => {
-                    setMode('multi');
-                    navigate(`${baseURL}multi-dashboard`);
-                  }}
+                  onClick={() => confirmAndSwitch('multi')}
+                  disabled={isSwitching}
                   className={`w-full flex items-center p-4 rounded-lg border-2 transition-all ${
                     mode === 'multi'
                       ? 'border-orange-600 bg-orange-50 dark:bg-orange-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
+                  } ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Layers className={`w-5 h-5 mr-3 ${mode === 'multi' ? 'text-orange-600' : 'text-gray-400'}`} />
+                  {switchingTo === 'multi' ? (
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin text-orange-600" />
+                  ) : (
+                    <Layers className={`w-5 h-5 mr-3 ${mode === 'multi' ? 'text-orange-600' : 'text-gray-400'}`} />
+                  )}
                   <div className="flex-1 text-left">
                     <div className="font-medium text-gray-800 dark:text-gray-200">Multi Mode</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Quản lý nhiều Retail stores & Subscription plans</div>
@@ -162,8 +216,116 @@ export default function Settings() {
                   )}
                 </button>
               </div>
+
+              {/* Dry-run toggle + confirmation note */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Preview only (dry-run)</div>
+                <button
+                  onClick={() => setDryRun(!dryRun)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${dryRun ? 'bg-yellow-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${dryRun ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
             </CardContent>
           </Card>
+
+            {/* Confirmation Dialog for switching */}
+            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-primary" />
+                    Xác nhận chuyển đổi mô hình
+                  </DialogTitle>
+                  <DialogDescription>
+                    Bạn có chắc muốn chuyển từ <strong className="text-foreground">{mode?.toUpperCase() || 'N/A'}</strong> sang <strong className="text-primary">{selectedMode?.toUpperCase()}</strong>?
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="mt-4 space-y-4">
+                  {/* Mode transition visual */}
+                  <div className="flex items-center justify-center gap-4 py-4 bg-muted/50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Hiện tại</div>
+                      <Badge variant="outline" className="text-sm">{mode?.toUpperCase() || 'None'}</Badge>
+                    </div>
+                    <ArrowLeft className="w-5 h-5 rotate-180 text-muted-foreground" />
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Chuyển sang</div>
+                      <Badge className="text-sm bg-primary">{selectedMode?.toUpperCase()}</Badge>
+                    </div>
+                  </div>
+
+                  {/* Services affected */}
+                  <div>
+                    <p className="font-medium mb-2 text-sm">Services sẽ được cấu hình:</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {(() => {
+                        const profiles: Record<string, { on: string[]; off: string[] }> = {
+                          retail: { on: ['Order Service', 'Inventory Service'], off: ['Subscription Svc'] },
+                          subscription: { on: ['Subscription Service', 'Promotion Service', 'Pricing Service'], off: ['Order Svc'] },
+                          freemium: { on: ['Subscription Service', 'Promotion Service', 'Pricing Service'], off: [] },
+                          multi: { on: ['Order', 'Inventory', 'Subscription', 'Promotion', 'Pricing'], off: [] },
+                        };
+                        const config = selectedMode ? profiles[selectedMode] : null;
+                        if (!config) return null;
+                        return (
+                          <>
+                            {config.on.map((s, i) => (
+                              <div key={`on-${i}`} className="flex items-center gap-2 text-green-600">
+                                <span className="w-2 h-2 rounded-full bg-green-500" />
+                                <span className="text-xs">{s}</span>
+                                <Badge variant="outline" className="ml-auto text-[10px] px-1">ON</Badge>
+                              </div>
+                            ))}
+                            {config.off.map((s, i) => (
+                              <div key={`off-${i}`} className="flex items-center gap-2 text-muted-foreground">
+                                <span className="w-2 h-2 rounded-full bg-gray-300" />
+                                <span className="text-xs">{s}</span>
+                                <Badge variant="outline" className="ml-auto text-[10px] px-1">OFF</Badge>
+                              </div>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Dry-run warning */}
+                  {dryRun && (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300 flex items-center gap-2">
+                        <EyeOff className="w-4 h-4" />
+                        <span><strong>Preview mode:</strong> Sẽ tạo changeset YAML nhưng KHÔNG deploy lên K8s.</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setConfirmOpen(false)}>Hủy</Button>
+                  <Button 
+                    onClick={async () => {
+                      setConfirmOpen(false);
+                      if (selectedMode) {
+                        await handleSwitchMode(selectedMode);
+                        // reload history
+                        try {
+                          const key = currentUser?.id ? `businessMode_history_${currentUser.id}` : 'businessMode_history';
+                          const raw = localStorage.getItem(key);
+                          setHistory(raw ? JSON.parse(raw) : []);
+                        } catch (e) { /* ignore */ }
+                      }
+                    }}
+                    className={dryRun ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                  >
+                    {dryRun ? '👁️ Preview Only' : '🚀 Xác nhận & Deploy'}
+                  </Button>
+                </DialogFooter>
+
+              </DialogContent>
+            </Dialog>
 
           {/* AI Model Optimizer */}
           {mode && (
@@ -205,6 +367,64 @@ export default function Settings() {
               </CardContent>
             </Card>
           )}
+
+            {/* Switch History */}
+            <Card className="overflow-hidden bg-white border-none shadow-sm dark:bg-gray-800">
+              <CardHeader className="p-6 pb-2">
+                <CardTitle className="flex items-center text-lg font-normal text-gray-800 dark:text-gray-200">
+                  <Calendar className="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" />
+                  Lịch sử chuyển đổi Mode
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-4 space-y-3">
+                {history.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    <Layers className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    Chưa có lịch sử chuyển đổi
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                    {history.slice(0, 10).map((h: any, idx: number) => (
+                      <div key={idx} className="flex items-start justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(h.ts).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {h.dry_run && <Badge variant="outline" className="text-[10px] px-1">DRY-RUN</Badge>}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Badge variant="outline" className="text-xs">{(h.from || '?').toUpperCase()}</Badge>
+                            <ArrowLeft className="w-3 h-3 rotate-180 text-muted-foreground" />
+                            <Badge className="text-xs bg-primary">{(h.to || '?').toUpperCase()}</Badge>
+                          </div>
+                          {h.changeset && (
+                            <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-1 truncate" title={h.changeset}>
+                              📁 {h.changeset}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0 ml-3">
+                          {h.deployed ? (
+                            <Badge className="bg-green-600 text-white text-xs">
+                              🟢 Deployed
+                            </Badge>
+                          ) : h.dry_run ? (
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-400 text-xs">
+                              🟡 Preview
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-gray-500 text-xs">
+                              ⚪ Local
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
           {/* Demo: User Role Toggle */}
           <Card className="overflow-hidden bg-white border-none shadow-sm dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-800">

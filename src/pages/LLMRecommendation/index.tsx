@@ -277,7 +277,7 @@ export default function LLMRecommendation() {
     };
   };
 
-  const handleAnalyzeIntent = () => {
+  const handleAnalyzeIntent = async () => {
     if (!userIntent.trim()) {
       alert('Vui lòng nhập yêu cầu của bạn!');
       return;
@@ -287,12 +287,80 @@ export default function LLMRecommendation() {
     setShowRecommendation(false);
     setAnalysisMode('intent');
 
-    setTimeout(() => {
+    // API Gateway runs on port 3000
+    const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+    console.log('📡 Calling LLM API:', `${API_URL}/llm-orchestrator/chat`);
+
+    try {
+      const response = await fetch(`${API_URL}/llm-orchestrator/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userIntent,
+          tenant_id: 'default',
+          role: 'admin',
+          lang: 'vi',
+        }),
+      });
+
+      console.log('📥 Response status:', response.status);
+
+      if (!response.ok) throw new Error('API call failed');
+
+      const data = await response.json();
+      console.log('✅ LLM Response:', data);
+
+      // Extract recommended model from changeset
+      const recommendedModel = data.changeset?.features?.find((f: any) => f.key === 'business_model')?.value || 'retail';
+      
+      // Extract product group from features if available
+      const productGroup = data.changeset?.features?.find((f: any) => f.key === 'product_group')?.value;
+
+      // Transform LLM response to match UI format
+      const parsed = {
+        proposal_text: data.proposal_text || userIntent,
+        changeset: data.changeset || { model: 'business_model', features: [], impacted_services: [] },
+        metadata: {
+          intent: data.metadata?.intent || 'switch_model',
+          confidence: data.metadata?.confidence || 0.8,
+          risk: data.metadata?.risk || 'low',
+          // Add detected_entities for UI compatibility
+          detected_entities: {
+            model: recommendedModel,
+            product_group: productGroup,
+          },
+        },
+        recommendation: {
+          recommendedModel: recommendedModel,
+          confidence: Math.round((data.metadata?.confidence || 0.8) * 100),
+          reasoning: [
+            `LLM phân tích: "${userIntent}"`,
+            data.proposal_text || 'Đang xử lý yêu cầu...',
+            `Độ tin cậy: ${Math.round((data.metadata?.confidence || 0.8) * 100)}%`,
+            `Mức rủi ro: ${data.metadata?.risk || 'low'}`,
+          ],
+          benefits: [
+            { icon: '🎯', title: 'AI Analyzed', desc: 'Đã phân tích bằng LLM' },
+            { icon: '⚡', title: 'Auto Changeset', desc: `${data.changeset?.impacted_services?.length || 0} services bị ảnh hưởng` },
+            { icon: '📊', title: 'Confidence', desc: `${Math.round((data.metadata?.confidence || 0.8) * 100)}%` },
+            { icon: '🔒', title: 'Risk Level', desc: data.metadata?.risk || 'low' },
+          ],
+          potentialSavings: '$0/year',
+          riskLevel: data.metadata?.risk === 'high' ? 'High' : data.metadata?.risk === 'medium' ? 'Medium' : 'Low',
+        },
+      };
+
+      setParsedIntent(parsed);
+      setShowRecommendation(true);
+    } catch (error) {
+      console.error('❌ LLM API Error:', error);
+      // Fallback to local parsing if API fails
       const parsed = parseUserIntent(userIntent);
       setParsedIntent(parsed);
-      setAnalyzing(false);
       setShowRecommendation(true);
-    }, 3000);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleAcceptRecommendation = () => {
@@ -504,18 +572,18 @@ export default function LLMRecommendation() {
                       <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                         <p className="text-sm text-muted-foreground mb-2">Model được đề xuất:</p>
                         <Badge className="bg-purple-600 text-lg">
-                          {parsedIntent.metadata.detected_entities.model.toUpperCase()}
+                          {(parsedIntent.metadata?.detected_entities?.model || parsedIntent.recommendation?.recommendedModel || 'retail').toUpperCase()}
                         </Badge>
                       </div>
                       <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                         <p className="text-sm text-muted-foreground mb-2">Độ tin cậy:</p>
                         <p className="text-2xl font-bold text-green-600">
-                          {Math.round(parsedIntent.metadata.confidence * 100)}%
+                          {Math.round((parsedIntent.metadata?.confidence || 0.8) * 100)}%
                         </p>
                       </div>
                     </div>
 
-                    {parsedIntent.metadata.detected_entities.product_group && (
+                    {parsedIntent.metadata?.detected_entities?.product_group && (
                       <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                         <p className="text-sm text-muted-foreground mb-2">Nhóm sản phẩm:</p>
                         <Badge variant="outline" className="text-lg">
@@ -529,7 +597,7 @@ export default function LLMRecommendation() {
                       <div>
                         <p className="text-sm font-semibold">Services sẽ được cập nhật:</p>
                         <p className="text-sm text-muted-foreground">
-                          {parsedIntent.changeset.impacted_services.join(', ')}
+                          {parsedIntent.changeset?.impacted_services?.join(', ') || 'Đang phân tích...'}
                         </p>
                       </div>
                     </div>
