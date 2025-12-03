@@ -66,7 +66,7 @@ export default function Hero() {
               {/* Demo Mode Badge */}
               {isDemoMode && (
                 <div className="mt-4 inline-block px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                  🎭 Demo Mode Active - No backend required
+                  Demo Mode Active - No backend required
                 </div>
               )}
             </div>

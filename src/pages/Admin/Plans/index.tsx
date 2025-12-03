@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Layers, DollarSign, Users, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, Layers, DollarSign, Users, TrendingUp, AlertTriangle } from 'lucide-react';
 import { UserContext } from '@/contexts/UserContext';
 import { getAllPlans, createPlan } from '@/lib/api/plans';
 import { getAllFeatures, createFeature } from '@/lib/api/features';
@@ -60,8 +60,9 @@ const AdminPlans = () => {
         { id: '3', name: 'Enterprise', description: 'For large organizations', price: 99.99, billingCycle: 'monthly', features: [1, 2, 3, 4, 5, 6], trialEnabled: true, trialDays: 30 }
     ];
 
-    const [features, setFeatures] = useState<Feature[]>(DEMO_FEATURES);
-    const [plans, setPlans] = useState<SubscriptionPlan[]>(DEMO_PLANS);
+    const [features, setFeatures] = useState<Feature[]>([]);
+    const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+    const [isUsingDemoData, setIsUsingDemoData] = useState(false);
 
     const [newFeature, setNewFeature] = useState<Partial<Feature>>({ name: '', description: '', code: '' });
     const [newPlan, setNewPlan] = useState<Partial<SubscriptionPlan>>({ name: '', description: '', price: 0, billingCycle: 'monthly', features: [], trialEnabled: false, trialDays: 0 });
@@ -76,13 +77,15 @@ const AdminPlans = () => {
             if (!token) {
                 setFeatures(DEMO_FEATURES);
                 setPlans(DEMO_PLANS);
+                setIsUsingDemoData(true);
                 setLoading(false);
                 return;
             }
 
-            // Có token → gọi API (không cần đợi user load xong)
+            // Có token → gọi API
             try {
                 setLoading(true);
+                setIsUsingDemoData(false);
                 
                 // Fetch features and plans in parallel
                 const [featuresRes, plansRes] = await Promise.all([
@@ -94,7 +97,10 @@ const AdminPlans = () => {
                 console.log('Plans API response:', plansRes);
 
                 // Map backend features to frontend format
-                if (featuresRes?.features) {
+                let usedDemoFeatures = false;
+                let usedDemoPlans = false;
+
+                if (featuresRes?.features && featuresRes.features.length > 0) {
                     const mappedFeatures = featuresRes.features.map((f: any) => ({
                         id: f.id?.toString() || '',
                         name: f.name || '',
@@ -104,10 +110,11 @@ const AdminPlans = () => {
                     setFeatures(mappedFeatures);
                 } else {
                     setFeatures(DEMO_FEATURES);
+                    usedDemoFeatures = true;
                 }
 
                 // Map backend plans to frontend format
-                if (plansRes?.plans) {
+                if (plansRes?.plans && plansRes.plans.length > 0) {
                     const mappedPlans = plansRes.plans.map((p: any) => ({
                         id: p.id?.toString() || '',
                         name: p.name || '',
@@ -121,12 +128,19 @@ const AdminPlans = () => {
                     setPlans(mappedPlans);
                 } else {
                     setPlans(DEMO_PLANS);
+                    usedDemoPlans = true;
+                }
+
+                // If both are using demo data, set indicator
+                if (usedDemoFeatures && usedDemoPlans) {
+                    setIsUsingDemoData(true);
                 }
             } catch (error) {
                 console.error('Error fetching plans/features:', error);
                 // Fallback to demo data on error
                 setFeatures(DEMO_FEATURES);
                 setPlans(DEMO_PLANS);
+                setIsUsingDemoData(true);
             } finally {
                 setLoading(false);
             }
@@ -227,6 +241,25 @@ const AdminPlans = () => {
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Subscription Plans Management</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">Create features and bundle them into subscription plans</p>
                 </div>
+
+                {/* Demo Data Indicator */}
+                {isUsingDemoData && (
+                    <Card className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                <div>
+                                    <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                                        Đang hiển thị dữ liệu demo
+                                    </p>
+                                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                        Không thể kết nối API hoặc chưa có dữ liệu thực. Các thao tác thêm/sửa/xóa sẽ không được lưu.
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
@@ -350,7 +383,7 @@ const AdminPlans = () => {
                                                                 const feature = features.find(f => f.id === featId.toString());
                                                                 return feature ? (
                                                                     <li key={featId} className="text-sm text-gray-600 dark:text-gray-400 flex items-start">
-                                                                        <span className="mr-2">✓</span>
+                                                                        <span className="mr-2"></span>
                                                                         <span>{feature.name}</span>
                                                                     </li>
                                                                 ) : null;

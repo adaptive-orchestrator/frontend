@@ -161,12 +161,12 @@ export default function FreemiumDashboard() {
   };
 
   const handleCreateProject = () => {
-    alert('⚠️ Bạn đã đạt giới hạn 3 projects!\n\nNâng cấp lên "Unlimited Projects" để tạo thêm.');
+    alert('Bạn đã đạt giới hạn 3 projects!\n\nNâng cấp lên "Unlimited Projects" để tạo thêm.');
   };
 
   const handleCreateTask = () => {
     if (usage.tasks.used >= usage.tasks.total) {
-      alert('⚠️ Bạn đã đạt giới hạn 50 tasks!\n\nNâng cấp lên Professional Plan để có unlimited tasks.');
+      alert('Bạn đã đạt giới hạn 50 tasks!\n\nNâng cấp lên Professional Plan để có unlimited tasks.');
     } else {
       setAddTaskDialog(true);
     }
@@ -218,7 +218,7 @@ export default function FreemiumDashboard() {
               </p>
             </div>
             <Badge className="bg-green-500 text-white text-lg px-4 py-2">
-              ✓ FREE
+              FREE
             </Badge>
           </div>
 
@@ -229,21 +229,21 @@ export default function FreemiumDashboard() {
               onClick={() => setActiveTab('overview')}
               className={activeTab === 'overview' ? 'bg-green-600' : ''}
             >
-              📊 Overview
+              Overview
             </Button>
             <Button
               variant={activeTab === 'projects' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('projects')}
               className={activeTab === 'projects' ? 'bg-green-600' : ''}
             >
-              📁 My Projects (3/3)
+              My Projects (3/3)
             </Button>
             <Button
               variant={activeTab === 'tasks' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('tasks')}
               className={activeTab === 'tasks' ? 'bg-green-600' : ''}
             >
-              ✓ Tasks ({usage.tasks.used}/{usage.tasks.total})
+              Tasks ({usage.tasks.used}/{usage.tasks.total})
             </Button>
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function FreemiumDashboard() {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
                     <div className="bg-red-500 h-2 rounded-full" style={{ width: `${(usage.storage.used / usage.storage.total) * 100}%` }}></div>
                   </div>
-                  <p className="text-xs text-red-600 font-semibold mt-2">⚠️ Sắp đầy! (90%)</p>
+                  <p className="text-xs text-red-600 font-semibold mt-2">Sắp đầy! (90%)</p>
                 </CardContent>
               </Card>
 
@@ -283,7 +283,7 @@ export default function FreemiumDashboard() {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
                     <div className="bg-orange-500 h-2 rounded-full" style={{ width: `${(usage.projects.used / usage.projects.total) * 100}%` }}></div>
                   </div>
-                  <p className="text-xs text-orange-600 font-semibold mt-2">⚠️ Đã dùng hết (100%)</p>
+                  <p className="text-xs text-orange-600 font-semibold mt-2">Đã dùng hết (100%)</p>
                 </CardContent>
               </Card>
 
@@ -300,14 +300,14 @@ export default function FreemiumDashboard() {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
                     <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${(usage.tasks.used / usage.tasks.total) * 100}%` }}></div>
                   </div>
-                  <p className="text-xs text-yellow-600 font-semibold mt-2">⚠️ Sắp đầy! (90%)</p>
+                  <p className="text-xs text-yellow-600 font-semibold mt-2">Sắp đầy! (90%)</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Unlock Features */}
             <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-4">🔓 Unlock Premium Features</h2>
+              <h2 className="text-2xl font-bold mb-4">Unlock Premium Features</h2>
               <div className="grid md:grid-cols-3 gap-4">
                 {lockedFeatures.map((feature, idx) => (
                   <motion.div
@@ -348,7 +348,7 @@ export default function FreemiumDashboard() {
             {/* Comparison Section */}
             <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-2 border-blue-200">
               <CardHeader>
-                <CardTitle className="text-center text-2xl">💡 Nâng cấp lên Subscription Plan?</CardTitle>
+                <CardTitle className="text-center text-2xl">Nâng cấp lên Subscription Plan?</CardTitle>
                 <CardDescription className="text-center">
                   Nhận TẤT CẢ tính năng với giá ưu đãi
                 </CardDescription>
@@ -435,7 +435,7 @@ export default function FreemiumDashboard() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-2xl font-bold">📁 My Projects</h2>
+                <h2 className="text-2xl font-bold">My Projects</h2>
                 <p className="text-sm text-muted-foreground">
                   Bạn đã sử dụng {usage.projects.used}/{usage.projects.total} projects
                 </p>
@@ -456,7 +456,7 @@ export default function FreemiumDashboard() {
                 <div className="flex items-start gap-3">
                   <Lock className="h-5 w-5 text-orange-500 mt-0.5" />
                   <div>
-                    <p className="font-semibold">⚠️ Đã đạt giới hạn projects</p>
+                    <p className="font-semibold">Đã đạt giới hạn projects</p>
                     <p className="text-sm text-muted-foreground">
                       Mua add-on "Unlimited Projects" ($9.99/month) hoặc nâng cấp lên Professional Plan
                     </p>
@@ -524,7 +524,7 @@ export default function FreemiumDashboard() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-2xl font-bold">✓ My Tasks</h2>
+                <h2 className="text-2xl font-bold">My Tasks</h2>
                 <p className="text-sm text-muted-foreground">
                   Bạn đã sử dụng {usage.tasks.used}/{usage.tasks.total} tasks
                 </p>
@@ -544,7 +544,7 @@ export default function FreemiumDashboard() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
                   <div>
-                    <p className="font-semibold">⚠️ Sắp đạt giới hạn tasks ({usage.tasks.used}/{usage.tasks.total})</p>
+                    <p className="font-semibold">Sắp đạt giới hạn tasks ({usage.tasks.used}/{usage.tasks.total})</p>
                     <p className="text-sm text-muted-foreground">
                       Nâng cấp lên Professional Plan để có unlimited tasks
                     </p>
@@ -583,7 +583,7 @@ export default function FreemiumDashboard() {
                         </p>
                       </div>
                       {task.completed && (
-                        <Badge className="bg-green-500">✓ Done</Badge>
+                        <Badge className="bg-green-500">Done</Badge>
                       )}
                     </div>
                   ))}
@@ -633,7 +633,7 @@ export default function FreemiumDashboard() {
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-sm">⚠️ Approaching task limit</p>
+                        <p className="font-semibold text-sm">Approaching task limit</p>
                         <p className="text-xs text-muted-foreground">
                           Upgrade to Professional Plan for unlimited tasks
                         </p>
@@ -753,7 +753,7 @@ export default function FreemiumDashboard() {
                     <div className="flex items-start gap-3">
                       <Lock className="h-5 w-5 text-yellow-500 mt-0.5" />
                       <div>
-                        <p className="font-semibold">🔒 Project Dashboard - Premium Feature</p>
+                        <p className="font-semibold">Project Dashboard - Premium Feature</p>
                         <p className="text-sm text-muted-foreground">
                           Nâng cấp lên Professional Plan để mở project workspace với: Task management, File sharing, Team collaboration, Time tracking
                         </p>

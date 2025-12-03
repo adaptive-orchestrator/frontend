@@ -61,28 +61,50 @@ export default function AdminDashboard() {
     }
   }, [mode]);
 
-  // Fetch real statistics from backend
+  // State to track which services are available
+  const [availableServices, setAvailableServices] = useState<string[]>([]);
+  const [statsErrors, setStatsErrors] = useState<string[]>([]);
+
+  // Fetch real statistics from backend - ONLY for the current model
   useEffect(() => {
     const fetchStats = async () => {
+      // Don't fetch until we know the mode
+      if (!mode) return;
+      
       try {
         setLoading(true);
         setError(null);
-        const data = await getAdminDashboardStats();
+        setStatsErrors([]);
+        
+        // Pass current mode to only fetch stats for deployed services
+        const data = await getAdminDashboardStats(mode as any);
         
         setRetailStats(data.retail);
         setSubscriptionStats(data.subscription);
         setFreemiumStats(data.freemium);
         setOverallStats(data.overall);
+        setAvailableServices(data.availableServices || []);
+        
+        // Log any partial errors (some services might be down)
+        if (data.errors && data.errors.length > 0) {
+          console.warn('Some services unavailable:', data.errors);
+          setStatsErrors(data.errors);
+        }
       } catch (err: any) {
         console.error('Failed to fetch dashboard stats:', err);
-        setError(err.message || 'Failed to load dashboard statistics');
+        // Check if it's a network error (service not deployed)
+        if (err.code === 'ERR_NETWORK' || err.message?.includes('Network')) {
+          setError(`Some services are not available. Make sure the ${mode} model services are deployed.`);
+        } else {
+          setError(err.message || 'Failed to load dashboard statistics');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+  }, [mode]); // Re-fetch when mode changes
 
   const quickActions = [
     {
@@ -147,9 +169,58 @@ export default function AdminDashboard() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {currentUser?.name || 'Admin'}! Quản lý 3 mô hình: Retail, Subscription, Freemium
+            Welcome back, {currentUser?.name || 'Admin'}! 
+            {mode && mode !== 'multi' && (
+              <span className="ml-2">
+                Đang quản lý: <strong>{mode === 'retail' ? 'Retail' : mode === 'subscription' ? 'Subscription' : 'Freemium'}</strong>
+              </span>
+            )}
+            {mode === 'multi' && ' Quản lý đa mô hình: Retail, Subscription, Freemium'}
           </p>
         </div>
+
+        {/* Active Model Info Banner */}
+        {mode && mode !== 'multi' && (
+          <div className={`mb-6 p-4 rounded-lg border-2 ${
+            mode === 'retail' ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800' :
+            mode === 'subscription' ? 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800' :
+            'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">
+                  {mode === 'retail' ? '' : mode === 'subscription' ? '' : ''}
+                </span>
+                <div>
+                  <p className="font-semibold">
+                    Active Mode: {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Chỉ hiển thị dữ liệu từ services của model này
+                  </p>
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Services: {availableServices.join(', ') || 'Loading...'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Partial Errors Warning */}
+        {statsErrors.length > 0 && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <p className="text-yellow-800 dark:text-yellow-200 font-medium">Một số services không khả dụng:</p>
+            <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-2 list-disc list-inside">
+              {statsErrors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+            <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+              Đảm bảo các services của model {mode} đã được deploy và đang chạy.
+            </p>
+          </div>
+        )}
 
         {/* Loading State */}
         {loading && (
@@ -184,21 +255,21 @@ export default function AdminDashboard() {
                 onClick={() => setSelectedModel('retail')}
                 className={selectedModel === 'retail' ? 'bg-blue-600' : ''}
               >
-                🛒 Retail
+                Retail
               </Button>
               <Button
                 variant={selectedModel === 'subscription' ? 'default' : 'outline'}
                 onClick={() => setSelectedModel('subscription')}
                 className={selectedModel === 'subscription' ? 'bg-purple-600' : ''}
               >
-                📅 Subscription
+                Subscription
               </Button>
               <Button
                 variant={selectedModel === 'freemium' ? 'default' : 'outline'}
                 onClick={() => setSelectedModel('freemium')}
                 className={selectedModel === 'freemium' ? 'bg-green-600' : ''}
               >
-                🎁 Freemium
+                Freemium
               </Button>
             </>
           ) : (
@@ -213,9 +284,9 @@ export default function AdminDashboard() {
                   mode === 'freemium' ? 'bg-green-600' : ''
                 }
               >
-                {mode === 'retail' && '🛒 Retail'}
-                {mode === 'subscription' && '📅 Subscription'}
-                {mode === 'freemium' && '🎁 Freemium'}
+                {mode === 'retail' && 'Retail'}
+                {mode === 'subscription' && 'Subscription'}
+                {mode === 'freemium' && 'Freemium'}
               </Button>
               <span className="text-xs text-muted-foreground">(Change in Settings)</span>
             </div>
@@ -256,9 +327,9 @@ export default function AdminDashboard() {
           <Card className="mb-8 border-2">
             <CardHeader>
               <CardTitle className="text-2xl">
-                {selectedModel === 'retail' && '🛒 Retail Model Details'}
-                {selectedModel === 'subscription' && '📅 Subscription Model Details'}
-                {selectedModel === 'freemium' && '🎁 Freemium Model Details'}
+                {selectedModel === 'retail' && 'Retail Model Details'}
+                {selectedModel === 'subscription' && 'Subscription Model Details'}
+                {selectedModel === 'freemium' && 'Freemium Model Details'}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -334,9 +405,9 @@ export default function AdminDashboard() {
             Quick Actions 
             {selectedModel !== 'all' && (
               <span className="text-base font-normal text-muted-foreground ml-2">
-                ({selectedModel === 'retail' && '🛒 Retail'}
-                {selectedModel === 'subscription' && '📅 Subscription'}
-                {selectedModel === 'freemium' && '🎁 Freemium'})
+                ({selectedModel === 'retail' && 'Retail'}
+                {selectedModel === 'subscription' && 'Subscription'}
+                {selectedModel === 'freemium' && 'Freemium'})
               </span>
             )}
           </h2>

@@ -193,7 +193,7 @@ const MultiDashboard = () => {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                    🏢 Multi-Business Dashboard
+                    Multi-Business Dashboard
                   </h1>
                   <Badge className="bg-gradient-to-r from-orange-600 to-amber-600 text-white border-0">
                     <Crown className="w-3 h-3 mr-1" />

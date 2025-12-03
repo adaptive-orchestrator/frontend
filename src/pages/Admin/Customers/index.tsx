@@ -118,7 +118,7 @@ export default function AdminCustomers() {
       const isAuthenticated = !!token;
 
       if (isAuthenticated) {
-        console.log('🔐 Authenticated - Fetching customers from API...');
+        console.log('[Admin/Customers] Authenticated - Fetching customers from API...');
         try {
           // Gọi API với các query params phù hợp với backend
           const response = await getAllCustomers({ 
@@ -127,7 +127,7 @@ export default function AdminCustomers() {
             segment: 'bronze'
             // segment có thể thêm nếu cần filter: 'bronze', 'silver', 'gold', 'platinum'
           });
-          console.log('✅ Customers fetched from API:', response);
+          console.log('[Admin/Customers] Customers fetched from API:', response);
           
           // Map backend response to frontend format
           const apiCustomers = (response.customers || response).map((c: any) => ({
@@ -145,12 +145,12 @@ export default function AdminCustomers() {
           
           setCustomers(apiCustomers);
         } catch (error) {
-          console.error('❌ Failed to fetch customers:', error);
-          console.log('⚠️ Falling back to demo data');
+          console.error('[Admin/Customers] Failed to fetch customers:', error);
+          console.log('[Admin/Customers] Falling back to demo data');
           setCustomers(DEMO_CUSTOMERS);
         }
       } else {
-        console.log('👤 Demo mode - using sample customers');
+        console.log('[Admin/Customers] Demo mode - using sample customers');
         setCustomers(DEMO_CUSTOMERS);
       }
       
@@ -188,7 +188,7 @@ export default function AdminCustomers() {
     link.click();
     window.URL.revokeObjectURL(url);
     
-    alert(`✅ Đã export ${filteredCustomers.length} customers!`);
+    alert(`Đã export ${filteredCustomers.length} customers!`);
   };
 
   const getTypeColor = (type: Customer['type']) => {

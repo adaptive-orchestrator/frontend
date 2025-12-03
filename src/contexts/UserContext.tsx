@@ -51,10 +51,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Kiểm tra có token trong Cookie không
       const token = Cookies.get('token');
       
-      console.log('🔍 UserContext: Starting fetch, token:', token ? 'exists' : 'none');
+      console.log('[UserContext] Starting fetch, token:', token ? 'exists' : 'none');
       
       if (!token) {
-        console.log('No token, checking localStorage for demo mode');
+        console.log('[UserContext] No token, checking localStorage for demo mode');
         // Không có token, check localStorage (fallback cho demo mode)
         const savedUser = localStorage.getItem('octalTaskUser');
         if (savedUser) {
@@ -65,9 +65,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
               user.role = demoRole;
             }
             setCurrentUser(user);
-            console.log('✅ Loaded demo user from localStorage');
+            console.log('[UserContext] Loaded demo user from localStorage');
           } catch (err) {
-            console.error('Failed to parse saved user:', err);
+            console.error('[UserContext] Failed to parse saved user:', err);
             localStorage.removeItem('octalTaskUser');
           }
         }
@@ -77,7 +77,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // Có token, fetch user info từ backend với timeout
       try {
-        console.log('📡 Fetching user info from backend...');
+        console.log('[UserContext] Fetching user info from backend...');
         
         // Set timeout 5 seconds (giảm từ 10s)
         const timeoutPromise = new Promise((_, reject) => {
@@ -88,7 +88,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         
         const data = await Promise.race([fetchPromise, timeoutPromise]) as any;
         
-        console.log('✅ User info fetched from API:', data);
+        console.log('[UserContext] User info fetched from API:', data);
         
         // Backend returns user object directly
         const { id, name, email, role } = data;
@@ -112,17 +112,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setCurrentUser(user);
         localStorage.setItem('octalTaskUser', JSON.stringify(user));
         setIsLoading(false);
-        console.log('✅ User set in context:', user.email);
+        console.log('[UserContext] User set in context:', user.email);
       } catch (err) {
-        console.error('❌ Failed to fetch user info from API:', err);
+        console.error('[UserContext] Failed to fetch user info from API:', err);
         
         // FALLBACK: Decode user info from JWT token
         try {
-          console.log('🔄 Falling back to JWT decode...');
+          console.log('[UserContext] Falling back to JWT decode...');
           const payload = decodeJWT(token);
           
           if (payload && payload.email) {
-            console.log('✅ Decoded JWT payload:', payload);
+            console.log('[UserContext] Decoded JWT payload:', payload);
             
             let systemRole: SystemRole;
             if (payload.role === 'admin') {
@@ -141,12 +141,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
             
             setCurrentUser(user);
             localStorage.setItem('octalTaskUser', JSON.stringify(user));
-            console.log('✅ User created from JWT token:', user.email);
+            console.log('[UserContext] User created from JWT token:', user.email);
           } else {
             throw new Error('Invalid JWT payload');
           }
         } catch (jwtErr) {
-          console.error('❌ Failed to decode JWT:', jwtErr);
+          console.error('[UserContext] Failed to decode JWT:', jwtErr);
           setCurrentUser(null);
           localStorage.removeItem('octalTaskUser');
           Cookies.remove('token'); // Token không hợp lệ, xóa đi

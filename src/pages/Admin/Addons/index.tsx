@@ -312,7 +312,7 @@ const AdminAddons = () => {
                             </div>
                             {addon.isPopular && (
                               <Badge variant="secondary" className="bg-orange-500 text-white text-xs">
-                                🔥
+                                
                               </Badge>
                             )}
                           </div>

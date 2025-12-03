@@ -269,7 +269,7 @@ const AdminAnalytics = () => {
                     <CardContent>
                         <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <p className="text-gray-500 dark:text-gray-400">
-                                📊 Chart visualization will be implemented with a charting library (e.g., Recharts, Chart.js)
+                                Chart visualization will be implemented with a charting library (e.g., Recharts, Chart.js)
                             </p>
                         </div>
                     </CardContent>

@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
+import { getMySubscriptions } from '@/lib/api/subscriptions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Star } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
+import { Pagination, ItemsPerPageSelect } from '@/components/ui/pagination';
 
-// Mock subscription type - in real app, this would come from backend
+// Subscription type from backend
 interface Subscription {
   id: number;
   planName: string;
@@ -18,7 +20,7 @@ interface Subscription {
   startDate: string;
   endDate?: string;
   autoRenew: boolean;
-  customerId?: string; // For demo filtering
+  customerId?: number;
 }
 
 export default function MySubscriptions() {
@@ -27,13 +29,19 @@ export default function MySubscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   const baseURL = import.meta.env.BASE_URL;
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
       // Allow viewing without login for demo
       if (!currentUser) {
-        console.log('⚠️ No user logged in, showing empty subscriptions');
+        console.log('[MySubscriptions] No user logged in, showing empty subscriptions');
         setSubscriptions([]);
         setLoading(false);
         return;
@@ -41,50 +49,67 @@ export default function MySubscriptions() {
 
       try {
         setLoading(true);
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const customerId = parseInt(currentUser.id);
 
-        if (isNaN(customerId)) {
-          throw new Error('Invalid customer ID');
+        // Check if we have a valid token
+        const token = document.cookie.split('; ').find(row => row.startsWith('token='));
+        
+        if (token) {
+          // Use getMySubscriptions - backend will filter by authenticated user
+          console.log('[MySubscriptions] Fetching subscriptions via /subscriptions/my endpoint...');
+          
+          const data = await getMySubscriptions(currentPage, itemsPerPage);
+          const subs = data.subscriptions || [];
+          
+          // Update pagination info
+          setTotalItems(data.total || subs.length);
+          setTotalPages(data.totalPages || Math.ceil((data.total || subs.length) / itemsPerPage));
+          
+          console.log(`[MySubscriptions] Loaded ${subs.length} subscriptions:`, subs);
+          
+          // Map backend data to frontend format
+          const mappedSubs = subs.map((s: any) => ({
+            id: s.id,
+            planName: s.planName,
+            planDescription: `Subscription ID: ${s.id}`,
+            price: s.amount,
+            billingCycle: s.billingCycle?.toUpperCase() || 'MONTHLY',
+            status: s.status?.toUpperCase() || 'ACTIVE',
+            startDate: s.currentPeriodStart || s.createdAt,
+            endDate: s.currentPeriodEnd,
+            autoRenew: !s.cancelAtPeriodEnd,
+          }));
+
+          setSubscriptions(mappedSubs);
+        } else {
+          // Demo mode - no subscriptions
+          console.log('[MySubscriptions] Demo mode - no subscriptions');
+          setSubscriptions([]);
+          setTotalItems(0);
+          setTotalPages(1);
         }
-
-        console.log(`📥 Fetching subscriptions for customer ${customerId}...`);
-        
-        const response = await fetch(`${API_URL}/subscriptions/customer/${customerId}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch subscriptions');
-        }
-
-        const data = await response.json();
-        const subs = data.subscriptions || [];
-        
-        console.log(`✅ Loaded ${subs.length} subscriptions:`, subs);
-        
-        // Map backend data to frontend format
-        const mappedSubs = subs.map((s: any) => ({
-          id: s.id,
-          planName: s.planName,
-          planDescription: `Subscription ID: ${s.id}`,
-          price: s.amount,
-          billingCycle: s.billingCycle?.toUpperCase() || 'MONTHLY',
-          status: s.status?.toUpperCase() || 'ACTIVE',
-          startDate: s.currentPeriodStart || s.createdAt,
-          endDate: s.currentPeriodEnd,
-          autoRenew: !s.cancelAtPeriodEnd,
-        }));
-
-        setSubscriptions(mappedSubs);
       } catch (err: any) {
-        console.error('❌ Failed to load subscriptions:', err);
+        console.error('[MySubscriptions] Failed to load subscriptions:', err);
         setSubscriptions([]);
+        setTotalItems(0);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
     
     fetchSubscriptions();
-  }, [currentUser, navigate, baseURL]);
+  }, [currentUser, currentPage, itemsPerPage, navigate, baseURL]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newLimit: number) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return (
@@ -133,7 +158,20 @@ export default function MySubscriptions() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4 max-w-3xl mx-auto">
+        <>
+          {/* Items per page selector */}
+          <div className="flex justify-between items-center mb-4 max-w-3xl mx-auto">
+            <p className="text-sm text-muted-foreground">
+              Hiển thị {subscriptions.length} trong tổng số {totalItems} gói đăng ký
+            </p>
+            <ItemsPerPageSelect
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              options={[5, 10, 20]}
+            />
+          </div>
+          
+          <div className="space-y-4 max-w-3xl mx-auto">
           {subscriptions.map((sub) => (
             <Card key={sub.id}>
               <CardHeader>
@@ -191,6 +229,19 @@ export default function MySubscriptions() {
             </Card>
           ))}
         </div>
+          
+          {/* Pagination */}
+          <div className="max-w-3xl mx-auto">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              showItemCount={false}
+            />
+          </div>
+        </>
       )}
       </div>
     </PageLayout>

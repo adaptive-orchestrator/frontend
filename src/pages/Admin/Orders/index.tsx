@@ -121,7 +121,7 @@ const AdminOrders = () => {
             if (isAuthenticated) {
                 // Real user - fetch from API
                 try {
-                    console.log('🔍 Fetching orders from API (Admin)');
+                    console.log('[Admin/Orders] Fetching orders from API');
                     const response = await getAllOrders();
                     const fetchedOrders = response.orders || response;
                     
@@ -144,16 +144,16 @@ const AdminOrders = () => {
                         }))
                     }));
 
-                    console.log('✅ Orders fetched from API:', transformedOrders);
+                    console.log('[Admin/Orders] Orders fetched from API:', transformedOrders);
                     setOrders(transformedOrders);
                 } catch (error) {
-                    console.error('❌ Failed to fetch orders:', error);
-                    console.log('⚠️ Using demo data as fallback');
+                    console.error('[Admin/Orders] Failed to fetch orders:', error);
+                    console.log('[Admin/Orders] Using demo data as fallback');
                     setOrders(DEMO_ORDERS);
                 }
             } else {
                 // Demo mode - use local data
-                console.log('🎭 Demo mode - using sample orders');
+                console.log('[Admin/Orders] Demo mode - using sample orders');
                 setOrders(DEMO_ORDERS);
             }
             
@@ -220,7 +220,7 @@ Status: ${order.status.toUpperCase()}
         link.click();
         window.URL.revokeObjectURL(url);
         
-        alert(`✅ Invoice ${order.id} đã được tải xuống!`);
+        alert(`Invoice ${order.id} đã được tải xuống!`);
     };
 
     const handleExportAllOrders = () => {
@@ -245,7 +245,7 @@ Status: ${order.status.toUpperCase()}
         link.click();
         window.URL.revokeObjectURL(url);
         
-        alert(`✅ Đã export ${filteredOrders.length} orders!`);
+        alert(`Đã export ${filteredOrders.length} orders!`);
     };
 
     // Stats

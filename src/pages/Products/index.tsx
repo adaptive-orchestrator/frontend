@@ -26,7 +26,7 @@ export default function Products() {
         
         // Check if authenticated - call real API
         if (token) {
-          console.log('🔐 Authenticated - Fetching products from API...');
+          console.log('[Products] Authenticated - Fetching products from API...');
           
           // Fetch products and inventory in parallel
           const [productsData, inventoryData] = await Promise.all([
@@ -34,8 +34,8 @@ export default function Products() {
             getAllInventory()
           ]);
           
-          console.log('📦 Products:', productsData);
-          console.log('📊 Inventory:', inventoryData);
+          console.log('[Products] Products:', productsData);
+          console.log('[Products] Inventory:', inventoryData);
           
           // Map products with inventory stock
           const productsArray = productsData.products || [];
@@ -55,9 +55,9 @@ export default function Products() {
           }));
           
           setProducts(productsWithStock);
-          console.log('✅ Products with stock:', productsWithStock);
+          console.log('[Products] Products with stock:', productsWithStock);
         } else {
-          console.log('👤 Demo mode - Using mock data');
+          console.log('[Products] Demo mode - Using mock data');
           // Demo mode - Mock data
           const mockProducts: Product[] = [
             {
@@ -125,7 +125,7 @@ export default function Products() {
           setProducts(mockProducts);
         }
       } catch (err: any) {
-        console.error('❌ Error fetching products:', err);
+        console.error('[Products] Error fetching products:', err);
         setError(err.message || 'Failed to load products');
       } finally {
         setLoading(false);
@@ -187,7 +187,7 @@ export default function Products() {
                 Retail Products
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-2">
-                🛒 Mua sắm sản phẩm - Thanh toán một lần
+                Mua sắm sản phẩm - Thanh toán một lần
               </p>
             </div>
             <Link to={`${baseURL}cart`}>
@@ -251,7 +251,7 @@ export default function Products() {
                       </span>
                       {product.stock !== undefined && (
                         <span className={`text-sm ${getStockColor(product.stock)}`}>
-                          {product.stock === 0 ? '⚠️ Out of Stock' : product.stock < 10 ? `⚡ Only ${product.stock}` : `✓ ${product.stock} in stock`}
+                          {product.stock === 0 ? 'Out of Stock' : product.stock < 10 ? `Only ${product.stock}` : `${product.stock} in stock`}
                         </span>
                       )}
                     </div>

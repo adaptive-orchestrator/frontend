@@ -39,7 +39,6 @@ export const getLists = async () => {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
 
-    console.log(token);
     const res = await axios.get(`${API_BASE}/lists`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -57,7 +56,6 @@ export const getListsById = async (id: string) => {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
 
-    console.log(token);
     const res = await axios.get(`${API_BASE}/lists/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,

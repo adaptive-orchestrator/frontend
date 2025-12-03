@@ -1,95 +1,149 @@
-# OctalTask - Web to manage your work
-![Repo Size](https://img.shields.io/github/repo-size/jiraops/octaltask)
-![Last Commit](https://img.shields.io/github/last-commit/jiraops/octaltask)
-![Open Issues](https://img.shields.io/github/issues/jiraops/octaltask)
+# 🎨 BMMS Frontend - Multi-Business Model Web Application
 
-![React](https://img.shields.io/badge/React-19.0.0-blue)
-![Vite](https://img.shields.io/badge/Vite-6.2.6-blueviolet)
-![ESLint](https://img.shields.io/badge/ESLint-9.21.0-yellowgreen)
-![TypeScript](https://img.shields.io/badge/TailwindCSS-5.7.2-red)
+Frontend React application cho hệ thống BMMS, hỗ trợ 4 mô hình kinh doanh: Retail, Subscription, Freemium, Multi-Model.
 
-OctalTask is a website to help user manage their work conveniently and intuitively.
+## 🚀 Tech Stack
 
-# Features
+- **React 18** + TypeScript
+- **Vite** - Build tool
+- **Tailwind CSS** + shadcn/ui
+- **React Router v6** - Routing
+- **Axios** - HTTP client
+- **React Context** - State management
+- **Framer Motion** - Animations
 
-## 1. User Authentication
+## 📁 Project Structure
 
-- **Login, Sign Up, Password Recovery**: User can create an account, login and reset password.
-- **Email Verification**: Verify email using a One-Time Password (OTP) for enhanced security.
+```
+src/
+├── components/
+│   ├── chatbot/          # AI Chatbot widget
+│   ├── common/           # Shared components
+│   ├── feature/          # Feature-specific components
+│   ├── layout/           # Layout components (Navbar, Footer)
+│   └── ui/               # shadcn/ui components
+│
+├── contexts/
+│   ├── BusinessModeContext.tsx  # Retail/Subscription/Freemium mode
+│   ├── CartContext.tsx          # Shopping cart (Retail)
+│   ├── TaskContext.tsx          # Task management
+│   ├── ThemeContext.tsx         # Dark/Light theme
+│   └── UserContext.tsx          # Authentication & roles
+│
+├── pages/
+│   ├── admin/            # Admin dashboard pages
+│   ├── auth/             # Login, Register, Reset password
+│   ├── freemium/         # Freemium model pages
+│   ├── retail/           # Retail model pages
+│   └── subscription/     # Subscription model pages
+│
+├── routes/               # Route configuration
+├── types/                # TypeScript types
+└── utils/                # Utility functions
+```
 
-## 2. Main Page 
+## 🎯 Business Modes
 
-### Sidebar: Display user information and quick access to different categorized tasks
+### Retail Mode 🛒
+- Product catalog với inventory tracking
+- Shopping cart
+- Checkout & payment
+- Order history
 
-- **User information**: Display username, email and settings icon.
+### Subscription Mode 📅
+- Subscription plans với features
+- Plan comparison
+- Subscription management
+- Auto-renewal
 
-- **Your task**: Your personal tasks
-  - *Task today*: Lists tasks scheduled for today.
-  - *Important task*: Shows tasks marked as important.
-  - *Planned task*: Shows tasks that have a due date and are scheduled for the future.
-  - *Assigned task*: Team tasks delegated to or assigned by others.
-  - *All task*: All task lists you have.
+### Freemium Mode 🎁
+- Free tier với usage limits:
+  - 2GB storage
+  - 3 projects
+  - 50 tasks/month
+- Paid add-ons:
+  - AI Assistant ($19.99/mo)
+  - Extra Storage ($9.99/mo)
+  - Team Collaboration ($14.99/mo)
+  - Advanced Analytics ($12.99/mo)
 
-- **Team task**: Show all your teams and tasks in the team.
+### Multi Mode 🔄
+- Unified dashboard
+- Manage all 3 models simultaneously
 
-### Main Content: Display the tasks
-- Display the tasks you have in each category, including incomplete and completed.
-- Each task shows its name, due date, task list, and whether it's marked as important.
+## 👥 User Roles
 
-### Task's Content: Display the details of the selected task
-- Includes task list category, checkbox to add to "Task today", and fields for reminder, due date, and note.
+| Role | Permissions |
+|------|-------------|
+| `customer` | Regular customer access |
+| `member` | Team member |
+| `organization_admin` | Admin for organization |
+| `super_admin` | Full system access |
 
-## 3. About Task
-- Ticking and unticking the task to change its completion state.
-
-### Personal Task:
-- Create, delete, and edit your task list.
-  - Add, delete, and edit tasks within a task list.
-  - Change the task list a task belongs to.
-
-### Team Task:
-- Add, delete, and edit roles of members in your team.
-- Create, delete, and edit your team task list.
-  - Create, delete, and edit tasks.
-  - Assign tasks to team members.
-
-# Installation
+## 🛠️ Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/jiraops/octaltask
-cd octaltask
-
 # Install dependencies
 npm install
 
-# Start the development server
+# Start development server
 npm run dev
+
+# Build for production
+npm run build
 ```
 
-> Make sure you also have the backend API running. You can configure the API base URL via `.env`.  
-> The `.env` file only needs one variable `VITE_API_BASE`, it's the base url to the Backend server.  
+## 📝 Environment Variables
 
-# Related Projects
+```env
+VITE_API_BASE=http://localhost:3000
+```
 
-OctalTask consists of multiple services. Here are the related repositories:
+## 📄 Pages
 
-* [OctalTask Front-End (this repo)](https://github.com/jiraops/octaltask.git): The web-based user interface, built with React, TypeScript and Vite.
-* [OctalTask Backend API](https://github.com/jiraops/octaltask-api.git): A NestJS microservices architecture project using gRPC for communication between services.
+### Public Pages
+- `/` - Landing page
+- `/login` - Login
+- `/register` - Register
+- `/mode-selection` - Choose business mode
 
-These services work together to provide a seamless experience for users.
+### Retail Pages
+- `/products` - Product catalog
+- `/products/:id` - Product detail
+- `/cart` - Shopping cart
+- `/checkout` - Checkout
+- `/orders` - Order history
 
-# License
+### Subscription Pages
+- `/plans` - Subscription plans
+- `/subscribe` - Subscribe to plan
+- `/my-subscriptions` - Manage subscriptions
 
-This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+### Freemium Pages
+- `/freemium` - Free plan + add-ons
+- `/freemium/dashboard` - Usage dashboard
+- `/freemium/addons` - Purchased add-ons
 
-# Credits
-Contributors:
-- Tran Dong Truc Lam  (Student ID: 22520746)  
-Github link: [limelight-hub](https://github.com/limelight-hub)
-- Le Ngoc Duy Linh (Student ID: 22520762)  
-Github link: [YuilRin](https://github.com/YuilRin)
-- Vo Tran Phi  (Student ID: 22521081)  
-Github link: [votranphi](https://github.com/votranphi)
-- Thai Kieu Phuong  (Student ID: 22521170)  
-Github link: [kPhuong08](https://github.com/kPhuong08)
+### Admin Pages
+- `/admin` - Dashboard
+- `/admin/products` - Manage products
+- `/admin/customers` - Manage customers
+- `/admin/orders` - Manage orders
+- `/admin/plans` - Manage plans
+- `/admin/addons` - Manage add-ons
+
+## 🔗 API Integration
+
+Frontend connects to BMMS API Gateway at `http://localhost:3000`:
+
+- `/auth/*` - Authentication
+- `/catalogue/*` - Products & Plans
+- `/orders/*` - Orders
+- `/subscriptions/*` - Subscriptions
+- `/addons/*` - Add-ons
+- `/payments/*` - Payments
+- `/ai/chat` - AI Chat
+
+## 📄 License
+
+MIT License

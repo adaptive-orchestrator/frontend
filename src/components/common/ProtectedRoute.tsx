@@ -23,7 +23,7 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const navigate = useNavigate();
   const { currentUser, isAdmin, isOrgAdmin } = useUser();
-  const { mode } = useBusinessMode();
+  const { mode, isLoading: isModeLoading } = useBusinessMode();
   const baseURL = import.meta.env.BASE_URL;
   const [waitTimeout, setWaitTimeout] = useState(false);
 
@@ -33,7 +33,7 @@ export default function ProtectedRoute({
     
     if (requireAuth && token && !currentUser) {
       const timer = setTimeout(() => {
-        console.log('⏰ Timeout waiting for user data, redirecting to login');
+        console.log('[ProtectedRoute] Timeout waiting for user data, redirecting to login');
         setWaitTimeout(true);
         navigate(`${baseURL}login`, { replace: true });
       }, 5000);
@@ -43,6 +43,12 @@ export default function ProtectedRoute({
   }, [requireAuth, currentUser, navigate, baseURL]);
 
   useEffect(() => {
+    // Don't do anything while mode is still loading
+    if (requireMode && isModeLoading) {
+      console.log('[ProtectedRoute] Waiting for mode to load...');
+      return;
+    }
+
     // Check if token exists
     const token = Cookies.get('token');
     
@@ -56,26 +62,27 @@ export default function ProtectedRoute({
       isAdmin,
       isOrgAdmin,
       mode,
+      isModeLoading,
       allowedModes
     });
 
     // If requireAuth but no token, redirect immediately
     if (requireAuth && !token) {
-      console.log('→ Redirecting to login (no token)');
+      console.log('[ProtectedRoute] Redirecting to login (no token)');
       navigate(`${baseURL}login`, { replace: true });
       return;
     }
 
     // If we have token but no currentUser yet, wait for UserContext to fetch
     if (requireAuth && token && !currentUser) {
-      console.log('⏳ Waiting for UserContext to fetch user info...');
+      console.log('[ProtectedRoute] Waiting for UserContext to fetch user info...');
       // Keep checking state - let UserContext fetch complete
       return;
     }
 
     // Check authentication with currentUser
     if (requireAuth && !currentUser) {
-      console.log('→ Redirecting to login (no user)');
+      console.log('[ProtectedRoute] Redirecting to login (no user)');
       navigate(`${baseURL}login`, { replace: true });
       return;
     }
@@ -84,16 +91,16 @@ export default function ProtectedRoute({
     if (requireAdmin) {
       const hasAdminAccess = isAdmin || isOrgAdmin;
       if (!hasAdminAccess) {
-        console.log('→ Redirecting to home (no admin access)');
+        console.log('[ProtectedRoute] Redirecting to home (no admin access)');
         navigate(`${baseURL}`, { replace: true });
         return;
       }
-      console.log('✓ Admin access granted');
+      console.log('[ProtectedRoute] Admin access granted');
     }
 
-    // Check business mode selection
+    // Check business mode selection (only after loading is complete)
     if (requireMode && !mode) {
-      console.log('→ Redirecting to mode selection (no mode)');
+      console.log('[ProtectedRoute] Redirecting to mode selection (no mode)');
       navigate(`${baseURL}mode-selection`, { replace: true });
       return;
     }
@@ -112,7 +119,7 @@ export default function ProtectedRoute({
       }
       return;
     }
-  }, [currentUser, isAdmin, isOrgAdmin, mode, requireAuth, requireAdmin, requireMode, allowedModes, navigate, baseURL]);
+  }, [currentUser, isAdmin, isOrgAdmin, mode, isModeLoading, requireAuth, requireAdmin, requireMode, allowedModes, navigate, baseURL]);
 
   // Show loading while checking and waiting for user data
   const token = Cookies.get('token');
@@ -152,6 +159,17 @@ export default function ProtectedRoute({
   }
 
   if (requireMode && !mode) {
+    // Still loading mode or no mode set
+    if (isModeLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <p className="text-sm text-gray-600 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />

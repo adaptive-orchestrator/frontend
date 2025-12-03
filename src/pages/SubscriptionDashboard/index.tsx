@@ -1,6 +1,7 @@
 // src/pages/SubscriptionDashboard/index.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import PageLayout from '@/components/layout/PageLayout';
+import Cookies from 'js-cookie';
 import { 
   Users, 
   Database, 
@@ -24,13 +26,46 @@ import {
   User,
   Tag,
   Trash2,
-  Save
+  Save,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  BarChart3,
+  CreditCard,
+  FileText,
+  Check
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// Types
+interface Subscription {
+  id: number;
+  customerId: number;
+  planId: number;
+  planName: string;
+  status: string;
+  amount: number;
+  billingCycle: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  createdAt: string;
+}
+
+interface Invoice {
+  id: number;
+  invoiceNumber: string;
+  totalAmount: number;
+  status: string;
+  dueDate: string;
+  createdAt: string;
+}
+
 export default function SubscriptionDashboard() {
   const navigate = useNavigate();
+  const { currentUser } = useUser();
   const baseURL = import.meta.env.BASE_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'ai' | 'analytics' | 'team'>('overview');
   const [aiPrompt, setAiPrompt] = useState('');
   const [chatMessages, setChatMessages] = useState([
@@ -39,27 +74,28 @@ export default function SubscriptionDashboard() {
   ]);
   const [newMessage, setNewMessage] = useState('');
   
+  // Loading and error states
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Real data from API
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  
   // Dialog states
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
   const [settingsProjectDialog, setSettingsProjectDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
 
-  // Mock data
-  const [subscription] = useState({
-    planName: 'Professional Plan',
-    status: 'ACTIVE',
-    price: 49.99,
-    nextBillingDate: '2025-11-27',
+  // Usage stats (calculated from real data or defaults)
+  const [usage, setUsage] = useState({
+    storage: { used: 0, total: 100, unit: 'GB' },
+    aiCredits: { used: 0, total: 1000 },
+    projects: { used: 0, total: 'Unlimited' },
+    teamMembers: { used: 1, total: 10 },
   });
 
-  const [usage] = useState({
-    storage: { used: 45, total: 100, unit: 'GB' },
-    aiCredits: { used: 650, total: 1000 },
-    projects: { used: 8, total: 'Unlimited' },
-    teamMembers: { used: 5, total: 10 },
-  });
-
-  // Demo Projects with full details
+  // Demo Projects with full details (will be replaced with real project API later)
   const [projects] = useState([
     { 
       id: 1, 
@@ -131,6 +167,101 @@ export default function SubscriptionDashboard() {
     ]
   });
 
+  // Fetch subscription data from API
+  useEffect(() => {
+    const fetchSubscriptionData = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Get token for authenticated API calls
+        const token = Cookies.get('token');
+        if (!token) {
+          console.log('[SubscriptionDashboard] No token found, redirecting to plans...');
+          navigate(`${baseURL}subscription-plans`);
+          return;
+        }
+
+        // Fetch subscriptions using /my endpoint with token
+        console.log('[SubscriptionDashboard] Fetching subscriptions with token...');
+        const subsResponse = await fetch(`${API_URL}/subscriptions/my`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!subsResponse.ok) {
+          if (subsResponse.status === 401) {
+            console.log('[SubscriptionDashboard] Unauthorized, redirecting to plans...');
+            navigate(`${baseURL}subscription-plans`);
+            return;
+          }
+          throw new Error('Failed to fetch subscriptions');
+        }
+        
+        const subsData = await subsResponse.json();
+        const subscriptions = subsData.subscriptions || subsData || [];
+        console.log('[SubscriptionDashboard] Subscriptions fetched:', subscriptions);
+
+        // Find active or pending subscription
+        const activeSubscription = Array.isArray(subscriptions) 
+          ? subscriptions.find(
+              (s: Subscription) => s.status === 'active' || s.status === 'ACTIVE' || 
+                                   s.status === 'pending' || s.status === 'PENDING'
+            )
+          : null;
+
+        if (activeSubscription) {
+          setSubscription(activeSubscription);
+          
+          // Only fetch invoices for active subscriptions
+          if (activeSubscription.status === 'active' || activeSubscription.status === 'ACTIVE') {
+            try {
+              const invoicesResponse = await fetch(`${API_URL}/billing/subscription/${activeSubscription.id}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              if (invoicesResponse.ok) {
+                const invoicesData = await invoicesResponse.json();
+                setInvoices(invoicesData.invoices || []);
+                console.log('[SubscriptionDashboard] Invoices fetched:', invoicesData.invoices);
+              }
+            } catch (err) {
+              console.log('Could not fetch invoices:', err);
+            }
+          }
+          
+          // Update usage based on subscription data
+          setUsage(prev => ({
+            ...prev,
+            projects: { used: projects.length, total: 'Unlimited' },
+          }));
+        } else {
+          // No active subscription, redirect to plans
+          console.log('[SubscriptionDashboard] No active subscription found, redirecting to plans...');
+          navigate(`${baseURL}subscription-plans`);
+          return;
+        }
+        
+      } catch (err: any) {
+        console.error('[SubscriptionDashboard] Error fetching subscription data:', err);
+        setError(err.message || 'Failed to load subscription data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubscriptionData();
+  }, [currentUser, API_URL, navigate, baseURL]);
+
   const handleAiSubmit = () => {
     if (aiPrompt.trim()) {
       alert(`AI Processing: "${aiPrompt}"\n\nResult: Tính năng AI đang xử lý yêu cầu của bạn...`);
@@ -160,9 +291,124 @@ export default function SubscriptionDashboard() {
     setSettingsProjectDialog(true);
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return 'bg-green-500';
+      case 'pending':
+        return 'bg-yellow-500';
+      case 'cancelled':
+        return 'bg-red-500';
+      case 'expired':
+        return 'bg-gray-500';
+      default:
+        return 'bg-blue-500';
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-purple-600" />
+            <p className="mt-4 text-muted-foreground">Loading subscription data...</p>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="max-w-md text-center py-12 px-6">
+            <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">Error Loading Data</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // No subscription state
+  if (!subscription) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="max-w-md text-center py-12 px-6">
+            <AlertCircle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">No Active Subscription</h2>
+            <p className="text-muted-foreground mb-4">You don't have an active subscription yet.</p>
+            <Button onClick={() => navigate(`${baseURL}subscription-plans`)} className="bg-purple-600">
+              View Plans
+            </Button>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Check if subscription is pending (waiting for payment)
+  const isPending = subscription.status?.toLowerCase() === 'pending';
+
   return (
     <PageLayout>
       <div className="container mx-auto px-4 py-8">
+        {/* Pending Payment Banner */}
+        {isPending && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-6 w-6 text-yellow-600" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Đang chờ thanh toán
+                </h3>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Subscription của bạn đang chờ thanh toán. Vui lòng hoàn tất thanh toán để kích hoạt tất cả tính năng.
+                </p>
+              </div>
+              <Button 
+                onClick={() => navigate(`${baseURL}checkout`, {
+                  state: {
+                    type: 'subscription',
+                    subscriptionId: subscription.id,
+                    planId: subscription.planId,
+                    planName: subscription.planName,
+                    period: subscription.billingCycle,
+                    amount: subscription.amount,
+                  }
+                })}
+                className="bg-yellow-600 hover:bg-yellow-700"
+              >
+                Thanh toán ngay
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -171,11 +417,11 @@ export default function SubscriptionDashboard() {
                 Professional Workspace
               </h1>
               <p className="text-muted-foreground mt-2">
-                {subscription.planName} - Tất cả tính năng đã mở khóa
+                {subscription.planName} - {isPending ? 'Đang chờ kích hoạt' : 'Tất cả tính năng đã mở khóa'}
               </p>
             </div>
-            <Badge className="bg-green-500 text-white text-lg px-4 py-2">
-              ✓ ACTIVE
+            <Badge className={`${getStatusBadgeColor(subscription.status)} text-white text-lg px-4 py-2 flex items-center gap-1`}>
+              {isPending ? <><Clock className="h-4 w-4" /> PENDING</> : <><Check className="h-4 w-4" /> ACTIVE</>}
             </Badge>
           </div>
 
@@ -186,35 +432,40 @@ export default function SubscriptionDashboard() {
               onClick={() => setActiveTab('overview')}
               className={activeTab === 'overview' ? 'bg-purple-600' : ''}
             >
-              📊 Overview
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Overview
             </Button>
             <Button
               variant={activeTab === 'projects' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('projects')}
               className={activeTab === 'projects' ? 'bg-purple-600' : ''}
             >
-              📁 Projects
+              <FolderOpen className="h-4 w-4 mr-1" />
+              Projects
             </Button>
             <Button
               variant={activeTab === 'ai' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('ai')}
               className={activeTab === 'ai' ? 'bg-purple-600' : ''}
             >
-              ✨ AI Assistant
+              <Sparkles className="h-4 w-4 mr-1" />
+              AI Assistant
             </Button>
             <Button
               variant={activeTab === 'analytics' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('analytics')}
               className={activeTab === 'analytics' ? 'bg-purple-600' : ''}
             >
-              📈 Analytics
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Analytics
             </Button>
             <Button
               variant={activeTab === 'team' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('team')}
               className={activeTab === 'team' ? 'bg-purple-600' : ''}
             >
-              👥 Team Chat
+              <Users className="h-4 w-4 mr-1" />
+              Team Chat
             </Button>
           </div>
         </div>
@@ -287,26 +538,65 @@ export default function SubscriptionDashboard() {
               </Card>
             </div>
 
-            {/* Subscription Info */}
-            <Card className="border-2 border-purple-300">
+            {/* Subscription Info - Now with Real Data */}
+            <Card className="border-2 border-purple-300 mb-6">
               <CardHeader>
-                <CardTitle>💳 Subscription Details</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Subscription Details
+                </CardTitle>
               </CardHeader>
-              <CardContent className="grid md:grid-cols-3 gap-4">
+              <CardContent className="grid md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Plan</p>
                   <p className="text-xl font-bold">{subscription.planName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Price</p>
-                  <p className="text-xl font-bold">${subscription.price}/month</p>
+                  <p className="text-xl font-bold">${subscription.amount}/{subscription.billingCycle}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Period</p>
+                  <p className="text-lg font-semibold">
+                    {formatDate(subscription.currentPeriodStart)} - {formatDate(subscription.currentPeriodEnd)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Next Billing</p>
-                  <p className="text-xl font-bold">{subscription.nextBillingDate}</p>
+                  <p className="text-xl font-bold">{formatDate(subscription.currentPeriodEnd)}</p>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Billing History */}
+            {invoices.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Billing History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {invoices.slice(0, 5).map((invoice) => (
+                      <div key={invoice.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <div>
+                          <p className="font-semibold">{invoice.invoiceNumber}</p>
+                          <p className="text-sm text-muted-foreground">{formatDate(invoice.createdAt)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">${invoice.totalAmount}</p>
+                          <Badge className={invoice.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}>
+                            {invoice.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         )}
 
@@ -314,7 +604,10 @@ export default function SubscriptionDashboard() {
         {activeTab === 'projects' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">📁 My Projects</h2>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <FolderOpen className="h-6 w-6" />
+                My Projects
+              </h2>
               <Button className="bg-purple-600">
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
@@ -392,7 +685,10 @@ export default function SubscriptionDashboard() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg">
-                    <p className="font-semibold mb-2">✨ Tính năng AI có sẵn:</p>
+                    <p className="font-semibold mb-2 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Tính năng AI có sẵn:
+                    </p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Code Generation & Review</li>
                       <li>Content Writing & Copywriting</li>
@@ -423,11 +719,17 @@ export default function SubscriptionDashboard() {
                     <p className="text-sm text-muted-foreground mb-2">Recent AI Results:</p>
                     <div className="space-y-2">
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border">
-                        <p className="text-sm font-semibold">✓ Code generated: React Component</p>
+                        <p className="text-sm font-semibold flex items-center gap-1">
+                          <Check className="h-3 w-3 text-green-500" />
+                          Code generated: React Component
+                        </p>
                         <p className="text-xs text-muted-foreground">2 hours ago</p>
                       </div>
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border">
-                        <p className="text-sm font-semibold">✓ Content written: Blog post outline</p>
+                        <p className="text-sm font-semibold flex items-center gap-1">
+                          <Check className="h-3 w-3 text-green-500" />
+                          Content written: Blog post outline
+                        </p>
                         <p className="text-xs text-muted-foreground">1 day ago</p>
                       </div>
                     </div>
@@ -441,7 +743,10 @@ export default function SubscriptionDashboard() {
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 className="text-2xl font-bold mb-4">📈 Advanced Analytics</h2>
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <BarChart3 className="h-6 w-6" />
+              Advanced Analytics
+            </h2>
             
             <div className="grid md:grid-cols-4 gap-4 mb-6">
               <Card>

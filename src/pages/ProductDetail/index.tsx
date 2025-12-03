@@ -8,7 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, ArrowLeft, Loader2 } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Loader2, AlertTriangle, Zap, Check } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 
 export default function ProductDetail() {
@@ -31,18 +31,18 @@ export default function ProductDetail() {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         
         try {
-          console.log(`📥 Fetching product ${id}...`);
+          console.log(`[ProductDetail] Fetching product ${id}...`);
           const response = await fetch(`${API_URL}/products/${id}`);
           
           if (response.ok) {
             const data = await response.json();
             const prod = data.product || data;
-            console.log('✅ Product loaded:', prod);
+            console.log('[ProductDetail] Product loaded:', prod);
             setProduct(prod);
             return;
           }
         } catch (apiError) {
-          console.warn('⚠️ API failed, using mock data:', apiError);
+          console.warn('[ProductDetail] API failed, using mock data:', apiError);
         }
         
         // Fallback to mock data
@@ -212,14 +212,14 @@ export default function ProductDetail() {
             
             {product.stock !== undefined && (
               <div className="text-sm">
-                <span className={
+                <span className={`flex items-center gap-1 ${
                   product.stock === 0 
                     ? 'text-red-600 dark:text-red-400 font-semibold' 
                     : product.stock < 10 
                     ? 'text-orange-600 dark:text-orange-400 font-medium' 
                     : 'text-green-600 dark:text-green-400'
-                }>
-                  {product.stock === 0 ? '⚠️ Out of Stock' : product.stock < 10 ? `⚡ Only ${product.stock} left` : `✓ ${product.stock} in stock`}
+                }`}>
+                  {product.stock === 0 ? <><AlertTriangle className="h-4 w-4" /> Out of Stock</> : product.stock < 10 ? <><Zap className="h-4 w-4" /> Only {product.stock} left</> : <><Check className="h-4 w-4" /> {product.stock} in stock</>}
                 </span>
               </div>
             )}

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useUser } from '@/contexts/UserContext';
 import { createOrder } from '@/lib/api/orders';
+import { getCustomerByUserId } from '@/lib/api/customers';
 // import { initiatePayment } from '@/lib/api/payments'; // TODO: Payment sau
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,16 +23,27 @@ export default function Checkout() {
   
   const baseURL = import.meta.env.BASE_URL;
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Payment service URL - trực tiếp đến payment-svc, sau này sẽ thay bằng VNPay/Momo
+  const PAYMENT_SVC_URL = import.meta.env.VITE_PAYMENT_SVC_URL || 'http://localhost:3013';
 
   // Get checkout type from location state
   const checkoutState = location.state as {
     type?: 'retail' | 'subscription';
     subscriptionId?: number;
     planId?: number;
+    planName?: string;
+    period?: 'monthly' | 'yearly';
     amount?: number;
+    features?: any[];
   } | null;
 
   const isSubscription = checkoutState?.type === 'subscription';
+
+  // Debug log
+  useEffect(() => {
+    console.log('[Checkout] Checkout state:', checkoutState);
+    console.log('[Checkout] Is subscription checkout:', isSubscription);
+  }, [checkoutState, isSubscription]);
 
   const [formData, setFormData] = useState({
     shippingAddress: '',
@@ -58,76 +70,42 @@ export default function Checkout() {
       setError(null);
 
       if (isSubscription) {
-        // Handle subscription payment
+        // Handle subscription payment - gọi trực tiếp payment-svc
         const paymentData = {
           subscriptionId: checkoutState.subscriptionId,
-          amount: checkoutState.amount,
-          paymentMethod: formData.paymentMethod,
           customerId: user?.id || parseInt(currentUser?.id || '0'),
+          amount: checkoutState.amount,
+          planName: checkoutState.planName || 'Subscription Plan',
+          paymentMethod: formData.paymentMethod,
+          currency: 'VND',
+          notes: 'Subscription payment via checkout',
         };
 
-        console.log('💳 Processing subscription payment:', paymentData);
+        console.log('[Checkout] Processing subscription payment via payment-svc:', paymentData);
 
-        // Call payment API
-        const paymentResponse = await fetch(`${API_URL}/billing/create-invoice`, {
+        // Gọi payment-svc trực tiếp (port 3013)
+        // Sau này sẽ thay bằng VNPay/Momo redirect flow
+        const paymentResponse = await fetch(`${PAYMENT_SVC_URL}/payments/subscription/pay`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            customerId: paymentData.customerId,
-            subscriptionId: paymentData.subscriptionId,
-            amount: paymentData.amount,
-            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-            notes: 'First subscription payment',
-          }),
+          body: JSON.stringify(paymentData),
         });
 
         if (!paymentResponse.ok) {
-          throw new Error('Không thể tạo hóa đơn thanh toán');
+          const errorData = await paymentResponse.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Thanh toán thất bại');
         }
 
-        const invoiceData = await paymentResponse.json();
-        const invoice = invoiceData.invoice || invoiceData;
+        const paymentResult = await paymentResponse.json();
+        console.log('[Checkout] Payment successful:', paymentResult);
 
-        console.log('✅ Invoice created:', invoice);
+        // Payment-svc sẽ emit event để subscription-svc tự động activate
+        // Không cần gọi activate API nữa
+        console.log('[Checkout] Subscription will be activated automatically via event');
 
-        // Process payment immediately
-        const payResponse = await fetch(`${API_URL}/payments/pay`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            invoiceId: invoice.id,
-            amount: paymentData.amount,
-            paymentMethod: 'CREDIT_CARD',
-          }),
-        });
-
-        if (!payResponse.ok) {
-          throw new Error('Thanh toán thất bại');
-        }
-
-        const paymentResult = await payResponse.json();
-        console.log('✅ Payment successful:', paymentResult);
-
-        // Activate subscription after successful payment
-        console.log(`🔄 Activating subscription ${checkoutState.subscriptionId}...`);
-        const activateResponse = await fetch(`${API_URL}/subscriptions/${checkoutState.subscriptionId}/activate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (activateResponse.ok) {
-          console.log('✅ Subscription activated successfully');
-        } else {
-          console.warn('⚠️ Could not activate subscription, but payment succeeded');
-        }
-
-        console.log('✅ Thanh toán thành công! Chuyển sang dashboard...');
+        console.log('[Checkout] Payment successful! Redirecting to dashboard...');
         navigate(`${baseURL}subscription-dashboard`);
 
       } else {
@@ -144,10 +122,23 @@ export default function Checkout() {
 
         if (isRealUser) {
         // Real API call for authenticated users
-        const customerId = parseInt(currentUser.id);
-        if (isNaN(customerId)) {
-          throw new Error('Invalid customer ID. Please re-login.');
+        // currentUser.id là userId từ Auth service, cần lấy customerId thực từ Customer service
+        const userId = parseInt(currentUser.id);
+        if (isNaN(userId)) {
+          throw new Error('Invalid user ID. Please re-login.');
         }
+
+        // Lấy customer theo userId để lấy customerId thực
+        console.log('[Checkout] Fetching customer info for userId:', userId);
+        const customer = await getCustomerByUserId(userId);
+        console.log('[Checkout] Customer found:', customer);
+        
+        if (!customer || !customer.id) {
+          throw new Error('Customer profile not found. Please contact support.');
+        }
+        
+        const customerId = customer.id;
+        console.log('[Checkout] Using customerId:', customerId);
 
         const orderData = {
           customerId: customerId,
@@ -161,21 +152,21 @@ export default function Checkout() {
           notes: `Order placed via web checkout`,
         };
 
-        console.log('🚀 Creating order (Real API):', orderData);
+        console.log('[Checkout] Creating order (Real API):', orderData);
 
         const response = await createOrder(orderData);
         const order = response.order || response;
 
-        console.log('✅ Order created:', order);
-        console.log('📋 Order Number:', order.orderNumber || order.id);
-        console.log('💰 Total Amount:', order.totalAmount);
-        console.log('🔔 Billing service will automatically create invoice via Kafka event');
+        console.log('[Checkout] Order created:', order);
+        console.log('[Checkout] Order Number:', order.orderNumber || order.id);
+        console.log('[Checkout] Total Amount:', order.totalAmount);
+        console.log('[Checkout] Billing service will automatically create invoice via Kafka event');
 
         clearCart();
         navigate(`${baseURL}orders`);
       } else {
         // Demo mode - save to localStorage
-        console.log('🎭 Demo mode - saving order to localStorage');
+        console.log('[Checkout] Demo mode - saving order to localStorage');
         
         await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
         
@@ -203,7 +194,7 @@ export default function Checkout() {
         existingOrders.push(newOrder);
         localStorage.setItem('demoOrders', JSON.stringify(existingOrders));
 
-        console.log('✅ Demo order created:', newOrder);
+        console.log('[Checkout] Demo order created:', newOrder);
 
         clearCart();
         navigate(`${baseURL}orders`);
@@ -211,7 +202,7 @@ export default function Checkout() {
       }
 
     } catch (err: any) {
-      console.error('❌ Payment/Order creation failed:', err);
+      console.error('[Checkout] Payment/Order creation failed:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to process';
       setError(errorMessage);
       alert(errorMessage);
@@ -219,6 +210,28 @@ export default function Checkout() {
       setLoading(false);
     }
   };
+
+  // For subscription checkout, validate checkoutState
+  if (isSubscription && (!checkoutState || !checkoutState.subscriptionId)) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto text-center py-12">
+            <CardContent>
+              <h2 className="text-2xl font-bold mb-2">Session Expired</h2>
+              <p className="text-gray-600 mb-6">
+                Subscription checkout session has expired or is invalid. 
+                Please go back and try again.
+              </p>
+              <Button onClick={() => navigate(`${baseURL}plans`)}>
+                Back to Plans
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
 
   // For subscription checkout, skip cart validation
   if (!isSubscription && items.length === 0) {
@@ -243,7 +256,7 @@ export default function Checkout() {
     <PageLayout>
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">
-        {isSubscription ? '💳 Thanh Toán Subscription' : 'Checkout'}
+        {isSubscription ? 'Thanh Toán Subscription' : 'Checkout'}
       </h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -344,12 +357,12 @@ export default function Checkout() {
                     <span>Billing:</span>
                     <span className="font-semibold">{checkoutState.period === 'monthly' ? 'Hàng tháng' : 'Hàng năm'}</span>
                   </div>
-                  {checkoutState.features && checkoutState.features.length > 0 && (
+                  {checkoutState.features && Array.isArray(checkoutState.features) && checkoutState.features.length > 0 && (
                     <div>
                       <span className="font-semibold">Features:</span>
                       <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                        {checkoutState.features.map((feature: string, idx: number) => (
-                          <li key={idx}>✓ {feature}</li>
+                        {checkoutState.features.map((feature: any, idx: number) => (
+                          <li key={idx}>{typeof feature === 'string' ? feature : feature?.name || 'Feature'}</li>
                         ))}
                       </ul>
                     </div>
@@ -357,7 +370,7 @@ export default function Checkout() {
                   <div className="border-t pt-4">
                     <div className="flex justify-between text-xl font-bold">
                       <span>Total</span>
-                      <span>${checkoutState.amount?.toFixed(2) || '0.00'}</span>
+                      <span>${(checkoutState.amount || 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </>

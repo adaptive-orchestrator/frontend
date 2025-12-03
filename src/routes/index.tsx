@@ -143,7 +143,7 @@ export default function AppRoutes() {
                 </ProtectedRoute>
             } />
             <Route path={`${baseURL}checkout`} element={
-                <ProtectedRoute requireAuth requireMode allowedModes={['retail', 'multi']}>
+                <ProtectedRoute requireAuth requireMode allowedModes={['retail', 'subscription', 'freemium', 'multi']}>
                     <Checkout />
                 </ProtectedRoute>
             } />

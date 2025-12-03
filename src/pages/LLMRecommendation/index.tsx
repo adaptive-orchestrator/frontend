@@ -97,10 +97,10 @@ export default function LLMRecommendation() {
           'Subscription sẽ tiết kiệm chi phí và unlock tất cả features',
         ],
         benefits: [
-          { icon: '💰', title: 'Tiết kiệm ~$75/tháng', desc: 'So với việc mua lẻ hiện tại' },
-          { icon: '✨', title: 'AI Assistant unlimited', desc: 'Code generation, content writing' },
-          { icon: '📦', title: 'Free shipping', desc: 'Tất cả đơn hàng không giới hạn' },
-          { icon: '⚡', title: 'Priority support', desc: 'Response time < 2 hours' },
+          { icon: 'money', title: 'Tiết kiệm ~$75/tháng', desc: 'So với việc mua lẻ hiện tại' },
+          { icon: 'sparkle', title: 'AI Assistant unlimited', desc: 'Code generation, content writing' },
+          { icon: 'box', title: 'Free shipping', desc: 'Tất cả đơn hàng không giới hạn' },
+          { icon: 'bolt', title: 'Priority support', desc: 'Response time < 2 hours' },
         ],
         potentialSavings: '$900/year',
         riskLevel: 'Low',
@@ -118,10 +118,10 @@ export default function LLMRecommendation() {
           'Không phải lo về giới hạn hay mua addons nhiều lần',
         ],
         benefits: [
-          { icon: '🔓', title: 'Unlimited everything', desc: 'Không giới hạn projects, tasks, storage' },
-          { icon: '💎', title: 'Premium features', desc: 'AI, Analytics, Team chat...' },
-          { icon: '💰', title: 'Better value', desc: 'Chỉ $49.99/tháng cho all features' },
-          { icon: '⚡', title: 'Priority support', desc: 'Response time < 2 hours' },
+          { icon: 'unlock', title: 'Unlimited everything', desc: 'Không giới hạn projects, tasks, storage' },
+          { icon: 'diamond', title: 'Premium features', desc: 'AI, Analytics, Team chat...' },
+          { icon: 'money', title: 'Better value', desc: 'Chỉ $49.99/tháng cho all features' },
+          { icon: 'bolt', title: 'Priority support', desc: 'Response time < 2 hours' },
         ],
         potentialSavings: '$600/year',
         riskLevel: 'Low',
@@ -139,10 +139,10 @@ export default function LLMRecommendation() {
           'Tiết kiệm tiền khi không dùng nhiều',
         ],
         benefits: [
-          { icon: '💰', title: 'Tiết kiệm $49.99/tháng', desc: 'Chỉ trả khi cần addon' },
-          { icon: '🎯', title: 'Pay for value', desc: 'Chỉ trả cho tính năng thực sự dùng' },
-          { icon: '💡', title: 'Linh hoạt', desc: 'Mở rộng khi cần, thu hẹp khi không cần' },
-          { icon: '🆓', title: 'Free base', desc: 'Vẫn dùng được core features miễn phí' },
+          { icon: 'money', title: 'Tiết kiệm $49.99/tháng', desc: 'Chỉ trả khi cần addon' },
+          { icon: 'target', title: 'Pay for value', desc: 'Chỉ trả cho tính năng thực sự dùng' },
+          { icon: 'bulb', title: 'Linh hoạt', desc: 'Mở rộng khi cần, thu hẹp khi không cần' },
+          { icon: 'free', title: 'Free base', desc: 'Vẫn dùng được core features miễn phí' },
         ],
         potentialSavings: '$400/year',
         riskLevel: 'Low',
@@ -159,10 +159,10 @@ export default function LLMRecommendation() {
         'Chi phí và giá trị đang cân bằng',
       ],
       benefits: [
-        { icon: '✅', title: 'Optimal choice', desc: 'Model hiện tại là tối ưu' },
-        { icon: '📊', title: 'Good utilization', desc: 'Đang dùng hiệu quả' },
-        { icon: '💎', title: 'Value match', desc: 'Giá trị phù hợp với chi phí' },
-        { icon: '🎯', title: 'Keep using', desc: 'Tiếp tục sử dụng model này' },
+        { icon: 'check', title: 'Optimal choice', desc: 'Model hiện tại là tối ưu' },
+        { icon: 'chart', title: 'Good utilization', desc: 'Đang dùng hiệu quả' },
+        { icon: 'diamond', title: 'Value match', desc: 'Giá trị phù hợp với chi phí' },
+        { icon: 'target', title: 'Keep using', desc: 'Tiếp tục sử dụng model này' },
       ],
       potentialSavings: '$0/year',
       riskLevel: 'Low',
@@ -195,10 +195,10 @@ export default function LLMRecommendation() {
           'Model này sẽ tự động hóa billing và renewal',
         ],
         benefits: [
-          { icon: '🔄', title: 'Auto-renewal', desc: 'Tự động gia hạn mỗi tháng' },
-          { icon: '💰', title: 'Predictable revenue', desc: 'Doanh thu ổn định hàng tháng' },
-          { icon: '📊', title: 'Usage tracking', desc: 'Theo dõi metrics chi tiết' },
-          { icon: '🎯', title: 'Customer retention', desc: 'Tăng độ trung thành 3x' },
+          { icon: 'refresh', title: 'Auto-renewal', desc: 'Tự động gia hạn mỗi tháng' },
+          { icon: 'money', title: 'Predictable revenue', desc: 'Doanh thu ổn định hàng tháng' },
+          { icon: 'chart', title: 'Usage tracking', desc: 'Theo dõi metrics chi tiết' },
+          { icon: 'target', title: 'Customer retention', desc: 'Tăng độ trung thành 3x' },
         ],
         potentialSavings: '$1,200/year',
         riskLevel: 'Low',
@@ -214,10 +214,10 @@ export default function LLMRecommendation() {
           'Không cần cam kết dài hạn',
         ],
         benefits: [
-          { icon: '🛒', title: 'One-time purchase', desc: 'Mua một lần, không ràng buộc' },
-          { icon: '💳', title: 'Simple payment', desc: 'Thanh toán đơn giản' },
-          { icon: '📦', title: 'Immediate delivery', desc: 'Giao hàng ngay' },
-          { icon: '🔓', title: 'No commitment', desc: 'Không cam kết dài hạn' },
+          { icon: 'cart', title: 'One-time purchase', desc: 'Mua một lần, không ràng buộc' },
+          { icon: 'card', title: 'Simple payment', desc: 'Thanh toán đơn giản' },
+          { icon: 'box', title: 'Immediate delivery', desc: 'Giao hàng ngay' },
+          { icon: 'unlock', title: 'No commitment', desc: 'Không cam kết dài hạn' },
         ],
         potentialSavings: '$500/year',
         riskLevel: 'Low',
@@ -233,10 +233,10 @@ export default function LLMRecommendation() {
           'Trả tiền cho tính năng cần thiết',
         ],
         benefits: [
-          { icon: '🎁', title: 'Free to start', desc: 'Bắt đầu hoàn toàn miễn phí' },
-          { icon: '🛍️', title: 'Pay as you go', desc: 'Chỉ trả cho addon cần dùng' },
-          { icon: '💡', title: 'Flexible scaling', desc: 'Mở rộng linh hoạt' },
-          { icon: '🎯', title: 'Low risk', desc: 'Rủi ro thấp khi thử nghiệm' },
+          { icon: 'gift', title: 'Free to start', desc: 'Bắt đầu hoàn toàn miễn phí' },
+          { icon: 'bag', title: 'Pay as you go', desc: 'Chỉ trả cho addon cần dùng' },
+          { icon: 'bulb', title: 'Flexible scaling', desc: 'Mở rộng linh hoạt' },
+          { icon: 'target', title: 'Low risk', desc: 'Rủi ro thấp khi thử nghiệm' },
         ],
         potentialSavings: '$800/year',
         riskLevel: 'Low',
@@ -277,7 +277,7 @@ export default function LLMRecommendation() {
     };
   };
 
-  const handleAnalyzeIntent = () => {
+  const handleAnalyzeIntent = async () => {
     if (!userIntent.trim()) {
       alert('Vui lòng nhập yêu cầu của bạn!');
       return;
@@ -287,12 +287,80 @@ export default function LLMRecommendation() {
     setShowRecommendation(false);
     setAnalysisMode('intent');
 
-    setTimeout(() => {
+    // API Gateway runs on port 3000
+    const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+    console.log('[LLM] Calling LLM API:', `${API_URL}/llm-orchestrator/chat`);
+
+    try {
+      const response = await fetch(`${API_URL}/llm-orchestrator/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userIntent,
+          tenant_id: 'default',
+          role: 'admin',
+          lang: 'vi',
+        }),
+      });
+
+      console.log('[LLM] Response status:', response.status);
+
+      if (!response.ok) throw new Error('API call failed');
+
+      const data = await response.json();
+      console.log('[LLM] LLM Response:', data);
+
+      // Extract recommended model from changeset
+      const recommendedModel = data.changeset?.features?.find((f: any) => f.key === 'business_model')?.value || 'retail';
+      
+      // Extract product group from features if available
+      const productGroup = data.changeset?.features?.find((f: any) => f.key === 'product_group')?.value;
+
+      // Transform LLM response to match UI format
+      const parsed = {
+        proposal_text: data.proposal_text || userIntent,
+        changeset: data.changeset || { model: 'business_model', features: [], impacted_services: [] },
+        metadata: {
+          intent: data.metadata?.intent || 'switch_model',
+          confidence: data.metadata?.confidence || 0.8,
+          risk: data.metadata?.risk || 'low',
+          // Add detected_entities for UI compatibility
+          detected_entities: {
+            model: recommendedModel,
+            product_group: productGroup,
+          },
+        },
+        recommendation: {
+          recommendedModel: recommendedModel,
+          confidence: Math.round((data.metadata?.confidence || 0.8) * 100),
+          reasoning: [
+            `LLM phân tích: "${userIntent}"`,
+            data.proposal_text || 'Đang xử lý yêu cầu...',
+            `Độ tin cậy: ${Math.round((data.metadata?.confidence || 0.8) * 100)}%`,
+            `Mức rủi ro: ${data.metadata?.risk || 'low'}`,
+          ],
+          benefits: [
+            { icon: 'target', title: 'AI Analyzed', desc: 'Đã phân tích bằng LLM' },
+            { icon: 'bolt', title: 'Auto Changeset', desc: `${data.changeset?.impacted_services?.length || 0} services bị ảnh hưởng` },
+            { icon: 'chart', title: 'Confidence', desc: `${Math.round((data.metadata?.confidence || 0.8) * 100)}%` },
+            { icon: 'lock', title: 'Risk Level', desc: data.metadata?.risk || 'low' },
+          ],
+          potentialSavings: '$0/year',
+          riskLevel: data.metadata?.risk === 'high' ? 'High' : data.metadata?.risk === 'medium' ? 'Medium' : 'Low',
+        },
+      };
+
+      setParsedIntent(parsed);
+      setShowRecommendation(true);
+    } catch (error) {
+      console.error('[LLM] LLM API Error:', error);
+      // Fallback to local parsing if API fails
       const parsed = parseUserIntent(userIntent);
       setParsedIntent(parsed);
-      setAnalyzing(false);
       setShowRecommendation(true);
-    }, 3000);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleAcceptRecommendation = () => {
@@ -300,7 +368,7 @@ export default function LLMRecommendation() {
     
     // If same as current, just go back
     if (recommendedModel === currentMode) {
-      alert('✓ Bạn đang dùng model tối ưu rồi! Tiếp tục sử dụng nhé.');
+      alert('Bạn đang dùng model tối ưu rồi! Tiếp tục sử dụng nhé.');
       navigate(-1);
       return;
     }
@@ -320,7 +388,7 @@ export default function LLMRecommendation() {
 
   const handleFeedback = (feedback: 'positive' | 'negative') => {
     setUserFeedback(feedback);
-    alert(`Thank you for feedback! RL system will learn from this.\n\n${feedback === 'positive' ? '✓ Positive feedback recorded' : '✗ Negative feedback recorded'}`);
+    alert(`Thank you for feedback! RL system will learn from this.\n\n${feedback === 'positive' ? 'Positive feedback recorded' : 'Negative feedback recorded'}`);
   };
 
   const handleReanalyze = () => {
@@ -428,7 +496,7 @@ export default function LLMRecommendation() {
 
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
                   <p className="text-sm text-muted-foreground">
-                    <strong className="text-blue-600">💡 Use case:</strong> Dành cho admin/business owner muốn thay đổi billing model của nhóm sản phẩm cụ thể. 
+                    <strong className="text-blue-600">Use case:</strong> Dành cho admin/business owner muốn thay đổi billing model của nhóm sản phẩm cụ thể. 
                     AI sẽ parse yêu cầu và generate changeset cho microservices.
                   </p>
                 </div>
@@ -455,17 +523,17 @@ export default function LLMRecommendation() {
                     <div className="text-center space-y-2">
                       {analysisMode === 'intent' ? (
                         <>
-                          <p className="text-muted-foreground">🔍 Understanding natural language</p>
-                          <p className="text-muted-foreground">🧠 Extracting entities & intent</p>
-                          <p className="text-muted-foreground">📊 Mapping to business models</p>
-                          <p className="text-muted-foreground">⚡ Generating changeset</p>
+                          <p className="text-muted-foreground">Understanding natural language</p>
+                          <p className="text-muted-foreground">Extracting entities & intent</p>
+                          <p className="text-muted-foreground">Mapping to business models</p>
+                          <p className="text-muted-foreground">Generating changeset</p>
                         </>
                       ) : (
                         <>
-                          <p className="text-muted-foreground">🔍 Scanning purchase patterns</p>
-                          <p className="text-muted-foreground">📊 Calculating usage metrics</p>
-                          <p className="text-muted-foreground">🧠 Running LLM inference</p>
-                          <p className="text-muted-foreground">⚡ Applying RL optimization</p>
+                          <p className="text-muted-foreground">Scanning purchase patterns</p>
+                          <p className="text-muted-foreground">Calculating usage metrics</p>
+                          <p className="text-muted-foreground">Running LLM inference</p>
+                          <p className="text-muted-foreground">Applying RL optimization</p>
                         </>
                       )}
                     </div>
@@ -504,18 +572,18 @@ export default function LLMRecommendation() {
                       <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                         <p className="text-sm text-muted-foreground mb-2">Model được đề xuất:</p>
                         <Badge className="bg-purple-600 text-lg">
-                          {parsedIntent.metadata.detected_entities.model.toUpperCase()}
+                          {(parsedIntent.metadata?.detected_entities?.model || parsedIntent.recommendation?.recommendedModel || 'retail').toUpperCase()}
                         </Badge>
                       </div>
                       <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                         <p className="text-sm text-muted-foreground mb-2">Độ tin cậy:</p>
                         <p className="text-2xl font-bold text-green-600">
-                          {Math.round(parsedIntent.metadata.confidence * 100)}%
+                          {Math.round((parsedIntent.metadata?.confidence || 0.8) * 100)}%
                         </p>
                       </div>
                     </div>
 
-                    {parsedIntent.metadata.detected_entities.product_group && (
+                    {parsedIntent.metadata?.detected_entities?.product_group && (
                       <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                         <p className="text-sm text-muted-foreground mb-2">Nhóm sản phẩm:</p>
                         <Badge variant="outline" className="text-lg">
@@ -529,7 +597,7 @@ export default function LLMRecommendation() {
                       <div>
                         <p className="text-sm font-semibold">Services sẽ được cập nhật:</p>
                         <p className="text-sm text-muted-foreground">
-                          {parsedIntent.changeset.impacted_services.join(', ')}
+                          {parsedIntent.changeset?.impacted_services?.join(', ') || 'Đang phân tích...'}
                         </p>
                       </div>
                     </div>

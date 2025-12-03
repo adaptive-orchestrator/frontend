@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useState } from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, Rocket, ShoppingBag } from 'lucide-react';
 
 // Form validation schema
 const signupSchema = z
@@ -56,42 +56,40 @@ const Signup = () => {
             const backendRole = isBusinessOwner ? 'admin' : 'user';
 
             // Try to call backend API to create real account
-            let apiSuccess = false;
-            
             try {
-                console.log('🚀 Calling signup API...');
                 const response = await signup(data.email, data.password, data.name, backendRole);
-                console.log('✅ Signup API response:', response);
                 
                 // Signup successful - backend only creates user, doesn't return token
-                if (response.user || response.message) {
-                    apiSuccess = true;
-                    console.log('✅ Account created successfully, redirecting to login...');
-                    
+                if (response.id || response.email || response.message) {
                     // Redirect to login page to get token
                     alert('Registration successful! Please login with your credentials.');
                     navigate(`${baseURL}login`);
                     return;
                 }
             } catch (apiError: any) {
-                console.warn('⚠️ API signup failed, falling back to demo mode:', apiError);
-                const errorMsg = apiError?.response?.data?.message || 'API not available';
-                console.log('Error details:', errorMsg);
-                // Continue in demo mode if API fails
+                const statusCode = apiError?.response?.status;
+                const errorMsg = apiError?.response?.data?.message || apiError?.message || 'Unknown error';
+                
+                // 4xx errors = user/validation errors, show message and stop
+                if (statusCode && statusCode >= 400 && statusCode < 500) {
+                    alert(`Registration failed: ${errorMsg}`);
+                    return;
+                }
+                
+                // Network error or 5xx = API not available, fallback to demo mode
+                console.warn('[Signup] API not available, falling back to demo mode');
             }
 
-            // Demo mode fallback: register in UserContext
-            if (!apiSuccess) {
-                console.log('🎭 Using demo mode for signup');
-                await registerUser(data.name, data.email, data.password, role);
-                
-                if (isBusinessOwner) {
-                    alert(`Registration successful! (Demo mode) Please select your business model.`);
-                    navigate(`${baseURL}mode-selection`);
-                } else {
-                    alert(`Registration successful! (Demo mode) Welcome to OctalTask.`);
-                    navigate(`${baseURL}products`);
-                }
+            // Demo mode fallback: only when API is not available (network error or 5xx)
+            console.log('[Signup] Using demo mode for signup');
+            await registerUser(data.name, data.email, data.password, role);
+            
+            if (isBusinessOwner) {
+                alert(`Registration successful! (Demo mode) Please select your business model.`);
+                navigate(`${baseURL}mode-selection`);
+            } else {
+                alert(`Registration successful! (Demo mode) Welcome to OctalTask.`);
+                navigate(`${baseURL}products`);
             }
         } catch (error) {
             console.error('Signup error:', error);
@@ -211,12 +209,12 @@ const Signup = () => {
                                         ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800'
                                         : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800'
                                 }`}>
-                                    <p className={`text-sm font-medium mb-2 ${
+                                    <p className={`text-sm font-medium mb-2 flex items-center gap-2 ${
                                         isBusinessOwner
                                             ? 'text-purple-900 dark:text-purple-100'
                                             : 'text-blue-900 dark:text-blue-100'
                                     }`}>
-                                        {isBusinessOwner ? '🚀 Create Your Business Account' : '🛍️ Create Your Customer Account'}
+                                        {isBusinessOwner ? <><Rocket className="h-4 w-4" /> Create Your Business Account</> : <><ShoppingBag className="h-4 w-4" /> Create Your Customer Account</>}
                                     </p>
                                     <p className={`text-xs ${
                                         isBusinessOwner

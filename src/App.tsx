@@ -7,6 +7,7 @@ import { TaskProvider } from './contexts/TaskContext'
 import { CartProvider } from './contexts/CartContext'
 import { BusinessModeProvider } from './contexts/BusinessModeContext'
 import BusinessModeLoader from './components/common/BusinessModeLoader'
+import { ToastProvider } from './components/ui/toast'
 import Chatbot from './components/chatbot/ChatBot'
 import AdminToggle from './components/common/AdminToggle'
 import { MessageCircle } from 'lucide-react'
@@ -21,6 +22,7 @@ function App() {
             <UserProvider>
                 <TaskProvider>
                     <CartProvider>
+                        <ToastProvider>
                         <BusinessModeProvider>
                             <BusinessModeLoader />
                             <BrowserRouter>
@@ -58,6 +60,7 @@ function App() {
                             </div>
                         </BrowserRouter>
                         </BusinessModeProvider>
+                        </ToastProvider>
                     </CartProvider>
                 </TaskProvider>
             </UserProvider>
