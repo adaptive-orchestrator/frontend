@@ -21,18 +21,18 @@ export default function FreemiumPlans() {
     description: 'Bắt đầu miễn phí - Không cần thẻ tín dụng',
     price: 0,
     features: [
-      '✅ 3 dự án cơ bản',
-      '✅ 1GB lưu trữ',
-      '✅ 50 AI credits/tháng',
-      '✅ 1 người dùng',
-      '✅ Hỗ trợ cộng đồng',
-      '✅ Truy cập tính năng cơ bản',
+      '3 dự án cơ bản',
+      '1GB lưu trữ',
+      '50 AI credits/tháng',
+      '1 người dùng',
+      'Hỗ trợ cộng đồng',
+      'Truy cập tính năng cơ bản',
     ],
     limitations: [
-      '⚠️ Giới hạn 3 dự án',
-      '⚠️ Không có phân tích nâng cao',
-      '⚠️ Không có API access',
-      '⚠️ Watermark trên xuất file',
+      'Giới hạn 3 dự án',
+      'Không có phân tích nâng cao',
+      'Không có API access',
+      'Watermark trên xuất file',
     ],
   };
 
@@ -120,20 +120,20 @@ export default function FreemiumPlans() {
     .reduce((sum, addon) => sum + addon.price, 0);
 
   const handleActivateFreePlan = () => {
-    alert('🎉 Bạn đã kích hoạt Free Plan thành công! Bắt đầu sử dụng ngay.');
+    alert('Bạn đã kích hoạt Free Plan thành công! Bắt đầu sử dụng ngay.');
     navigate(`${baseURL}freemium-dashboard`);
   };
 
   const handlePurchaseAddOns = () => {
     if (selectedAddOns.length === 0) {
-      alert('⚠️ Vui lòng chọn ít nhất một Add-on để tiếp tục.');
+      alert('Vui lòng chọn ít nhất một Add-on để tiếp tục.');
       return;
     }
     const selectedNames = addOns
       .filter((addon) => selectedAddOns.includes(addon.id))
       .map((addon) => addon.name)
       .join(', ');
-    alert(`✅ Mua Add-ons thành công: ${selectedNames}\n💰 Tổng: $${totalCost.toFixed(2)}`);
+    alert(`Mua Add-ons thành công: ${selectedNames}\nTổng: $${totalCost.toFixed(2)}`);
   };
 
   return (
@@ -154,7 +154,7 @@ export default function FreemiumPlans() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            🎁 Bắt đầu MIỄN PHÍ - Chỉ trả tiền cho những tính năng bạn thực sự cần
+            Bắt đầu MIỄN PHÍ - Chỉ trả tiền cho những tính năng bạn thực sự cần
           </motion.p>
           <motion.div
             className="mt-4 inline-block bg-green-100 dark:bg-green-900/30 px-6 py-3 rounded-full"
@@ -163,7 +163,7 @@ export default function FreemiumPlans() {
             transition={{ delay: 0.2 }}
           >
             <p className="text-sm font-medium text-green-800 dark:text-green-300">
-              💡 Mô hình: Free Base + Pay-per-Feature • Linh hoạt • Không cam kết dài hạn
+              Mô hình: Free Base + Pay-per-Feature • Linh hoạt • Không cam kết dài hạn
             </p>
           </motion.div>
         </div>
@@ -179,7 +179,7 @@ export default function FreemiumPlans() {
             <CardHeader className="text-center pb-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/50 dark:to-blue-950/50">
               <div className="mb-3">
                 <Badge className="bg-green-500 text-white px-4 py-1 text-sm">
-                  🎁 MIỄN PHÍ VĨNH VIỄN
+                  MIỄN PHÍ VĨNH VIỄN
                 </Badge>
               </div>
               <CardTitle className="text-3xl mb-2">{freePlan.name}</CardTitle>
@@ -193,7 +193,7 @@ export default function FreemiumPlans() {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Features */}
                 <div>
-                  <h3 className="font-bold text-green-600 mb-4">✅ Bạn được sử dụng:</h3>
+                  <h3 className="font-bold text-green-600 mb-4">Bạn được sử dụng:</h3>
                   <div className="space-y-3">
                     {freePlan.features.map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2">
@@ -206,7 +206,7 @@ export default function FreemiumPlans() {
 
                 {/* Limitations */}
                 <div>
-                  <h3 className="font-bold text-orange-600 mb-4">⚠️ Giới hạn:</h3>
+                  <h3 className="font-bold text-orange-600 mb-4">Giới hạn:</h3>
                   <div className="space-y-3">
                     {freePlan.limitations?.map((limitation, idx) => (
                       <div key={idx} className="flex items-start gap-2">
@@ -223,7 +223,7 @@ export default function FreemiumPlans() {
                 className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
                 size="lg"
               >
-                🚀 Kích Hoạt Free Plan Ngay - Không cần thẻ
+                Kích Hoạt Free Plan Ngay - Không cần thẻ
               </Button>
             </CardFooter>
           </Card>
@@ -237,7 +237,7 @@ export default function FreemiumPlans() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 className="text-3xl font-bold mb-2">🛒 Mua Thêm Tính Năng (Add-ons)</h2>
+            <h2 className="text-3xl font-bold mb-2">Mua Thêm Tính Năng (Add-ons)</h2>
             <p className="text-muted-foreground">
               Nâng cấp trải nghiệm của bạn bằng cách mua thêm các tính năng cần thiết
             </p>
@@ -268,7 +268,7 @@ export default function FreemiumPlans() {
                         </div>
                         {addon.isPopular && (
                           <Badge variant="secondary" className="bg-orange-500 text-white">
-                            🔥 Popular
+                            Popular
                           </Badge>
                         )}
                       </div>
@@ -303,7 +303,7 @@ export default function FreemiumPlans() {
                           toggleAddOn(addon.id);
                         }}
                       >
-                        {isSelected ? '✓ Đã chọn' : '+ Thêm vào'}
+                        {isSelected ? 'Đã chọn' : '+ Thêm vào'}
                       </Button>
                     </CardFooter>
                   </Card>
@@ -321,7 +321,7 @@ export default function FreemiumPlans() {
             >
               <Card className="border-2 border-blue-500 shadow-lg">
                 <CardHeader>
-                  <CardTitle>📋 Tổng kết Add-ons đã chọn</CardTitle>
+                  <CardTitle>Tổng kết Add-ons đã chọn</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 mb-4">
@@ -345,7 +345,7 @@ export default function FreemiumPlans() {
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                     size="lg"
                   >
-                    💳 Mua {selectedAddOns.length} Add-on(s) - ${totalCost.toFixed(2)}
+                    Mua {selectedAddOns.length} Add-on(s) - ${totalCost.toFixed(2)}
                   </Button>
                 </CardFooter>
               </Card>
@@ -360,10 +360,10 @@ export default function FreemiumPlans() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          <h3 className="font-bold text-lg mb-3">🤔 So sánh: Freemium vs Subscription</h3>
+          <h3 className="font-bold text-lg mb-3">So sánh: Freemium vs Subscription</h3>
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="font-semibold text-green-600 mb-2">✅ Freemium (Trang này):</p>
+              <p className="font-semibold text-green-600 mb-2">Freemium (Trang này):</p>
               <ul className="space-y-1 text-muted-foreground">
                 <li>• Miễn phí để bắt đầu</li>
                 <li>• Chỉ trả cho tính năng cần thiết</li>
@@ -372,7 +372,7 @@ export default function FreemiumPlans() {
               </ul>
             </div>
             <div>
-              <p className="font-semibold text-purple-600 mb-2">🔄 Subscription:</p>
+              <p className="font-semibold text-purple-600 mb-2">Subscription:</p>
               <ul className="space-y-1 text-muted-foreground">
                 <li>• Trả phí định kỳ</li>
                 <li>• Mở khóa TẤT CẢ tính năng</li>

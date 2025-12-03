@@ -21,6 +21,8 @@ export interface Plan {
   billingCycle: 'MONTHLY' | 'YEARLY';
   features?: string[];
   isActive?: boolean;
+  trialEnabled?: boolean;
+  trialDays?: number;
   createdAt?: string;
   updatedAt?: string;
 }

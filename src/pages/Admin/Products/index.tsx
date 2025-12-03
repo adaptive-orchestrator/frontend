@@ -105,7 +105,7 @@ export default function AdminProducts() {
       fetchProducts(currentPage, itemsPerPage);
     } else {
       // Demo mode - use local data
-      console.log('🎭 Demo mode - using sample products');
+      console.log('[Admin/Products] Demo mode - using sample products');
       setProducts(DEMO_PRODUCTS);
       setTotalItems(DEMO_PRODUCTS.length);
       setTotalPages(1);

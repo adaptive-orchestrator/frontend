@@ -59,10 +59,10 @@ export default function ProjectDashboard() {
       progress: 67,
       tags: ['Frontend', 'Backend', 'Payment'],
       team: [
-        { name: 'John Doe', role: 'Project Lead', avatar: '👨‍💼' },
-        { name: 'Jane Smith', role: 'Frontend Dev', avatar: '👩‍💻' },
-        { name: 'Mike Johnson', role: 'Backend Dev', avatar: '👨‍💻' },
-        { name: 'Sarah Williams', role: 'UI/UX Designer', avatar: '👩‍🎨' },
+        { name: 'John Doe', role: 'Project Lead', avatar: 'JD' },
+        { name: 'Jane Smith', role: 'Frontend Dev', avatar: 'JS' },
+        { name: 'Mike Johnson', role: 'Backend Dev', avatar: 'MJ' },
+        { name: 'Sarah Williams', role: 'UI/UX Designer', avatar: 'SW' },
       ],
     },
     '2': {
@@ -76,9 +76,9 @@ export default function ProjectDashboard() {
       progress: 15,
       tags: ['Mobile', 'iOS', 'Android'],
       team: [
-        { name: 'Jane Smith', role: 'Project Lead', avatar: '👩‍💼' },
-        { name: 'Tom Brown', role: 'iOS Dev', avatar: '👨‍💻' },
-        { name: 'Lisa Davis', role: 'Android Dev', avatar: '👩‍💻' },
+        { name: 'Jane Smith', role: 'Project Lead', avatar: 'JS' },
+        { name: 'Tom Brown', role: 'iOS Dev', avatar: 'TB' },
+        { name: 'Lisa Davis', role: 'Android Dev', avatar: 'LD' },
       ],
     },
     '3': {
@@ -92,8 +92,8 @@ export default function ProjectDashboard() {
       progress: 75,
       tags: ['AI', 'NLP', 'Integration'],
       team: [
-        { name: 'Mike Johnson', role: 'Project Lead', avatar: '👨‍💼' },
-        { name: 'Emily White', role: 'AI Engineer', avatar: '👩‍🔬' },
+        { name: 'Mike Johnson', role: 'Project Lead', avatar: 'MJ' },
+        { name: 'Emily White', role: 'AI Engineer', avatar: 'EW' },
       ],
     },
   };
@@ -354,7 +354,7 @@ export default function ProjectDashboard() {
                 className="bg-purple-600" 
                 onClick={() => {
                   if (isFreemium && tasks.length >= 50) {
-                    alert('⚠️ Task limit reached (50/50)\n\nUpgrade to Subscription for unlimited tasks!');
+                    alert('Task limit reached (50/50)\n\nUpgrade to Subscription for unlimited tasks!');
                     return;
                   }
                   setAddTaskDialog(true);

@@ -157,7 +157,7 @@ export function Footer() {
                     disabled={subscribeStatus === 'loading'}
                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r-lg transition-colors text-sm font-medium disabled:opacity-50"
                   >
-                    {subscribeStatus === 'loading' ? 'Subscribing...' : subscribeStatus === 'success' ? '✓ Subscribed!' : 'Subscribe'}
+                    {subscribeStatus === 'loading' ? 'Subscribing...' : subscribeStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
                   </button>
                 </div>
                 {subscribeStatus === 'error' && (

@@ -383,7 +383,7 @@ const AdminPlans = () => {
                                                                 const feature = features.find(f => f.id === featId.toString());
                                                                 return feature ? (
                                                                     <li key={featId} className="text-sm text-gray-600 dark:text-gray-400 flex items-start">
-                                                                        <span className="mr-2">✓</span>
+                                                                        <span className="mr-2"></span>
                                                                         <span>{feature.name}</span>
                                                                     </li>
                                                                 ) : null;

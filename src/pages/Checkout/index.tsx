@@ -41,8 +41,8 @@ export default function Checkout() {
 
   // Debug log
   useEffect(() => {
-    console.log('📦 Checkout state:', checkoutState);
-    console.log('🔄 Is subscription checkout:', isSubscription);
+    console.log('[Checkout] Checkout state:', checkoutState);
+    console.log('[Checkout] Is subscription checkout:', isSubscription);
   }, [checkoutState, isSubscription]);
 
   const [formData, setFormData] = useState({
@@ -81,7 +81,7 @@ export default function Checkout() {
           notes: 'Subscription payment via checkout',
         };
 
-        console.log('💳 Processing subscription payment via payment-svc:', paymentData);
+        console.log('[Checkout] Processing subscription payment via payment-svc:', paymentData);
 
         // Gọi payment-svc trực tiếp (port 3013)
         // Sau này sẽ thay bằng VNPay/Momo redirect flow
@@ -99,13 +99,13 @@ export default function Checkout() {
         }
 
         const paymentResult = await paymentResponse.json();
-        console.log('✅ Payment successful:', paymentResult);
+        console.log('[Checkout] Payment successful:', paymentResult);
 
         // Payment-svc sẽ emit event để subscription-svc tự động activate
         // Không cần gọi activate API nữa
-        console.log('✅ Subscription sẽ được activate tự động qua event');
+        console.log('[Checkout] Subscription will be activated automatically via event');
 
-        console.log('✅ Thanh toán thành công! Chuyển sang dashboard...');
+        console.log('[Checkout] Payment successful! Redirecting to dashboard...');
         navigate(`${baseURL}subscription-dashboard`);
 
       } else {
@@ -129,16 +129,16 @@ export default function Checkout() {
         }
 
         // Lấy customer theo userId để lấy customerId thực
-        console.log('🔍 Fetching customer info for userId:', userId);
+        console.log('[Checkout] Fetching customer info for userId:', userId);
         const customer = await getCustomerByUserId(userId);
-        console.log('👤 Customer found:', customer);
+        console.log('[Checkout] Customer found:', customer);
         
         if (!customer || !customer.id) {
           throw new Error('Customer profile not found. Please contact support.');
         }
         
         const customerId = customer.id;
-        console.log('✅ Using customerId:', customerId);
+        console.log('[Checkout] Using customerId:', customerId);
 
         const orderData = {
           customerId: customerId,
@@ -152,21 +152,21 @@ export default function Checkout() {
           notes: `Order placed via web checkout`,
         };
 
-        console.log('🚀 Creating order (Real API):', orderData);
+        console.log('[Checkout] Creating order (Real API):', orderData);
 
         const response = await createOrder(orderData);
         const order = response.order || response;
 
-        console.log('✅ Order created:', order);
-        console.log('📋 Order Number:', order.orderNumber || order.id);
-        console.log('💰 Total Amount:', order.totalAmount);
-        console.log('🔔 Billing service will automatically create invoice via Kafka event');
+        console.log('[Checkout] Order created:', order);
+        console.log('[Checkout] Order Number:', order.orderNumber || order.id);
+        console.log('[Checkout] Total Amount:', order.totalAmount);
+        console.log('[Checkout] Billing service will automatically create invoice via Kafka event');
 
         clearCart();
         navigate(`${baseURL}orders`);
       } else {
         // Demo mode - save to localStorage
-        console.log('🎭 Demo mode - saving order to localStorage');
+        console.log('[Checkout] Demo mode - saving order to localStorage');
         
         await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
         
@@ -194,7 +194,7 @@ export default function Checkout() {
         existingOrders.push(newOrder);
         localStorage.setItem('demoOrders', JSON.stringify(existingOrders));
 
-        console.log('✅ Demo order created:', newOrder);
+        console.log('[Checkout] Demo order created:', newOrder);
 
         clearCart();
         navigate(`${baseURL}orders`);
@@ -202,7 +202,7 @@ export default function Checkout() {
       }
 
     } catch (err: any) {
-      console.error('❌ Payment/Order creation failed:', err);
+      console.error('[Checkout] Payment/Order creation failed:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to process';
       setError(errorMessage);
       alert(errorMessage);
@@ -256,7 +256,7 @@ export default function Checkout() {
     <PageLayout>
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">
-        {isSubscription ? '💳 Thanh Toán Subscription' : 'Checkout'}
+        {isSubscription ? 'Thanh Toán Subscription' : 'Checkout'}
       </h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -362,7 +362,7 @@ export default function Checkout() {
                       <span className="font-semibold">Features:</span>
                       <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                         {checkoutState.features.map((feature: any, idx: number) => (
-                          <li key={idx}>✓ {typeof feature === 'string' ? feature : feature?.name || 'Feature'}</li>
+                          <li key={idx}>{typeof feature === 'string' ? feature : feature?.name || 'Feature'}</li>
                         ))}
                       </ul>
                     </div>

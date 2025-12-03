@@ -41,7 +41,7 @@ export default function MySubscriptions() {
     const fetchSubscriptions = async () => {
       // Allow viewing without login for demo
       if (!currentUser) {
-        console.log('⚠️ No user logged in, showing empty subscriptions');
+        console.log('[MySubscriptions] No user logged in, showing empty subscriptions');
         setSubscriptions([]);
         setLoading(false);
         return;
@@ -55,7 +55,7 @@ export default function MySubscriptions() {
         
         if (token) {
           // Use getMySubscriptions - backend will filter by authenticated user
-          console.log('📥 Fetching subscriptions via /subscriptions/my endpoint...');
+          console.log('[MySubscriptions] Fetching subscriptions via /subscriptions/my endpoint...');
           
           const data = await getMySubscriptions(currentPage, itemsPerPage);
           const subs = data.subscriptions || [];
@@ -64,7 +64,7 @@ export default function MySubscriptions() {
           setTotalItems(data.total || subs.length);
           setTotalPages(data.totalPages || Math.ceil((data.total || subs.length) / itemsPerPage));
           
-          console.log(`✅ Loaded ${subs.length} subscriptions:`, subs);
+          console.log(`[MySubscriptions] Loaded ${subs.length} subscriptions:`, subs);
           
           // Map backend data to frontend format
           const mappedSubs = subs.map((s: any) => ({
@@ -82,13 +82,13 @@ export default function MySubscriptions() {
           setSubscriptions(mappedSubs);
         } else {
           // Demo mode - no subscriptions
-          console.log('🎭 Demo mode - no subscriptions');
+          console.log('[MySubscriptions] Demo mode - no subscriptions');
           setSubscriptions([]);
           setTotalItems(0);
           setTotalPages(1);
         }
       } catch (err: any) {
-        console.error('❌ Failed to load subscriptions:', err);
+        console.error('[MySubscriptions] Failed to load subscriptions:', err);
         setSubscriptions([]);
         setTotalItems(0);
         setTotalPages(1);

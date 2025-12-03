@@ -43,7 +43,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
   const [mode, setModeState] = useState<BusinessMode>(() => {
     const globalMode = localStorage.getItem(getGlobalModeKey());
     if (globalMode) {
-      console.log(`🔄 Initial load business mode:`, globalMode);
+      console.log('[BusinessMode] Initial load business mode:', globalMode);
       return globalMode as BusinessMode;
     }
     return null;
@@ -64,13 +64,13 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
     
     if (savedMode) {
       setModeState(savedMode as BusinessMode);
-      console.log(`✅ Loaded business mode for user ${userId}:`, savedMode);
+      console.log(`[BusinessMode] Loaded business mode for user ${userId}:`, savedMode);
     } else {
       // Check for old global mode (migration)
       const globalMode = localStorage.getItem(getGlobalModeKey());
       if (globalMode) {
         setModeState(globalMode as BusinessMode);
-        console.log(`📦 Migrated global mode to user ${userId}:`, globalMode);
+        console.log(`[BusinessMode] Migrated global mode to user ${userId}:`, globalMode);
         // Save to user-specific key
         localStorage.setItem(userModeKey, globalMode);
       } else {
@@ -96,7 +96,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
       const userModeKey = getUserModeKey(userIdToUse);
       if (newMode) {
         localStorage.setItem(userModeKey, newMode);
-        console.log(`💾 Saved business mode for user ${userIdToUse}:`, newMode);
+        console.log(`[BusinessMode] Saved business mode for user ${userIdToUse}:`, newMode);
       } else {
         localStorage.removeItem(userModeKey);
       }
@@ -140,7 +140,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
       if (result.success) {
         // Update local state
         setMode(newMode, currentUserId || undefined);
-        console.log(`🚀 Switched to ${newMode} mode. Deployed: ${result.deployed}`);
+        console.log(`[BusinessMode] Switched to ${newMode} mode. Deployed: ${result.deployed}`);
         // Save history
         try {
           const historyKey = getHistoryKey(currentUserId || undefined);
@@ -159,17 +159,17 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
           // Keep last 20 entries
           localStorage.setItem(historyKey, JSON.stringify(arr.slice(0, 20)));
         } catch (e) {
-          console.warn('Failed to save switch history', e);
+          console.warn('[BusinessMode] Failed to save switch history', e);
         }
 
-        // Toast success with emoji
+        // Toast success
         if (toast) {
           toast.push({
-            title: `✅ Đã chuyển sang ${modeLabels[newMode] || newMode}`,
+            title: `Đã chuyển sang ${modeLabels[newMode] || newMode}`,
             description: result.deployed
-              ? `🚀 Đã deploy lên K8s thành công`
+              ? `Đã deploy lên K8s thành công`
               : options?.dryRun
-                ? `👁️ Preview only - chưa deploy`
+                ? `Preview only - chưa deploy`
                 : result.message || 'Thành công',
             type: 'success',
           });
@@ -177,7 +177,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
           if (result.changeset_path) {
             setTimeout(() => {
               toast.push({
-                title: '⚡ Helm changeset đã được tạo',
+                title: 'Helm changeset đã được tạo',
                 description: result.changeset_path,
                 type: 'info',
                 timeout: 6000,
@@ -189,7 +189,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
         // API returned success: false
         if (toast) {
           toast.push({
-            title: '❌ Lỗi chuyển mode',
+            title: 'Lỗi chuyển mode',
             description: result.message || result.error || 'Unknown error',
             type: 'error',
           });
@@ -198,7 +198,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
 
       return result;
     } catch (error: any) {
-      console.error('❌ Switch mode error:', error);
+      console.error('[BusinessMode] Switch mode error:', error);
       
       // Fallback: vẫn set mode local nếu API fail
       setMode(newMode, currentUserId || undefined);
@@ -219,12 +219,12 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
         });
         localStorage.setItem(historyKey, JSON.stringify(arr.slice(0, 20)));
       } catch (e) {
-        console.warn('Failed to save switch history', e);
+        console.warn('[BusinessMode] Failed to save switch history', e);
       }
 
       if (toast) {
         toast.push({
-          title: `⚠️ Đã chuyển sang ${modeLabels[newMode] || newMode}`,
+          title: `Đã chuyển sang ${modeLabels[newMode] || newMode}`,
           description: 'API không khả dụng - chỉ lưu local',
           type: 'warning',
         });

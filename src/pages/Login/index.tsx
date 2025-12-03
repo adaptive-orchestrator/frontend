@@ -281,7 +281,7 @@ const Login = () => {
                                     href={`${baseURL}quick-login`}
                                     className="block w-full text-center py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                                 >
-                                    🚀 Quick Login (Customer/Admin)
+                                    Quick Login (Customer/Admin)
                                 </a>
                             </div>
                         </CardFooter>

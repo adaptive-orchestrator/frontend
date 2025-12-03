@@ -35,18 +35,18 @@ export default function ModeSelection() {
 
   // Function to call AI recommendation API
   const handleAskAI = async () => {
-    console.log('🚀 handleAskAI called!');
-    console.log('businessDescription:', businessDescription);
+    console.log('[ModeSelection] handleAskAI called!');
+    console.log('[ModeSelection] businessDescription:', businessDescription);
     
     if (!businessDescription.trim()) {
-      console.log('❌ businessDescription is empty, returning');
+      console.log('[ModeSelection] businessDescription is empty, returning');
       return;
     }
     
     setIsLoading(true);
     // API Gateway runs on port 3000
     const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
-    console.log('📡 Calling API:', `${API_URL}/llm-orchestrator/recommend-model`);
+    console.log('[ModeSelection] Calling API:', `${API_URL}/llm-orchestrator/recommend-model`);
     
     try {
       const response = await fetch(`${API_URL}/llm-orchestrator/recommend-model`, {
@@ -59,18 +59,18 @@ export default function ModeSelection() {
         }),
       });
       
-      console.log('📥 Response status:', response.status);
+      console.log('[ModeSelection] Response status:', response.status);
       
       if (!response.ok) throw new Error('Failed to get recommendation');
       
       const data = await response.json();
-      console.log('✅ API Response:', data);
+      console.log('[ModeSelection] API Response:', data);
       setAIRecommendation(data);
     } catch (error) {
-      console.error('AI Recommendation error:', error);
+      console.error('[ModeSelection] AI Recommendation error:', error);
       // Fallback response for demo - thân thiện hơn
       setAIRecommendation({
-        greeting: 'Chào bạn! Mình đã đọc kỹ những gì bạn chia sẻ rồi 😊',
+        greeting: 'Chào bạn! Mình đã đọc kỹ những gì bạn chia sẻ rồi',
         recommendation_intro: 'Dựa vào mô tả của bạn, mình nghĩ cách phù hợp nhất là:',
         recommended_model: 'subscription',
         why_this_fits: 'Bạn sẽ có thu nhập ổn định hàng tháng, dễ dự đoán được doanh thu. Khách hàng sẽ gắn bó lâu dài hơn vì đã đăng ký rồi. Bạn có thể tập trung cải thiện dịch vụ thay vì chạy theo từng đơn hàng.',
@@ -291,7 +291,7 @@ export default function ModeSelection() {
           transition={{ duration: 0.5, delay: 0.4 }}
         >
           <p className="text-sm text-muted-foreground">
-            💡 Sau khi chọn model và sử dụng, bạn có thể vào <strong>Settings</strong> để xem AI recommendation
+            Sau khi chọn model và sử dụng, bạn có thể vào <strong>Settings</strong> để xem AI recommendation
           </p>
           <p className="text-xs text-muted-foreground mt-2">
             Bạn có thể thay đổi chế độ bất cứ lúc nào trong Cài đặt
@@ -426,20 +426,20 @@ export default function ModeSelection() {
                       
                       {/* Why This Fits */}
                       <div className="bg-muted/50 rounded-2xl rounded-tl-md p-4">
-                        <p className="font-semibold text-primary mb-2">💡 Tại sao mình đề xuất cách này?</p>
+                        <p className="font-semibold text-primary mb-2">Tại sao mình đề xuất cách này?</p>
                         <p className="text-foreground leading-relaxed">{aiRecommendation.why_this_fits}</p>
                       </div>
                       
                       {/* How It Works */}
                       <div className="bg-muted/50 rounded-2xl rounded-tl-md p-4">
-                        <p className="font-semibold text-primary mb-2">🔄 Cách hoạt động đơn giản:</p>
+                        <p className="font-semibold text-primary mb-2">Cách hoạt động đơn giản:</p>
                         <p className="text-foreground leading-relaxed">{aiRecommendation.how_it_works}</p>
                       </div>
                       
                       {/* Next Steps */}
                       {aiRecommendation.next_steps && aiRecommendation.next_steps.length > 0 && (
                         <div className="bg-muted/50 rounded-2xl rounded-tl-md p-4">
-                          <p className="font-semibold text-primary mb-2">📋 Bước tiếp theo:</p>
+                          <p className="font-semibold text-primary mb-2">Bước tiếp theo:</p>
                           <ul className="space-y-2">
                             {aiRecommendation.next_steps.map((step, idx) => (
                               <li key={idx} className="flex items-start gap-2">
@@ -457,7 +457,7 @@ export default function ModeSelection() {
                       {aiRecommendation.alternatives && aiRecommendation.alternatives.length > 0 && (
                         <div className="bg-muted/50 rounded-2xl rounded-tl-md p-4">
                           <p className="font-semibold text-primary mb-3">
-                            🤔 {aiRecommendation.alternatives_intro || 'Bạn cũng có thể cân nhắc:'}
+                            {aiRecommendation.alternatives_intro || 'Bạn cũng có thể cân nhắc:'}
                           </p>
                           <div className="space-y-2">
                             {aiRecommendation.alternatives.map((alt, idx) => {
@@ -490,7 +490,7 @@ export default function ModeSelection() {
                       {/* Closing */}
                       {aiRecommendation.closing && (
                         <div className="bg-muted/50 rounded-2xl rounded-tl-md p-4">
-                          <p className="text-foreground">{aiRecommendation.closing} ✨</p>
+                          <p className="text-foreground">{aiRecommendation.closing}</p>
                         </div>
                       )}
                     </div>
@@ -506,7 +506,7 @@ export default function ModeSelection() {
                       className={`w-full gap-2 bg-gradient-to-r ${getModelInfo(aiRecommendation.recommended_model)?.color || 'from-primary to-purple-600'}`}
                       size="lg"
                     >
-                      👍 Chọn {getModelInfo(aiRecommendation.recommended_model)?.title}
+                      Chọn {getModelInfo(aiRecommendation.recommended_model)?.title}
                       <ArrowRight className="h-5 w-5" />
                     </Button>
                     
@@ -519,7 +519,7 @@ export default function ModeSelection() {
                       }}
                       className="w-full"
                     >
-                      🔄 Mô tả lại để nhận tư vấn khác
+                      Mô tả lại để nhận tư vấn khác
                     </Button>
                   </div>
                 </div>

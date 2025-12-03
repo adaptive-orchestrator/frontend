@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Shield, Mail } from 'lucide-react';
+import { User, Shield, Mail, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function QuickLogin() {
@@ -126,8 +126,8 @@ export default function QuickLogin() {
 
             {/* Info Box */}
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-2">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                💡 Demo Mode Features:
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                <Lightbulb className="h-4 w-4" /> Demo Mode Features:
               </p>
               <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 ml-4 list-disc">
                 <li><strong>Customer:</strong> Browse & buy products in Retail stores</li>

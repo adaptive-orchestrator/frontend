@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBusinessMode } from '@/contexts/BusinessModeContext';
 import { useUser } from '@/contexts/UserContext';
-import { ArrowLeft, Bell, EyeOff, Globe, Moon, Smartphone, ShoppingCart, Calendar, Layers, Shield, Brain, Sparkles, Gift, Loader2 } from 'lucide-react';
+import { ArrowLeft, Bell, EyeOff, Globe, Moon, Smartphone, ShoppingCart, Calendar, Layers, Shield, Brain, Sparkles, Gift, Loader2, User, Building2, Users, Crown, AlertTriangle, Eye, Rocket, MessageSquare, Settings2, FolderOpen } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useEffect } from 'react';
 import { useState } from 'react';
@@ -320,7 +320,7 @@ export default function Settings() {
                     }}
                     className={dryRun ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
                   >
-                    {dryRun ? '👁️ Preview Only' : '🚀 Xác nhận & Deploy'}
+                    {dryRun ? <><Eye className="h-4 w-4 mr-1" /> Preview Only</> : <><Rocket className="h-4 w-4 mr-1" /> Xác nhận & Deploy</>}
                   </Button>
                 </DialogFooter>
 
@@ -345,9 +345,9 @@ export default function Settings() {
                     Nhập yêu cầu bằng ngôn ngữ tự nhiên, LLM sẽ parse và generate changeset cho microservices.
                   </p>
                   <div className="flex gap-2 text-xs">
-                    <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">🗣️ Natural Language</span>
-                    <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">🧠 LLM Parsing</span>
-                    <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">⚙️ Auto Changeset</span>
+                    <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Natural Language</span>
+                    <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded flex items-center gap-1"><Brain className="h-3 w-3" /> LLM Parsing</span>
+                    <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded flex items-center gap-1"><Settings2 className="h-3 w-3" /> Auto Changeset</span>
                   </div>
                 </div>
                 
@@ -399,23 +399,23 @@ export default function Settings() {
                             <Badge className="text-xs bg-primary">{(h.to || '?').toUpperCase()}</Badge>
                           </div>
                           {h.changeset && (
-                            <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-1 truncate" title={h.changeset}>
-                              📁 {h.changeset}
+                            <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-1 truncate flex items-center gap-1" title={h.changeset}>
+                              <FolderOpen className="h-3 w-3" /> {h.changeset}
                             </div>
                           )}
                         </div>
                         <div className="flex-shrink-0 ml-3">
                           {h.deployed ? (
                             <Badge className="bg-green-600 text-white text-xs">
-                              🟢 Deployed
+                              Deployed
                             </Badge>
                           ) : h.dry_run ? (
                             <Badge variant="outline" className="text-yellow-600 border-yellow-400 text-xs">
-                              🟡 Preview
+                              Preview
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-gray-500 text-xs">
-                              ⚪ Local
+                              Local
                             </Badge>
                           )}
                         </div>
@@ -449,8 +449,8 @@ export default function Settings() {
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${currentUser?.role === 'customer' ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                      👤 Customer
+                    <span className={`text-sm font-medium flex items-center gap-1 ${currentUser?.role === 'customer' ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                      <User className="h-4 w-4" /> Customer
                     </span>
                   </button>
                   
@@ -462,8 +462,8 @@ export default function Settings() {
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${currentUser?.role === 'organization_admin' ? 'text-purple-700 dark:text-purple-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                      🏢 Org Admin
+                    <span className={`text-sm font-medium flex items-center gap-1 ${currentUser?.role === 'organization_admin' ? 'text-purple-700 dark:text-purple-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                      <Building2 className="h-4 w-4" /> Org Admin
                     </span>
                   </button>
                   
@@ -475,8 +475,8 @@ export default function Settings() {
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${currentUser?.role === 'member' ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                      👥 Member
+                    <span className={`text-sm font-medium flex items-center gap-1 ${currentUser?.role === 'member' ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                      <Users className="h-4 w-4" /> Member
                     </span>
                   </button>
                   
@@ -488,21 +488,24 @@ export default function Settings() {
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${currentUser?.role === 'super_admin' ? 'text-orange-700 dark:text-orange-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                      👑 Super Admin
+                    <span className={`text-sm font-medium flex items-center gap-1 ${currentUser?.role === 'super_admin' ? 'text-orange-700 dark:text-orange-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                      <Crown className="h-4 w-4" /> Super Admin
                     </span>
                   </button>
                 </div>
               </div>
               
               <div className="p-3 bg-purple-50 dark:bg-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800">
-                <p className="text-xs text-purple-700 dark:text-purple-300">
-                  ⚠️ Current Role: <span className="font-bold">{currentUser?.role?.toUpperCase().replace('_', ' ')}</span>
-                  <br />
-                  {currentUser?.role === 'super_admin' && '👑 Full access to Multi Dashboard & Admin Panel'}
-                  {currentUser?.role === 'organization_admin' && '🏢 Can manage workspace & team members'}
-                  {currentUser?.role === 'member' && '👥 Team member with limited permissions'}
-                  {currentUser?.role === 'customer' && '👤 Can browse and purchase products'}
+                <p className="text-xs text-purple-700 dark:text-purple-300 flex items-start gap-1">
+                  <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Current Role: <span className="font-bold">{currentUser?.role?.toUpperCase().replace('_', ' ')}</span>
+                    <br />
+                    {currentUser?.role === 'super_admin' && 'Full access to Multi Dashboard & Admin Panel'}
+                    {currentUser?.role === 'organization_admin' && 'Can manage workspace & team members'}
+                    {currentUser?.role === 'member' && 'Team member with limited permissions'}
+                    {currentUser?.role === 'customer' && 'Can browse and purchase products'}
+                  </span>
                 </p>
               </div>
             </CardContent>

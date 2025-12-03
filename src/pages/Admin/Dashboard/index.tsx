@@ -172,7 +172,7 @@ export default function AdminDashboard() {
             Welcome back, {currentUser?.name || 'Admin'}! 
             {mode && mode !== 'multi' && (
               <span className="ml-2">
-                Đang quản lý: <strong>{mode === 'retail' ? '🛒 Retail' : mode === 'subscription' ? '📅 Subscription' : '🎁 Freemium'}</strong>
+                Đang quản lý: <strong>{mode === 'retail' ? 'Retail' : mode === 'subscription' ? 'Subscription' : 'Freemium'}</strong>
               </span>
             )}
             {mode === 'multi' && ' Quản lý đa mô hình: Retail, Subscription, Freemium'}
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">
-                  {mode === 'retail' ? '🛒' : mode === 'subscription' ? '📅' : '🎁'}
+                  {mode === 'retail' ? '' : mode === 'subscription' ? '' : ''}
                 </span>
                 <div>
                   <p className="font-semibold">
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
         {/* Partial Errors Warning */}
         {statsErrors.length > 0 && (
           <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <p className="text-yellow-800 dark:text-yellow-200 font-medium">⚠️ Một số services không khả dụng:</p>
+            <p className="text-yellow-800 dark:text-yellow-200 font-medium">Một số services không khả dụng:</p>
             <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-2 list-disc list-inside">
               {statsErrors.map((err, i) => (
                 <li key={i}>{err}</li>
@@ -255,21 +255,21 @@ export default function AdminDashboard() {
                 onClick={() => setSelectedModel('retail')}
                 className={selectedModel === 'retail' ? 'bg-blue-600' : ''}
               >
-                🛒 Retail
+                Retail
               </Button>
               <Button
                 variant={selectedModel === 'subscription' ? 'default' : 'outline'}
                 onClick={() => setSelectedModel('subscription')}
                 className={selectedModel === 'subscription' ? 'bg-purple-600' : ''}
               >
-                📅 Subscription
+                Subscription
               </Button>
               <Button
                 variant={selectedModel === 'freemium' ? 'default' : 'outline'}
                 onClick={() => setSelectedModel('freemium')}
                 className={selectedModel === 'freemium' ? 'bg-green-600' : ''}
               >
-                🎁 Freemium
+                Freemium
               </Button>
             </>
           ) : (
@@ -284,9 +284,9 @@ export default function AdminDashboard() {
                   mode === 'freemium' ? 'bg-green-600' : ''
                 }
               >
-                {mode === 'retail' && '🛒 Retail'}
-                {mode === 'subscription' && '📅 Subscription'}
-                {mode === 'freemium' && '🎁 Freemium'}
+                {mode === 'retail' && 'Retail'}
+                {mode === 'subscription' && 'Subscription'}
+                {mode === 'freemium' && 'Freemium'}
               </Button>
               <span className="text-xs text-muted-foreground">(Change in Settings)</span>
             </div>
@@ -327,9 +327,9 @@ export default function AdminDashboard() {
           <Card className="mb-8 border-2">
             <CardHeader>
               <CardTitle className="text-2xl">
-                {selectedModel === 'retail' && '🛒 Retail Model Details'}
-                {selectedModel === 'subscription' && '📅 Subscription Model Details'}
-                {selectedModel === 'freemium' && '🎁 Freemium Model Details'}
+                {selectedModel === 'retail' && 'Retail Model Details'}
+                {selectedModel === 'subscription' && 'Subscription Model Details'}
+                {selectedModel === 'freemium' && 'Freemium Model Details'}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -405,9 +405,9 @@ export default function AdminDashboard() {
             Quick Actions 
             {selectedModel !== 'all' && (
               <span className="text-base font-normal text-muted-foreground ml-2">
-                ({selectedModel === 'retail' && '🛒 Retail'}
-                {selectedModel === 'subscription' && '📅 Subscription'}
-                {selectedModel === 'freemium' && '🎁 Freemium'})
+                ({selectedModel === 'retail' && 'Retail'}
+                {selectedModel === 'subscription' && 'Subscription'}
+                {selectedModel === 'freemium' && 'Freemium'})
               </span>
             )}
           </h2>

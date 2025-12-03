@@ -8,22 +8,22 @@ const API_BASE = import.meta.env.VITE_API_BASE;
 export const MODEL_SERVICES = {
   retail: {
     name: 'Retail',
-    icon: '🛒',
+    icon: 'cart',
     services: ['catalogue', 'inventory', 'order', 'payment', 'customer'],
   },
   subscription: {
     name: 'Subscription',
-    icon: '📅',
+    icon: 'calendar',
     services: ['subscription', 'billing', 'payment', 'customer'],
   },
   freemium: {
     name: 'Freemium',
-    icon: '🎁',
+    icon: 'gift',
     services: ['catalogue', 'customer', 'payment'],
   },
   multi: {
     name: 'Multi-Model',
-    icon: '🔀',
+    icon: 'shuffle',
     services: ['catalogue', 'inventory', 'order', 'payment', 'customer', 'subscription', 'billing'],
   },
 };

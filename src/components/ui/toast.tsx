@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { X } from 'lucide-react'
+import { X, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react'
 
 type ToastType = 'info' | 'success' | 'error' | 'warning'
 
@@ -52,10 +52,10 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
 
   const getIcon = (type?: ToastType) => {
     switch (type) {
-      case 'success': return '✅'
-      case 'error': return '❌'
-      case 'warning': return '⚠️'
-      default: return 'ℹ️'
+      case 'success': return <CheckCircle className="h-4 w-4" />
+      case 'error': return <XCircle className="h-4 w-4" />
+      case 'warning': return <AlertTriangle className="h-4 w-4" />
+      default: return <Info className="h-4 w-4" />
     }
   }
 

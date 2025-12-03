@@ -29,7 +29,11 @@ import {
   Save,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  BarChart3,
+  CreditCard,
+  FileText,
+  Check
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -178,13 +182,13 @@ export default function SubscriptionDashboard() {
         // Get token for authenticated API calls
         const token = Cookies.get('token');
         if (!token) {
-          console.log('⚠️ No token found, redirecting to plans...');
+          console.log('[SubscriptionDashboard] No token found, redirecting to plans...');
           navigate(`${baseURL}subscription-plans`);
           return;
         }
 
         // Fetch subscriptions using /my endpoint with token
-        console.log('📡 Fetching subscriptions with token...');
+        console.log('[SubscriptionDashboard] Fetching subscriptions with token...');
         const subsResponse = await fetch(`${API_URL}/subscriptions/my`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -194,7 +198,7 @@ export default function SubscriptionDashboard() {
         
         if (!subsResponse.ok) {
           if (subsResponse.status === 401) {
-            console.log('⚠️ Unauthorized, redirecting to plans...');
+            console.log('[SubscriptionDashboard] Unauthorized, redirecting to plans...');
             navigate(`${baseURL}subscription-plans`);
             return;
           }
@@ -203,7 +207,7 @@ export default function SubscriptionDashboard() {
         
         const subsData = await subsResponse.json();
         const subscriptions = subsData.subscriptions || subsData || [];
-        console.log('✅ Subscriptions fetched:', subscriptions);
+        console.log('[SubscriptionDashboard] Subscriptions fetched:', subscriptions);
 
         // Find active or pending subscription
         const activeSubscription = Array.isArray(subscriptions) 
@@ -228,7 +232,7 @@ export default function SubscriptionDashboard() {
               if (invoicesResponse.ok) {
                 const invoicesData = await invoicesResponse.json();
                 setInvoices(invoicesData.invoices || []);
-                console.log('✅ Invoices fetched:', invoicesData.invoices);
+                console.log('[SubscriptionDashboard] Invoices fetched:', invoicesData.invoices);
               }
             } catch (err) {
               console.log('Could not fetch invoices:', err);
@@ -242,13 +246,13 @@ export default function SubscriptionDashboard() {
           }));
         } else {
           // No active subscription, redirect to plans
-          console.log('⚠️ No active subscription found, redirecting to plans...');
+          console.log('[SubscriptionDashboard] No active subscription found, redirecting to plans...');
           navigate(`${baseURL}subscription-plans`);
           return;
         }
         
       } catch (err: any) {
-        console.error('❌ Error fetching subscription data:', err);
+        console.error('[SubscriptionDashboard] Error fetching subscription data:', err);
         setError(err.message || 'Failed to load subscription data');
       } finally {
         setLoading(false);
@@ -378,8 +382,9 @@ export default function SubscriptionDashboard() {
             <div className="flex items-center gap-3">
               <AlertCircle className="h-6 w-6 text-yellow-600" />
               <div className="flex-1">
-                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">
-                  ⏳ Đang chờ thanh toán
+                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Đang chờ thanh toán
                 </h3>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300">
                   Subscription của bạn đang chờ thanh toán. Vui lòng hoàn tất thanh toán để kích hoạt tất cả tính năng.
@@ -415,8 +420,8 @@ export default function SubscriptionDashboard() {
                 {subscription.planName} - {isPending ? 'Đang chờ kích hoạt' : 'Tất cả tính năng đã mở khóa'}
               </p>
             </div>
-            <Badge className={`${getStatusBadgeColor(subscription.status)} text-white text-lg px-4 py-2`}>
-              {isPending ? '⏳ PENDING' : '✓ ACTIVE'}
+            <Badge className={`${getStatusBadgeColor(subscription.status)} text-white text-lg px-4 py-2 flex items-center gap-1`}>
+              {isPending ? <><Clock className="h-4 w-4" /> PENDING</> : <><Check className="h-4 w-4" /> ACTIVE</>}
             </Badge>
           </div>
 
@@ -427,35 +432,40 @@ export default function SubscriptionDashboard() {
               onClick={() => setActiveTab('overview')}
               className={activeTab === 'overview' ? 'bg-purple-600' : ''}
             >
-              📊 Overview
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Overview
             </Button>
             <Button
               variant={activeTab === 'projects' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('projects')}
               className={activeTab === 'projects' ? 'bg-purple-600' : ''}
             >
-              📁 Projects
+              <FolderOpen className="h-4 w-4 mr-1" />
+              Projects
             </Button>
             <Button
               variant={activeTab === 'ai' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('ai')}
               className={activeTab === 'ai' ? 'bg-purple-600' : ''}
             >
-              ✨ AI Assistant
+              <Sparkles className="h-4 w-4 mr-1" />
+              AI Assistant
             </Button>
             <Button
               variant={activeTab === 'analytics' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('analytics')}
               className={activeTab === 'analytics' ? 'bg-purple-600' : ''}
             >
-              📈 Analytics
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Analytics
             </Button>
             <Button
               variant={activeTab === 'team' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('team')}
               className={activeTab === 'team' ? 'bg-purple-600' : ''}
             >
-              👥 Team Chat
+              <Users className="h-4 w-4 mr-1" />
+              Team Chat
             </Button>
           </div>
         </div>
@@ -531,7 +541,10 @@ export default function SubscriptionDashboard() {
             {/* Subscription Info - Now with Real Data */}
             <Card className="border-2 border-purple-300 mb-6">
               <CardHeader>
-                <CardTitle>💳 Subscription Details</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Subscription Details
+                </CardTitle>
               </CardHeader>
               <CardContent className="grid md:grid-cols-4 gap-4">
                 <div>
@@ -559,7 +572,10 @@ export default function SubscriptionDashboard() {
             {invoices.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>📄 Billing History</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Billing History
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -588,7 +604,10 @@ export default function SubscriptionDashboard() {
         {activeTab === 'projects' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">📁 My Projects</h2>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <FolderOpen className="h-6 w-6" />
+                My Projects
+              </h2>
               <Button className="bg-purple-600">
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
@@ -666,7 +685,10 @@ export default function SubscriptionDashboard() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg">
-                    <p className="font-semibold mb-2">✨ Tính năng AI có sẵn:</p>
+                    <p className="font-semibold mb-2 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Tính năng AI có sẵn:
+                    </p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Code Generation & Review</li>
                       <li>Content Writing & Copywriting</li>
@@ -697,11 +719,17 @@ export default function SubscriptionDashboard() {
                     <p className="text-sm text-muted-foreground mb-2">Recent AI Results:</p>
                     <div className="space-y-2">
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border">
-                        <p className="text-sm font-semibold">✓ Code generated: React Component</p>
+                        <p className="text-sm font-semibold flex items-center gap-1">
+                          <Check className="h-3 w-3 text-green-500" />
+                          Code generated: React Component
+                        </p>
                         <p className="text-xs text-muted-foreground">2 hours ago</p>
                       </div>
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border">
-                        <p className="text-sm font-semibold">✓ Content written: Blog post outline</p>
+                        <p className="text-sm font-semibold flex items-center gap-1">
+                          <Check className="h-3 w-3 text-green-500" />
+                          Content written: Blog post outline
+                        </p>
                         <p className="text-xs text-muted-foreground">1 day ago</p>
                       </div>
                     </div>
@@ -715,7 +743,10 @@ export default function SubscriptionDashboard() {
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 className="text-2xl font-bold mb-4">📈 Advanced Analytics</h2>
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <BarChart3 className="h-6 w-6" />
+              Advanced Analytics
+            </h2>
             
             <div className="grid md:grid-cols-4 gap-4 mb-6">
               <Card>

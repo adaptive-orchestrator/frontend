@@ -7,7 +7,7 @@ import { Plan } from '@/types/product';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Check, Loader2, AlertCircle, CreditCard, Trash2, PackageX, Mail, Phone } from 'lucide-react';
+import { Check, Loader2, AlertCircle, CreditCard, Trash2, PackageX, Mail, Phone, RefreshCw, Lightbulb, Rocket, Gift, Target, LayoutDashboard, FileText, ArrowLeft } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import Cookies from 'js-cookie';
 
@@ -56,9 +56,9 @@ export default function SubscriptionPlans() {
       price: 9.99,
       billingCycle: 'MONTHLY',
       features: [
-        '✅ Truy cập các tính năng cơ bản',
-        '📁 Lưu trữ 10GB',
-        '📧 Hỗ trợ qua email',
+        'Truy cập các tính năng cơ bản',
+        'Lưu trữ 10GB',
+        'Hỗ trợ qua email',
       ],
       isActive: true,
     },
@@ -69,12 +69,12 @@ export default function SubscriptionPlans() {
       price: 49.99,
       billingCycle: 'MONTHLY',
       features: [
-        '✨ Truy cập KHÔNG GIỚI HẠN tất cả tính năng',
-        '☁️ Lưu trữ 100GB dữ liệu đám mây',
-        '🤖 AI Assistant với 1000 credits/tháng',
-        '👥 Hỗ trợ đa người dùng (lên đến 10 thành viên)',
-        '📊 Báo cáo phân tích nâng cao',
-        '📞 Hỗ trợ 24/7',
+        'Truy cập KHÔNG GIỚI HẠN tất cả tính năng',
+        'Lưu trữ 100GB dữ liệu đám mây',
+        'AI Assistant với 1000 credits/tháng',
+        'Hỗ trợ đa người dùng (lên đến 10 thành viên)',
+        'Báo cáo phân tích nâng cao',
+        'Hỗ trợ 24/7',
       ],
       isActive: true,
     },
@@ -107,7 +107,7 @@ export default function SubscriptionPlans() {
                 const subsData = await subsResponse.json();
                 const subscriptions = subsData.subscriptions || subsData || [];
                 
-                console.log('📋 User subscriptions:', subscriptions);
+                console.log('[SubscriptionPlans] User subscriptions:', subscriptions);
                 
                 // Check for ACTIVE subscription → show active subscription UI or redirect
                 const activeSubscription = Array.isArray(subscriptions) 
@@ -115,7 +115,7 @@ export default function SubscriptionPlans() {
                   : null;
                 
                 if (activeSubscription) {
-                  console.log('✅ User has ACTIVE subscription:', activeSubscription);
+                  console.log('[SubscriptionPlans] User has ACTIVE subscription:', activeSubscription);
                   // Set active subscription to show in UI instead of redirect
                   setActiveSubscription({
                     id: activeSubscription.id,
@@ -136,7 +136,7 @@ export default function SubscriptionPlans() {
                   : null;
                 
                 if (pendingSub) {
-                  console.log('⏳ User has PENDING subscription:', pendingSub);
+                  console.log('[SubscriptionPlans] User has PENDING subscription:', pendingSub);
                   setPendingSubscription({
                     id: pendingSub.id,
                     planId: pendingSub.planId,
@@ -148,7 +148,7 @@ export default function SubscriptionPlans() {
                   setShowPendingDialog(true);
                 }
               } else {
-                console.log('⚠️ Could not fetch subscriptions:', subsResponse.status);
+                console.log('[SubscriptionPlans] Could not fetch subscriptions:', subsResponse.status);
               }
             } catch (err) {
               console.log('Could not check existing subscriptions:', err);
@@ -158,9 +158,9 @@ export default function SubscriptionPlans() {
         
         // Gọi API thật để lấy danh sách plans
         try {
-          console.log('📡 Fetching plans from API...');
+          console.log('[SubscriptionPlans] Fetching plans from API...');
           const data = await getAllPlans();
-          console.log('📥 Plans API response:', data);
+          console.log('[SubscriptionPlans] Plans API response:', data);
           
           // Map backend data to frontend format
           const apiPlans = (data.plans || data || []).map((p: any) => ({
@@ -176,15 +176,15 @@ export default function SubscriptionPlans() {
           }));
           
           if (apiPlans.length > 0) {
-            console.log('✅ Loaded', apiPlans.length, 'plans from API');
+            console.log('[SubscriptionPlans] Loaded', apiPlans.length, 'plans from API');
             setPlans(apiPlans);
           } else {
             // API trả về mảng rỗng - Admin chưa thêm plans
-            console.log('⚠️ No plans from API, showing empty state');
+            console.log('[SubscriptionPlans] No plans from API, showing empty state');
             setPlans([]);
           }
         } catch (apiError: any) {
-          console.warn('⚠️ API call failed, using demo data:', apiError.message);
+          console.warn('[SubscriptionPlans] API call failed, using demo data:', apiError.message);
           // Nếu API lỗi (network error, 404, etc.) → dùng demo data
           setPlans(DEMO_PLANS);
           setIsUsingDemoData(true);
@@ -246,8 +246,8 @@ export default function SubscriptionPlans() {
       const subscriptionData = await subscriptionResponse.json();
       const subscription = subscriptionData.subscription || subscriptionData;
 
-      console.log('✅ Subscription created:', subscription);
-      console.log('✅ Tạo subscription thành công! Chuyển sang thanh toán...');
+      console.log('[SubscriptionPlans] Subscription created:', subscription);
+      console.log('[SubscriptionPlans] Subscription created successfully, redirecting to checkout...');
 
       // Find plan details
       const selectedPlan = plans.find(p => p.id === planId);
@@ -262,7 +262,7 @@ export default function SubscriptionPlans() {
         features: selectedPlan?.features || [],
       };
 
-      console.log('🔄 Navigating to checkout with state:', checkoutState);
+      console.log('[SubscriptionPlans] Navigating to checkout with state:', checkoutState);
 
       // Step 2: Redirect to checkout page với subscriptionId
       navigate(`${baseURL}checkout`, {
@@ -293,7 +293,7 @@ export default function SubscriptionPlans() {
       features: selectedPlan?.features || [],
     };
 
-    console.log('🔄 Continuing payment for pending subscription:', checkoutState);
+    console.log('[SubscriptionPlans] Continuing payment for pending subscription:', checkoutState);
     setShowPendingDialog(false);
     navigate(`${baseURL}checkout`, { state: checkoutState });
   };
@@ -320,7 +320,7 @@ export default function SubscriptionPlans() {
         throw new Error('Không thể hủy subscription cũ');
       }
 
-      console.log('✅ Pending subscription cancelled');
+      console.log('[SubscriptionPlans] Pending subscription cancelled');
       setPendingSubscription(null);
       setShowPendingDialog(false);
       
@@ -362,20 +362,23 @@ export default function SubscriptionPlans() {
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
           Subscription - Dịch Vụ Định Kỳ
         </h1>
-        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-          🔄 Đăng ký gói dịch vụ, thanh toán định kỳ hàng tháng - Doanh thu ổn định, khách hàng trung thành
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto flex items-center justify-center gap-2">
+          <RefreshCw className="h-5 w-5" />
+          Đăng ký gói dịch vụ, thanh toán định kỳ hàng tháng - Doanh thu ổn định, khách hàng trung thành
         </p>
         <div className="mt-4 inline-block bg-purple-100 dark:bg-purple-900/30 px-6 py-3 rounded-full">
-          <p className="text-sm font-medium text-purple-800 dark:text-purple-300">
-            💡 Mô hình: Recurring Revenue • Thanh toán tự động • Cam kết dài hạn
+          <p className="text-sm font-medium text-purple-800 dark:text-purple-300 flex items-center gap-2">
+            <Lightbulb className="h-4 w-4" />
+            Mô hình: Recurring Revenue • Thanh toán tự động • Cam kết dài hạn
           </p>
         </div>
         
         {/* Demo data indicator */}
         {isUsingDemoData && (
           <div className="mt-4 inline-block bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 rounded-lg">
-            <p className="text-sm text-yellow-800 dark:text-yellow-300">
-              ⚠️ Đang hiển thị dữ liệu demo (không kết nối được API)
+            <p className="text-sm text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Đang hiển thị dữ liệu demo (không kết nối được API)
             </p>
           </div>
         )}
@@ -444,14 +447,16 @@ export default function SubscriptionPlans() {
                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                   onClick={() => navigate(`${baseURL}subscription-dashboard`)}
                 >
-                  🚀 Vào Dashboard
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Vào Dashboard
                 </Button>
                 <Button 
                   variant="outline" 
                   className="flex-1 border-green-500 text-green-600 hover:bg-green-50"
                   onClick={() => navigate(`${baseURL}my-subscriptions`)}
                 >
-                  📋 Quản lý subscription
+                  <FileText className="mr-2 h-4 w-4" />
+                  Quản lý subscription
                 </Button>
               </div>
             </CardFooter>
@@ -476,8 +481,9 @@ export default function SubscriptionPlans() {
               </p>
               
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-auto">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                  📞 Liên hệ hỗ trợ:
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center justify-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Liên hệ hỗ trợ:
                 </p>
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
@@ -496,7 +502,8 @@ export default function SubscriptionPlans() {
                 className="mt-6"
                 onClick={() => navigate(-1)}
               >
-                ← Quay lại
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Quay lại
               </Button>
             </CardContent>
           </Card>
@@ -528,15 +535,17 @@ export default function SubscriptionPlans() {
               }`}>
                 {isRecommended && (
                   <div className="mb-4">
-                    <span className="inline-block bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                      🎯 RECOMMENDED
+                    <span className="inline-flex items-center gap-1 bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                      <Target className="h-4 w-4" />
+                      RECOMMENDED
                     </span>
                   </div>
                 )}
                 {plan.trialEnabled && plan.trialDays && (
                   <div className="mb-2">
-                    <span className="inline-block bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      🎁 {plan.trialDays} ngày dùng thử miễn phí
+                    <span className="inline-flex items-center gap-1 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      <Gift className="h-3 w-3" />
+                      {plan.trialDays} ngày dùng thử miễn phí
                     </span>
                   </div>
                 )}
@@ -611,7 +620,10 @@ export default function SubscriptionPlans() {
                         Đang xử lý...
                       </>
                     ) : (
-                      <>🚀 Đăng Ký Ngay</>
+                      <>
+                        <Rocket className="mr-2 h-4 w-4" />
+                        Đăng Ký Ngay
+                      </>
                     )}
                   </Button>
                 )}

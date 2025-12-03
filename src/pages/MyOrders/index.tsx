@@ -29,7 +29,7 @@ export default function MyOrders() {
     const fetchOrders = async () => {
       // Allow access without login for demo purposes
       if (!currentUser) {
-        console.log('⚠️ No user logged in, showing empty state');
+        console.log('[MyOrders] No user logged in, showing empty state');
         setOrders([]);
         setLoading(false);
         return;
@@ -44,7 +44,7 @@ export default function MyOrders() {
 
         if (isRealUser) {
           // Use getMyOrders - backend will filter by authenticated user
-          console.log('🔍 Fetching orders for current user via /orders/my endpoint');
+          console.log('[MyOrders] Fetching orders for current user via /orders/my endpoint');
           
           const response = await getMyOrders(currentPage, itemsPerPage);
           const fetchedOrders = response.orders || response;
@@ -53,12 +53,12 @@ export default function MyOrders() {
           setTotalItems(response.total || fetchedOrders.length);
           setTotalPages(response.totalPages || Math.ceil((response.total || fetchedOrders.length) / itemsPerPage));
           
-          console.log('✅ Orders fetched from API:', fetchedOrders);
+          console.log('[MyOrders] Orders fetched from API:', fetchedOrders);
           
           setOrders(fetchedOrders);
         } else {
           // Demo mode - load from localStorage
-          console.log('🎭 Demo mode - loading orders from localStorage');
+          console.log('[MyOrders] Demo mode - loading orders from localStorage');
           
           await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
           
@@ -73,15 +73,15 @@ export default function MyOrders() {
           setTotalItems(userOrders.length);
           setTotalPages(Math.ceil(userOrders.length / itemsPerPage));
           
-          console.log('✅ Demo orders loaded:', paginatedOrders);
+          console.log('[MyOrders] Demo orders loaded:', paginatedOrders);
           
           setOrders(paginatedOrders);
         }
       } catch (err: any) {
-        console.error('❌ Failed to fetch orders:', err);
+        console.error('[MyOrders] Failed to fetch orders:', err);
         
         // Fallback to demo mode if API fails
-        console.log('⚠️ API failed, falling back to demo mode');
+        console.log('[MyOrders] API failed, falling back to demo mode');
         const demoOrders = JSON.parse(localStorage.getItem('demoOrders') || '[]');
         const userOrders = demoOrders.filter(
           (order: Order) => order.customerId === (currentUser.id || currentUser.email)
@@ -203,7 +203,7 @@ export default function MyOrders() {
                     </p>
                     {order.shippingAddress && (
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        📍 {order.shippingAddress}
+                        {order.shippingAddress}
                       </p>
                     )}
                   </div>
@@ -247,7 +247,7 @@ export default function MyOrders() {
                   
                   {(order as any).notes && (
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t dark:border-gray-700">
-                      📝 {(order as any).notes}
+                      {(order as any).notes}
                     </div>
                   )}
                 </div>
