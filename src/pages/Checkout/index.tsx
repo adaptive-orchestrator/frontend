@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useUser } from '@/contexts/UserContext';
 import { createOrder } from '@/lib/api/orders';
+import { getCustomerByUserId } from '@/lib/api/customers';
 // import { initiatePayment } from '@/lib/api/payments'; // TODO: Payment sau
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,10 +31,19 @@ export default function Checkout() {
     type?: 'retail' | 'subscription';
     subscriptionId?: number;
     planId?: number;
+    planName?: string;
+    period?: 'monthly' | 'yearly';
     amount?: number;
+    features?: any[];
   } | null;
 
   const isSubscription = checkoutState?.type === 'subscription';
+
+  // Debug log
+  useEffect(() => {
+    console.log('📦 Checkout state:', checkoutState);
+    console.log('🔄 Is subscription checkout:', isSubscription);
+  }, [checkoutState, isSubscription]);
 
   const [formData, setFormData] = useState({
     shippingAddress: '',
@@ -112,10 +122,23 @@ export default function Checkout() {
 
         if (isRealUser) {
         // Real API call for authenticated users
-        const customerId = parseInt(currentUser.id);
-        if (isNaN(customerId)) {
-          throw new Error('Invalid customer ID. Please re-login.');
+        // currentUser.id là userId từ Auth service, cần lấy customerId thực từ Customer service
+        const userId = parseInt(currentUser.id);
+        if (isNaN(userId)) {
+          throw new Error('Invalid user ID. Please re-login.');
         }
+
+        // Lấy customer theo userId để lấy customerId thực
+        console.log('🔍 Fetching customer info for userId:', userId);
+        const customer = await getCustomerByUserId(userId);
+        console.log('👤 Customer found:', customer);
+        
+        if (!customer || !customer.id) {
+          throw new Error('Customer profile not found. Please contact support.');
+        }
+        
+        const customerId = customer.id;
+        console.log('✅ Using customerId:', customerId);
 
         const orderData = {
           customerId: customerId,
@@ -187,6 +210,28 @@ export default function Checkout() {
       setLoading(false);
     }
   };
+
+  // For subscription checkout, validate checkoutState
+  if (isSubscription && (!checkoutState || !checkoutState.subscriptionId)) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto text-center py-12">
+            <CardContent>
+              <h2 className="text-2xl font-bold mb-2">Session Expired</h2>
+              <p className="text-gray-600 mb-6">
+                Subscription checkout session has expired or is invalid. 
+                Please go back and try again.
+              </p>
+              <Button onClick={() => navigate(`${baseURL}plans`)}>
+                Back to Plans
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
 
   // For subscription checkout, skip cart validation
   if (!isSubscription && items.length === 0) {
@@ -312,12 +357,12 @@ export default function Checkout() {
                     <span>Billing:</span>
                     <span className="font-semibold">{checkoutState.period === 'monthly' ? 'Hàng tháng' : 'Hàng năm'}</span>
                   </div>
-                  {checkoutState.features && checkoutState.features.length > 0 && (
+                  {checkoutState.features && Array.isArray(checkoutState.features) && checkoutState.features.length > 0 && (
                     <div>
                       <span className="font-semibold">Features:</span>
                       <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                        {checkoutState.features.map((feature: string, idx: number) => (
-                          <li key={idx}>✓ {feature}</li>
+                        {checkoutState.features.map((feature: any, idx: number) => (
+                          <li key={idx}>✓ {typeof feature === 'string' ? feature : feature?.name || 'Feature'}</li>
                         ))}
                       </ul>
                     </div>
@@ -325,7 +370,7 @@ export default function Checkout() {
                   <div className="border-t pt-4">
                     <div className="flex justify-between text-xl font-bold">
                       <span>Total</span>
-                      <span>${checkoutState.amount?.toFixed(2) || '0.00'}</span>
+                      <span>${(checkoutState.amount || 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </>

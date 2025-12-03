@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Plus, Search, Edit, Trash2, Package, TrendingUp, AlertTriangle, DollarSign, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import PageLayout from '@/components/layout/PageLayout';
-import { getAllProducts, createProduct, createInventory, getAllInventory, adjustStock } from '@/lib/api/products';
+import { Pagination, ItemsPerPageSelect } from '@/components/ui/pagination';
+import { getAllProducts, createProduct, createMyInventory, getMyInventory, adjustStock, getMyProducts } from '@/lib/api/products';
 
 const DEMO_MODE = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
@@ -49,6 +50,12 @@ export default function AdminProducts() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // Form states for new product
   const [newProduct, setNewProduct] = useState({
@@ -95,27 +102,35 @@ export default function AdminProducts() {
 
     if (isAuthenticated) {
       // Real user - fetch from API
-      fetchProducts();
+      fetchProducts(currentPage, itemsPerPage);
     } else {
       // Demo mode - use local data
       console.log('🎭 Demo mode - using sample products');
       setProducts(DEMO_PRODUCTS);
+      setTotalItems(DEMO_PRODUCTS.length);
+      setTotalPages(1);
     }
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (page: number = 1, limit: number = 20) => {
     try {
       setIsLoading(true);
       
-      // Fetch catalogue products and inventory in parallel
+      // Fetch user's products and inventory in parallel
+      // Use getMyProducts and getMyInventory to get only data owned by current user
       const [catalogueData, inventoryData] = await Promise.all([
-        getAllProducts(),
-        getAllInventory()
+        getMyProducts(page, limit),
+        getMyInventory(page, 100) // Get more inventory items to match products
       ]);
+
+      // Update pagination info
+      setTotalItems(catalogueData.total || 0);
+      setTotalPages(catalogueData.totalPages || 1);
+      setCurrentPage(catalogueData.page || page);
 
       // Merge catalogue and inventory data
       const mergedProducts: Product[] = catalogueData.products.map((product: CatalogueProduct) => {
-        const inventory = inventoryData.items.find((inv: InventoryItem) => inv.productId === product.id);
+        const inventory = inventoryData.items?.find((inv: InventoryItem) => inv.productId === product.id);
         const stock = inventory?.quantity || 0;
         
         return {
@@ -138,6 +153,17 @@ export default function AdminProducts() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newLimit: number) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   const filteredProducts = products.filter(product =>
@@ -198,8 +224,8 @@ export default function AdminProducts() {
 
       console.log('Product created in catalogue:', catalogueProduct);
 
-      // Step 2: Create inventory for the product
-      const inventoryItem = await createInventory({
+      // Step 2: Create inventory for the product (auto-assigned to current user)
+      const inventoryItem = await createMyInventory({
         productId: catalogueProduct.product.id,
         quantity: parseInt(newProduct.stock),
         warehouseLocation: 'Main Warehouse',
@@ -585,6 +611,22 @@ export default function AdminProducts() {
                 </table>
               </div>
             )}
+            
+            {/* Pagination */}
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-4">
+              <ItemsPerPageSelect
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                options={[10, 20, 50, 100]}
+              />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+              />
+            </div>
           </CardContent>
         </Card>
 

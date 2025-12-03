@@ -51,6 +51,20 @@ export const getCustomerByEmail = async (email: string) => {
   }
 };
 
+export const getCustomerByUserId = async (userId: number) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.get(`${API_BASE}/customers/by-user/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
 export const updateCustomer = async (id: number, data: {
   name?: string;
   email?: string;

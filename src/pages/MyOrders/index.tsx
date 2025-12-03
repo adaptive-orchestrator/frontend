@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
-import { getAllOrders } from '@/lib/api/orders';
+import { getMyOrders } from '@/lib/api/orders';
 import { Order } from '@/types/product';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Package } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
+import { Pagination, ItemsPerPageSelect } from '@/components/ui/pagination';
 
 export default function MyOrders() {
   const navigate = useNavigate();
@@ -15,6 +16,12 @@ export default function MyOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const baseURL = import.meta.env.BASE_URL;
 
@@ -36,14 +43,15 @@ export default function MyOrders() {
         const isRealUser = !!token;
 
         if (isRealUser) {
-          // Real API call for authenticated users
-          const customerId = currentUser.id;
+          // Use getMyOrders - backend will filter by authenticated user
+          console.log('🔍 Fetching orders for current user via /orders/my endpoint');
           
-          console.log('🔍 Fetching orders from API for customer:', customerId);
-          
-          // Use getAllOrders with customerId filter
-          const response = await getAllOrders({ customerId });
+          const response = await getMyOrders(currentPage, itemsPerPage);
           const fetchedOrders = response.orders || response;
+          
+          // Update pagination info
+          setTotalItems(response.total || fetchedOrders.length);
+          setTotalPages(response.totalPages || Math.ceil((response.total || fetchedOrders.length) / itemsPerPage));
           
           console.log('✅ Orders fetched from API:', fetchedOrders);
           
@@ -59,9 +67,15 @@ export default function MyOrders() {
             (order: Order) => order.customerId === (currentUser.id || currentUser.email)
           );
           
-          console.log('✅ Demo orders loaded:', userOrders);
+          // Simulate pagination for demo
+          const start = (currentPage - 1) * itemsPerPage;
+          const paginatedOrders = userOrders.slice(start, start + itemsPerPage);
+          setTotalItems(userOrders.length);
+          setTotalPages(Math.ceil(userOrders.length / itemsPerPage));
           
-          setOrders(userOrders);
+          console.log('✅ Demo orders loaded:', paginatedOrders);
+          
+          setOrders(paginatedOrders);
         }
       } catch (err: any) {
         console.error('❌ Failed to fetch orders:', err);
@@ -73,6 +87,8 @@ export default function MyOrders() {
           (order: Order) => order.customerId === (currentUser.id || currentUser.email)
         );
         setOrders(userOrders);
+        setTotalItems(userOrders.length);
+        setTotalPages(1);
         
         // Don't show error for demo users
         if (document.cookie.includes('token=')) {
@@ -84,7 +100,18 @@ export default function MyOrders() {
     };
 
     fetchOrders();
-  }, [currentUser, navigate, baseURL]);
+  }, [currentUser, currentPage, itemsPerPage, navigate, baseURL]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newLimit: number) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return (
@@ -143,7 +170,20 @@ export default function MyOrders() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <>
+          {/* Items per page selector */}
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              Hiển thị {orders.length} trong tổng số {totalItems} đơn hàng
+            </p>
+            <ItemsPerPageSelect
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              options={[5, 10, 20, 50]}
+            />
+          </div>
+          
+          <div className="space-y-4">
           {orders.map((order) => (
             <Card key={order.id}>
               <CardHeader>
@@ -215,6 +255,17 @@ export default function MyOrders() {
             </Card>
           ))}
         </div>
+          
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            showItemCount={false}
+          />
+        </>
       )}
       </div>
     </PageLayout>

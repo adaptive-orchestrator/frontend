@@ -5,6 +5,39 @@ import Cookies from 'js-cookie';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 // ============= CATALOGUE API =============
+
+// Get products owned by current user
+export const getMyProducts = async (page: number = 1, limit: number = 20) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+    
+    const res = await axios.get(`${API_BASE}/catalogue/products/my`, {
+      params: { page, limit },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
+// Get product by ID owned by current user
+export const getMyProductById = async (id: number) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+    
+    const res = await axios.get(`${API_BASE}/catalogue/products/my/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
+// Admin only: Get all products
 export const getAllProducts = async (page: number = 1, limit: number = 20) => {
   try {
     const token = Cookies.get('token');
@@ -75,6 +108,60 @@ export const updateProduct = async (id: number, data: {
 };
 
 // ============= INVENTORY API =============
+
+// Get inventory owned by current user
+export const getMyInventory = async (page: number = 1, limit: number = 20) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.get(`${API_BASE}/inventory/my`, {
+      params: { page, limit },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
+// Get inventory by product for current user
+export const getMyInventoryByProduct = async (productId: number) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.get(`${API_BASE}/inventory/my/product/${productId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
+// Create inventory for current user
+export const createMyInventory = async (data: {
+  productId: number;
+  quantity: number;
+  warehouseLocation?: string;
+  reorderLevel?: number;
+  maxCapacity?: number;
+}) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.post(`${API_BASE}/inventory/my`, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
+// Admin: Create inventory
 export const createInventory = async (data: {
   productId: number;
   quantity: number;
@@ -95,10 +182,12 @@ export const createInventory = async (data: {
   }
 };
 
-export const getAllInventory = async () => {
+// Admin: Get all inventory
+export const getAllInventory = async (page: number = 1, limit: number = 20) => {
   try {
     const token = Cookies.get('token');
     const res = await axios.get(`${API_BASE}/inventory`, {
+      params: { page, limit },
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     return res.data;
@@ -107,6 +196,7 @@ export const getAllInventory = async () => {
   }
 };
 
+// Admin: Get inventory by product
 export const getInventoryByProduct = async (productId: number) => {
   try {
     const token = Cookies.get('token');

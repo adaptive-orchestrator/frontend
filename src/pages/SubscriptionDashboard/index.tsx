@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import PageLayout from '@/components/layout/PageLayout';
+import Cookies from 'js-cookie';
 import { 
   Users, 
   Database, 
@@ -174,28 +175,43 @@ export default function SubscriptionDashboard() {
         setLoading(true);
         setError(null);
         
-        const customerId = parseInt(currentUser.id);
-        if (isNaN(customerId)) {
-          throw new Error('Invalid customer ID');
+        // Get token for authenticated API calls
+        const token = Cookies.get('token');
+        if (!token) {
+          console.log('⚠️ No token found, redirecting to plans...');
+          navigate(`${baseURL}subscription-plans`);
+          return;
         }
 
-        // Fetch subscriptions
-        console.log('📡 Fetching subscriptions for customer:', customerId);
-        const subsResponse = await fetch(`${API_URL}/subscriptions/customer/${customerId}`);
+        // Fetch subscriptions using /my endpoint with token
+        console.log('📡 Fetching subscriptions with token...');
+        const subsResponse = await fetch(`${API_URL}/subscriptions/my`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
         
         if (!subsResponse.ok) {
+          if (subsResponse.status === 401) {
+            console.log('⚠️ Unauthorized, redirecting to plans...');
+            navigate(`${baseURL}subscription-plans`);
+            return;
+          }
           throw new Error('Failed to fetch subscriptions');
         }
         
         const subsData = await subsResponse.json();
-        const subscriptions = subsData.subscriptions || [];
+        const subscriptions = subsData.subscriptions || subsData || [];
         console.log('✅ Subscriptions fetched:', subscriptions);
 
         // Find active or pending subscription
-        const activeSubscription = subscriptions.find(
-          (s: Subscription) => s.status === 'active' || s.status === 'ACTIVE' || 
-                               s.status === 'pending' || s.status === 'PENDING'
-        );
+        const activeSubscription = Array.isArray(subscriptions) 
+          ? subscriptions.find(
+              (s: Subscription) => s.status === 'active' || s.status === 'ACTIVE' || 
+                                   s.status === 'pending' || s.status === 'PENDING'
+            )
+          : null;
 
         if (activeSubscription) {
           setSubscription(activeSubscription);
@@ -203,7 +219,12 @@ export default function SubscriptionDashboard() {
           // Only fetch invoices for active subscriptions
           if (activeSubscription.status === 'active' || activeSubscription.status === 'ACTIVE') {
             try {
-              const invoicesResponse = await fetch(`${API_URL}/billing/subscription/${activeSubscription.id}`);
+              const invoicesResponse = await fetch(`${API_URL}/billing/subscription/${activeSubscription.id}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
               if (invoicesResponse.ok) {
                 const invoicesData = await invoicesResponse.json();
                 setInvoices(invoicesData.invoices || []);

@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 export const createOrder = async (data: {
-  customerId: number;
+  customerId?: number;
   items: Array<{
     productId: number;
     quantity: number;
@@ -31,6 +31,28 @@ export const createOrder = async (data: {
   }
 };
 
+/**
+ * Get orders for the current authenticated user
+ * Uses /orders/my endpoint for data isolation
+ */
+export const getMyOrders = async (page: number = 1, limit: number = 10) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.get(`${API_BASE}/orders/my`, {
+      params: { page, limit },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};
+
+/**
+ * Get all orders (Admin only)
+ */
 export const getAllOrders = async (params?: {
   page?: number;
   limit?: number;
@@ -55,7 +77,8 @@ export const getOrderById = async (id: number) => {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
 
-    const res = await axios.get(`${API_BASE}/orders/${id}`, {
+    // Use /orders/my/:id for user-specific access
+    const res = await axios.get(`${API_BASE}/orders/my/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return res.data;
