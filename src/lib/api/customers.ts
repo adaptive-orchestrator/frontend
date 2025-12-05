@@ -23,7 +23,7 @@ export const getAllCustomers = async (params?: {
   }
 };
 
-export const getCustomerById = async (id: number) => {
+export const getCustomerById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -51,7 +51,7 @@ export const getCustomerByEmail = async (email: string) => {
   }
 };
 
-export const getCustomerByUserId = async (userId: number) => {
+export const getCustomerByUserId = async (userId: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -65,7 +65,7 @@ export const getCustomerByUserId = async (userId: number) => {
   }
 };
 
-export const updateCustomer = async (id: number, data: {
+export const updateCustomer = async (id: string, data: {
   name?: string;
   email?: string;
   phone?: string;
@@ -85,7 +85,7 @@ export const updateCustomer = async (id: number, data: {
   }
 };
 
-export const deleteCustomer = async (id: number) => {
+export const deleteCustomer = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -99,7 +99,7 @@ export const deleteCustomer = async (id: number) => {
   }
 };
 
-export const getCustomerInsights = async (id: number) => {
+export const getCustomerInsights = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');

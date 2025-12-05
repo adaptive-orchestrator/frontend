@@ -224,7 +224,7 @@ export default function Products() {
                       <div className="w-full h-full flex items-center justify-center">
                         <img
                           src={`${baseURL}logo.png`}
-                          alt="OctalTask Logo"
+                          alt="Nexora Logo"
                           className="w-20 h-20 object-contain"
                         />
                       </div>

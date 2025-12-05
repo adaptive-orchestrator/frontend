@@ -92,8 +92,8 @@ const Login = () => {
                 <div className="max-w-md">
                     <div className="mb-8 text-center lg:text-left">
                         <h1 className="mb-2 text-4xl font-normal cursor-pointer" onClick={ () => { window.location.href = baseURL } }>
-                            <span className="font-medium text-blue-600 dark:text-blue-400">Octal</span>
-                            <span className="font-normal text-gray-800 dark:text-gray-200">Task</span>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">Nex</span>
+                            <span className="font-normal text-gray-800 dark:text-gray-200">ora</span>
                         </h1>
                         <p className="text-lg text-gray-600 dark:text-gray-400">
                             Organize your tasks, boost your productivity
@@ -172,19 +172,19 @@ const Login = () => {
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center lg:hidden">
                         <h1 className="mb-2 text-4xl font-normal">
-                            <span className="font-medium text-blue-600 dark:text-blue-400">Octal</span>
-                            <span className="font-normal text-gray-800 dark:text-gray-200">Task</span>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">Nex</span>
+                            <span className="font-normal text-gray-800 dark:text-gray-200">ora</span>
                         </h1>
                         <h2 className="text-2xl font-normal text-gray-700 dark:text-gray-300">Sign in</h2>
                         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            to continue to OctalTask
+                            to continue to Nexora
                         </p>
                     </div>
 
                     <div className="hidden lg:block lg:text-left">
                         <h2 className="text-3xl font-normal text-gray-700 dark:text-gray-300">Sign in</h2>
                         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            to continue to OctalTask
+                            to continue to Nexora
                         </p>
                     </div>
 

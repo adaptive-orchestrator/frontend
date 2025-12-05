@@ -113,7 +113,7 @@ export default function Feature() {
                         Everything you need to stay organized
                     </h2>
                     <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                        OctalTask combines powerful features with a simple interface to help you manage tasks efficiently.
+                        Nexora combines powerful features with a simple interface to help you manage tasks efficiently.
                     </p>
                 </div>
 

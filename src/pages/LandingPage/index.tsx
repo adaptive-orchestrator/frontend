@@ -100,7 +100,7 @@ export default function LandingPage() {
                 University Project
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                About OctalTask
+                About Nexora
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
                 A collaborative web development project created at the University of Information
@@ -159,11 +159,11 @@ export default function LandingPage() {
               <div className="animate-on-scroll" style={{ transitionDelay: '300ms' }}>
                 <img
                   src={`${baseURL}TaskMain.png`}
-                  alt="OctalTask Project Screenshot"
+                  alt="Nexora Project Screenshot"
                   className="rounded-xl shadow-xl w-full h-auto object-cover"
                   onError={e => {
                     e.currentTarget.src =
-                      'https://placehold.co/800x600/4f46e5/white?text=OctalTask+Screenshot';
+                      'https://placehold.co/800x600/4f46e5/white?text=Nexora+Screenshot';
                   }}
                 />
               </div>
@@ -297,7 +297,7 @@ export default function LandingPage() {
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
                 Join thousands of satisfied users who have transformed their productivity with
-                OctalTask.
+                Nexora.
               </p>
             </div>
 
@@ -328,7 +328,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  "OctalTask completely transformed how our marketing team manages campaigns. The
+                  "Nexora completely transformed how our marketing team manages campaigns. The
                   collaboration features are fantastic, and the interface is so intuitive. Can't
                   imagine working without it now."
                 </p>
@@ -360,7 +360,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  "As a freelancer juggling multiple clients, OctalTask keeps me organized and on
+                  "As a freelancer juggling multiple clients, Nexora keeps me organized and on
                   schedule. The ability to create custom lists for each project is a game-changer
                   for my workflow."
                 </p>
@@ -392,7 +392,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  "OctalTask has been instrumental in our product development process. The ability
+                  "Nexora has been instrumental in our product development process. The ability
                   to share tasks with stakeholders and track progress has significantly improved our
                   delivery timelines."
                 </p>
@@ -412,21 +412,21 @@ export default function LandingPage() {
                 Frequently Asked Questions
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                Everything you need to know about OctalTask
+                Everything you need to know about Nexora
               </p>
             </div>
 
             <div className="space-y-4">
               {[
                 {
-                  question: 'How do I get started with OctalTask?',
+                  question: 'How do I get started with Nexora?',
                   answer:
                     'Getting started is easy! Simply sign up for a free account, create your first task list, and start adding tasks. Our intuitive interface makes it simple to organize and manage your tasks from day one.',
                 },
                 {
-                  question: 'Can I use OctalTask on my mobile device?',
+                  question: 'Can I use Nexora on my mobile device?',
                   answer:
-                    'Yes! OctalTask is fully responsive and works on all devices including smartphones and tablets. Our web app adapts to any screen size for a seamless experience wherever you are.',
+                    'Yes! Nexora is fully responsive and works on all devices including smartphones and tablets. Our web app adapts to any screen size for a seamless experience wherever you are.',
                 },
                 {
                   question: 'How does task sharing and collaboration work?',
@@ -434,7 +434,7 @@ export default function LandingPage() {
                     "You can share tasks or entire lists with team members by entering their email address and assigning permissions (viewer, editor, or admin). They'll receive an invitation and can immediately start collaborating with you.",
                 },
                 {
-                  question: 'Is my data secure with OctalTask?',
+                  question: 'Is my data secure with Nexora?',
                   answer:
                     'Absolutely. We use industry-standard encryption to protect your data. All information is transmitted over secure HTTPS connections, and we regularly back up all data to prevent any loss.',
                 },
@@ -488,7 +488,7 @@ export default function LandingPage() {
               Ready to boost your productivity?
             </h2>
             <p className="text-xl text-blue-100 mb-8">
-              Join thousands of users who manage their tasks efficiently with OctalTask.
+              Join thousands of users who manage their tasks efficiently with Nexora.
             </p>
             <Button
               onClick={() => navigate(`${baseURL}signup`)}

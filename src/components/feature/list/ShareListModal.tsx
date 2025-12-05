@@ -64,7 +64,7 @@ export function ShareListModal({
 
     const copyShareLink = () => {
         // sharing link with list id
-        const shareLink = `https://octaltask.com/share/list/${list.id}`;
+        const shareLink = `https://nexora.com/share/list/${list.id}`;
         navigator.clipboard.writeText(shareLink);
         setCopySuccess(true);
     };

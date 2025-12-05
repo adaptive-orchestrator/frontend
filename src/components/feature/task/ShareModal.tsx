@@ -51,7 +51,7 @@ export function ShareModal({
 
     const copyShareLink = () => {
         // In a real app, generate a proper sharing link with item ID
-        const shareLink = `https://octaltask.com/share/${itemType}/${item.id}`;
+        const shareLink = `https://nexora.com/share/${itemType}/${item.id}`;
         navigator.clipboard.writeText(shareLink);
         setCopySuccess(true);
     };

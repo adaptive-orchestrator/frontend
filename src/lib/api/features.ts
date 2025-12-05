@@ -16,7 +16,7 @@ export const getAllFeatures = async () => {
   }
 };
 
-export const getFeatureById = async (id: number) => {
+export const getFeatureById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     const res = await axios.get(`${API_BASE}/catalogue/features/${id}`, {
@@ -46,7 +46,7 @@ export const createFeature = async (data: {
   }
 };
 
-export const updateFeature = async (id: number, data: {
+export const updateFeature = async (id: string, data: {
   name?: string;
   description?: string;
   category?: string;
@@ -65,7 +65,7 @@ export const updateFeature = async (id: number, data: {
   }
 };
 
-export const deleteFeature = async (id: number) => {
+export const deleteFeature = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');

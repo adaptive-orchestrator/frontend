@@ -283,10 +283,15 @@ export default function AdminProducts() {
     try {
       setIsLoading(true);
 
+      // Tự động chọn reason dựa trên quantity
+      // Ghi chú của người dùng được gửi qua field notes riêng
+      const reason = quantity > 0 ? 'restock' : 'adjustment';
+
       await adjustStock(selectedProduct.id, {
         quantity: quantity,
-        reason: stockUpdate.note || 'Manual adjustment',
-        adjustmentType: quantity > 0 ? 'RESTOCK' : 'SALE'
+        reason: reason,
+        adjustmentType: quantity > 0 ? 'RESTOCK' : 'SALE',
+        notes: stockUpdate.note || undefined
       });
 
       // Refresh product list

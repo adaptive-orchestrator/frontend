@@ -26,7 +26,7 @@ export const getMySubscriptions = async (page: number = 1, limit: number = 10) =
 /**
  * Get a specific subscription for the current user
  */
-export const getMySubscriptionById = async (id: number) => {
+export const getMySubscriptionById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -43,7 +43,7 @@ export const getMySubscriptionById = async (id: number) => {
 /**
  * Get subscriptions by customer ID (for admin or self)
  */
-export const getSubscriptionsByCustomer = async (customerId: number) => {
+export const getSubscriptionsByCustomer = async (customerId: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -74,7 +74,7 @@ export const getAllSubscriptions = async () => {
   }
 };
 
-export const getSubscriptionById = async (id: number) => {
+export const getSubscriptionById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -89,8 +89,8 @@ export const getSubscriptionById = async (id: number) => {
 };
 
 export const createSubscription = async (data: {
-  customerId?: number;
-  planId: number;
+  customerId?: string;
+  planId: string;
   startTrial?: boolean;
 }) => {
   try {
@@ -106,7 +106,7 @@ export const createSubscription = async (data: {
   }
 };
 
-export const cancelSubscription = async (id: number, data?: {
+export const cancelSubscription = async (id: string, data?: {
   cancelAtPeriodEnd?: boolean;
   reason?: string;
 }) => {
@@ -123,8 +123,8 @@ export const cancelSubscription = async (id: number, data?: {
   }
 };
 
-export const changePlan = async (id: number, data: {
-  newPlanId: number;
+export const changePlan = async (id: string, data: {
+  newPlanId: string;
   immediate?: boolean;
 }) => {
   try {
@@ -140,7 +140,7 @@ export const changePlan = async (id: number, data: {
   }
 };
 
-export const renewSubscription = async (id: number) => {
+export const renewSubscription = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -154,7 +154,7 @@ export const renewSubscription = async (id: number) => {
   }
 };
 
-export const activateSubscription = async (id: number) => {
+export const activateSubscription = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');

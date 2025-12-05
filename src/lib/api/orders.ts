@@ -5,9 +5,9 @@ import Cookies from 'js-cookie';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 export const createOrder = async (data: {
-  customerId?: number;
+  customerId?: string;
   items: Array<{
-    productId: number;
+    productId: string;
     quantity: number;
     price: number;
     notes?: string;
@@ -72,7 +72,7 @@ export const getAllOrders = async (params?: {
   }
 };
 
-export const getOrderById = async (id: number) => {
+export const getOrderById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -105,7 +105,7 @@ export const getOrdersByCustomer = async (
   }
 };
 
-export const updateOrderStatus = async (id: number, status: string) => {
+export const updateOrderStatus = async (id: string, status: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -123,7 +123,7 @@ export const updateOrderStatus = async (id: number, status: string) => {
   }
 };
 
-export const cancelOrder = async (id: number, reason?: string) => {
+export const cancelOrder = async (id: string, reason?: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');

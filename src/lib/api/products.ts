@@ -23,7 +23,7 @@ export const getMyProducts = async (page: number = 1, limit: number = 20) => {
 };
 
 // Get product by ID owned by current user
-export const getMyProductById = async (id: number) => {
+export const getMyProductById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -51,7 +51,7 @@ export const getAllProducts = async (page: number = 1, limit: number = 20) => {
   }
 };
 
-export const getProductById = async (id: number) => {
+export const getProductById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     const res = await axios.get(`${API_BASE}/catalogue/products/${id}`, {
@@ -85,7 +85,7 @@ export const createProduct = async (data: {
   }
 };
 
-export const updateProduct = async (id: number, data: {
+export const updateProduct = async (id: string, data: {
   name?: string;
   description?: string;
   price?: number;
@@ -126,7 +126,7 @@ export const getMyInventory = async (page: number = 1, limit: number = 20) => {
 };
 
 // Get inventory by product for current user
-export const getMyInventoryByProduct = async (productId: number) => {
+export const getMyInventoryByProduct = async (productId: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
@@ -142,7 +142,7 @@ export const getMyInventoryByProduct = async (productId: number) => {
 
 // Create inventory for current user
 export const createMyInventory = async (data: {
-  productId: number;
+  productId: string;
   quantity: number;
   warehouseLocation?: string;
   reorderLevel?: number;
@@ -163,7 +163,7 @@ export const createMyInventory = async (data: {
 
 // Admin: Create inventory
 export const createInventory = async (data: {
-  productId: number;
+  productId: string;
   quantity: number;
   warehouseLocation?: string;
   reorderLevel?: number;
@@ -197,7 +197,7 @@ export const getAllInventory = async (page: number = 1, limit: number = 20) => {
 };
 
 // Admin: Get inventory by product
-export const getInventoryByProduct = async (productId: number) => {
+export const getInventoryByProduct = async (productId: string) => {
   try {
     const token = Cookies.get('token');
     const res = await axios.get(`${API_BASE}/inventory/product/${productId}`, {
@@ -209,10 +209,11 @@ export const getInventoryByProduct = async (productId: number) => {
   }
 };
 
-export const adjustStock = async (productId: number, data: {
+export const adjustStock = async (productId: string, data: {
   quantity: number;
   reason?: string;
   adjustmentType?: string;
+  notes?: string;
 }) => {
   try {
     const token = Cookies.get('token');

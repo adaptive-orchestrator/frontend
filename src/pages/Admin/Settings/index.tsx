@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const AdminSettings = () => {
-    const [businessName, setBusinessName] = useState('OctalTask Store');
-    const [businessEmail, setBusinessEmail] = useState('admin@octaltask.com');
+    const [businessName, setBusinessName] = useState('Nexora Store');
+    const [businessEmail, setBusinessEmail] = useState('admin@nexora.com');
     const [currency, setCurrency] = useState('USD');
     const [timezone, setTimezone] = useState('UTC');
     const [taxRate, setTaxRate] = useState('10');
