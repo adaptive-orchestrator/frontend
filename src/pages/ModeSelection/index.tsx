@@ -44,8 +44,8 @@ export default function ModeSelection() {
     }
     
     setIsLoading(true);
-    // API Gateway runs on port 3000
-    const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+    // VITE_API_BASE='' trong K8s, dùng ?? để không fallback khi là chuỗi rỗng
+    const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
     console.log('[ModeSelection] Calling API:', `${API_URL}/llm-orchestrator/recommend-model`);
     
     try {

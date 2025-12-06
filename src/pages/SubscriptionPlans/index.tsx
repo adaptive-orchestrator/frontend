@@ -45,7 +45,8 @@ export default function SubscriptionPlans() {
   const [isUsingDemoData, setIsUsingDemoData] = useState(false);
   
   const baseURL = import.meta.env.BASE_URL;
-  const API_URL = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Dùng ?? để VITE_API_BASE='' không bị fallback
+  const API_URL = import.meta.env.VITE_API_BASE ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
   // Demo plans - chỉ dùng khi không có API hoặc để test
   const DEMO_PLANS: Plan[] = [
@@ -209,8 +210,8 @@ export default function SubscriptionPlans() {
     try {
       setSubscribing(planId);
       
-      // Step 1: Create subscription
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      // Step 1: Create subscription - dùng ?? để không fallback khi VITE_API_BASE=''
+      const API_URL = import.meta.env.VITE_API_BASE ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
       const customerId = parseInt(currentUser.id);
       
       if (isNaN(customerId)) {
