@@ -22,9 +22,9 @@ export default function Checkout() {
   const [error, setError] = useState<string | null>(null);
   
   const baseURL = import.meta.env.BASE_URL;
-  // Dùng ?? để VITE_API_BASE='' không bị fallback
-  const API_URL = import.meta.env.VITE_API_BASE ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-  // Payment service URL - dùng ?? để không fallback khi rỗng
+  // Dùng ?? để VITE_API_BASE='' không bị fallback về localhost trong Kubernetes
+  const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
+  // Payment service URL
   const PAYMENT_SVC_URL = import.meta.env.VITE_PAYMENT_SVC_URL ?? 'http://localhost:3013';
 
   // Get checkout type from location state

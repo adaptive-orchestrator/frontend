@@ -45,8 +45,8 @@ export default function SubscriptionPlans() {
   const [isUsingDemoData, setIsUsingDemoData] = useState(false);
   
   const baseURL = import.meta.env.BASE_URL;
-  // Dùng ?? để VITE_API_BASE='' không bị fallback
-  const API_URL = import.meta.env.VITE_API_BASE ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+  // Dùng ?? để VITE_API_BASE='' không bị fallback về localhost trong Kubernetes
+  const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
 
   // Demo plans - chỉ dùng khi không có API hoặc để test
   const DEMO_PLANS: Plan[] = [
@@ -210,8 +210,7 @@ export default function SubscriptionPlans() {
     try {
       setSubscribing(planId);
       
-      // Step 1: Create subscription - dùng ?? để không fallback khi VITE_API_BASE=''
-      const API_URL = import.meta.env.VITE_API_BASE ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+      // API_URL đã được khai báo ở đầu component
       const customerId = parseInt(currentUser.id);
       
       if (isNaN(customerId)) {

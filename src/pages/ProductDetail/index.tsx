@@ -28,8 +28,8 @@ export default function ProductDetail() {
       try {
         setLoading(true);
         
-        // Dùng ?? để VITE_API_BASE='' không bị fallback
-        const API_URL = import.meta.env.VITE_API_BASE ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+        // Dùng ?? để VITE_API_BASE='' không bị fallback về localhost trong Kubernetes
+        const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
         
         try {
           console.log(`[ProductDetail] Fetching product ${id}...`);
