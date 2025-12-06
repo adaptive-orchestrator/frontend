@@ -64,7 +64,7 @@ export default function SubscriptionDashboard() {
   const navigate = useNavigate();
   const { currentUser } = useUser();
   const baseURL = import.meta.env.BASE_URL;
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
   
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'ai' | 'analytics' | 'team'>('overview');
   const [aiPrompt, setAiPrompt] = useState('');

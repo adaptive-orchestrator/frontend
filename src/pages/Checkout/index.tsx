@@ -22,7 +22,7 @@ export default function Checkout() {
   const [error, setError] = useState<string | null>(null);
   
   const baseURL = import.meta.env.BASE_URL;
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
   // Payment service URL - trực tiếp đến payment-svc, sau này sẽ thay bằng VNPay/Momo
   const PAYMENT_SVC_URL = import.meta.env.VITE_PAYMENT_SVC_URL || 'http://localhost:3013';
 

@@ -28,7 +28,7 @@ export default function ProductDetail() {
       try {
         setLoading(true);
         
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
         
         try {
           console.log(`[ProductDetail] Fetching product ${id}...`);

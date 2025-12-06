@@ -7,8 +7,6 @@ WORKDIR /usr/src/app
 ARG VITE_API_BASE=""
 ENV VITE_API_BASE=$VITE_API_BASE
 
-ARG API_URL=""
-ENV API_URL=$API_URL
 # Copy package.json and package-lock.json into the container
 COPY package*.json ./
 
