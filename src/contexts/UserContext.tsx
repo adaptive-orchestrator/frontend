@@ -56,7 +56,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (!token) {
         console.log('[UserContext] No token, checking localStorage for demo mode');
         // Không có token, check localStorage (fallback cho demo mode)
-        const savedUser = localStorage.getItem('octalTaskUser');
+        const savedUser = localStorage.getItem('nexoraUser');
         if (savedUser) {
           try {
             const user = JSON.parse(savedUser);
@@ -68,7 +68,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             console.log('[UserContext] Loaded demo user from localStorage');
           } catch (err) {
             console.error('[UserContext] Failed to parse saved user:', err);
-            localStorage.removeItem('octalTaskUser');
+            localStorage.removeItem('nexoraUser');
           }
         }
         setIsLoading(false);
@@ -110,7 +110,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         };
 
         setCurrentUser(user);
-        localStorage.setItem('octalTaskUser', JSON.stringify(user));
+        localStorage.setItem('nexoraUser', JSON.stringify(user));
         setIsLoading(false);
         console.log('[UserContext] User set in context:', user.email);
       } catch (err) {
@@ -140,7 +140,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             };
             
             setCurrentUser(user);
-            localStorage.setItem('octalTaskUser', JSON.stringify(user));
+            localStorage.setItem('nexoraUser', JSON.stringify(user));
             console.log('[UserContext] User created from JWT token:', user.email);
           } else {
             throw new Error('Invalid JWT payload');
@@ -148,7 +148,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         } catch (jwtErr) {
           console.error('[UserContext] Failed to decode JWT:', jwtErr);
           setCurrentUser(null);
-          localStorage.removeItem('octalTaskUser');
+          localStorage.removeItem('nexoraUser');
           Cookies.remove('token'); // Token không hợp lệ, xóa đi
         }
         
@@ -173,12 +173,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
 
     setCurrentUser(user);
-    localStorage.setItem('octalTaskUser', JSON.stringify(user));
+    localStorage.setItem('nexoraUser', JSON.stringify(user));
   };
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('octalTaskUser');
+    localStorage.removeItem('nexoraUser');
     Cookies.remove('token'); // Xóa JWT token
     Cookies.remove('businessModel'); // Xóa business model đã chọn
     // Không xóa demoUserRole để giữ lại setting khi login lại
@@ -202,7 +202,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     setCurrentUser(user);
-    localStorage.setItem('octalTaskUser', JSON.stringify(user));
+    localStorage.setItem('nexoraUser', JSON.stringify(user));
     localStorage.setItem('demoUserRole', role);
   };
 
@@ -250,7 +250,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (currentUser) {
       const updatedUser = { ...currentUser, role };
       setCurrentUser(updatedUser);
-      localStorage.setItem('octalTaskUser', JSON.stringify(updatedUser));
+      localStorage.setItem('nexoraUser', JSON.stringify(updatedUser));
       localStorage.setItem('demoUserRole', role);
     }
   };

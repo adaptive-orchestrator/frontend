@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 const API_BASE = import.meta.env.VITE_API_BASE;
 
 export const initiatePayment = async (data: {
-  invoiceId: number;
+  invoiceId: string;
   amount: number;
   currency?: string;
   method: string;
@@ -41,7 +41,7 @@ export const confirmPayment = async (data: {
   }
 };
 
-export const getPaymentById = async (id: number) => {
+export const getPaymentById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');

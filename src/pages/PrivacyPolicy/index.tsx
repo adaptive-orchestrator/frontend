@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Introduction</h3>
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-              Welcome to OctalTask. This Privacy Policy explains how we collect, use, disclose, and safeguard 
+              Welcome to Nexora. This Privacy Policy explains how we collect, use, disclose, and safeguard 
               your information when you use our microservices-based business management platform. This is a 
               university project developed by students from the University of Information Technology - VNUHCM.
             </p>
@@ -166,7 +166,7 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Academic Project Disclaimer</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              OctalTask is an academic project developed for educational purposes at the University of 
+              Nexora is an academic project developed for educational purposes at the University of 
               Information Technology - VNUHCM. While we take data security seriously, this platform is 
               primarily for demonstration and learning purposes.
             </p>

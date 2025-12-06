@@ -36,7 +36,7 @@ export default function About() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-xl font-semibold ml-4 tracking-tight">About OctalTask</h1>
+          <h1 className="text-xl font-semibold ml-4 tracking-tight">About Nexora</h1>
         </div>
       </header>
 
@@ -48,8 +48,8 @@ export default function About() {
             <CodeXml className="h-10 w-10 text-blue-600 dark:text-blue-400" />
           </div>
           <h2 className="text-4xl font-bold tracking-tight">
-            <span className="text-blue-600 dark:text-blue-400">Octal</span>
-            <span className="text-gray-800 dark:text-white">Task</span>
+            <span className="text-blue-600 dark:text-blue-400">Nex</span>
+            <span className="text-gray-800 dark:text-white">ora</span>
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             An AI-integrated microservices system that allows enterprises to flexibly switch or 

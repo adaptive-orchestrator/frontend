@@ -34,7 +34,7 @@ export default function Hero() {
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">
                 Manage tasks efficiently with{' '}
-                <span className="text-blue-600 dark:text-blue-400">OctalTask</span>
+                <span className="text-blue-600 dark:text-blue-400">Nexora</span>
               </h1>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto md:mx-0 mb-8">
                 Simplify task management, boost productivity, and collaborate seamlessly with your
@@ -75,11 +75,11 @@ export default function Hero() {
               <div className="relative shadow-2xl rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transform rotate-1 hover:rotate-0 transition-transform duration-300">
                 <img
                   src={`${baseURL}/DashBoard.png`}
-                  alt="OctalTask Dashboard"
+                  alt="Nexora Dashboard"
                   className="w-full h-auto"
                   onError={e => {
                     e.currentTarget.src =
-                      'https://placehold.co/600x400/4f46e5/white?text=OctalTask+Dashboard';
+                      'https://placehold.co/600x400/4f46e5/white?text=Nexora+Dashboard';
                   }}
                 />
               </div>

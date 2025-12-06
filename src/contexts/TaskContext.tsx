@@ -796,7 +796,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         setTasks(updatedTasks);
 
         // Save to localStorage immediately
-        localStorage.setItem('octalTasks', JSON.stringify(updatedTasks));
+        localStorage.setItem('nexoraTasks', JSON.stringify(updatedTasks));
 
         return newAttachment;
       } catch (error) {
@@ -832,7 +832,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
         setTasks(updatedTasks);
 
-        localStorage.setItem('octalTasks', JSON.stringify(updatedTasks));
+        localStorage.setItem('nexoraTasks', JSON.stringify(updatedTasks));
         console.log(`Attachment ${attachmentId} deleted successfully`);
       } catch (error) {
         console.error('Error deleting attachment:', error);

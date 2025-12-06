@@ -88,7 +88,7 @@ export function Footer() {
                             {[
                                 { icon: Github, link: "#", label: "GitHub" },
                                 { icon: Linkedin, link: "#", label: "LinkedIn" },
-                                { icon: Mail, link: "mailto:contact@octaltask.com", label: "Email" },
+                                { icon: Mail, link: "mailto:contact@nexora.com", label: "Email" },
                                 { icon: Phone, link: "tel:+84123456789", label: "Phone" }
                             ].map((social, index) => (
                                 <a
@@ -123,7 +123,7 @@ export function Footer() {
                 {/* Footer Bottom */}
                 <div className="mt-16 pt-8 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center">
                     <p className="text-gray-400 text-sm">
-                        &copy; {new Date().getFullYear()} OctalTask. All rights reserved. A project created for Web Development course at UIT.
+                        &copy; {new Date().getFullYear()} Nexora. All rights reserved. A project created for Web Development course at UIT.
                     </p>
 
                     <div className="mt-4 md:mt-0 flex space-x-4 text-sm text-gray-400">

@@ -40,13 +40,13 @@ export function Logo({ size = 'md', showText = true, color = 'blueLight', classN
       <div className="relative">
         <img
           src={`${baseURL}logo.png`}
-          alt="OctalTask Logo"
+          alt="Nexora Logo"
           className={`${sizeClasses[size]}`}
         />
       </div>
       {showText && (
         <span className={`${fontClasses[fontWeight]} ${colorClasses[color]} ${textSizeClasses[size]}`}>
-          OctalTask
+          Nexora
         </span>
       )}
     </Link>

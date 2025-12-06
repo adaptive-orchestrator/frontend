@@ -16,7 +16,7 @@ export const getAllPlans = async () => {
   }
 };
 
-export const getPlanById = async (id: number) => {
+export const getPlanById = async (id: string) => {
   try {
     const token = Cookies.get('token');
     const res = await axios.get(`${API_BASE}/catalogue/plans/${id}`, {
@@ -33,7 +33,7 @@ export const createPlan = async (data: {
   description: string;
   price: number;
   billingCycle: 'monthly' | 'yearly';
-  features: number[];
+  features: string[];
   trialEnabled?: boolean;
   trialDays?: number;
 }) => {

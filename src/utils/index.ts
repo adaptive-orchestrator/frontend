@@ -1,5 +1,5 @@
 /**
- * Collection of utility functions for the OctalTask application
+ * Collection of utility functions for the Nexora application
  */
 
 /**

@@ -1,7 +1,7 @@
 // src/types/product.ts
 
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   price: number;
@@ -14,7 +14,7 @@ export interface Product {
 }
 
 export interface Plan {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   price: number;
@@ -28,15 +28,15 @@ export interface Plan {
 }
 
 export interface Feature {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   code?: string;
 }
 
 export interface OrderItem {
-  id?: number;
-  productId: number;
+  id?: string;
+  productId: string;
   product?: Product;
   quantity: number;
   unitPrice: number;
@@ -44,7 +44,7 @@ export interface OrderItem {
 }
 
 export interface Order {
-  id: number;
+  id: string;
   customerId: string;
   items: OrderItem[];
   status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
@@ -56,8 +56,8 @@ export interface Order {
 }
 
 export interface Payment {
-  id: number;
-  invoiceId: number;
+  id: string;
+  invoiceId: string;
   amount: number;
   currency: string;
   method: string;
@@ -84,7 +84,7 @@ export interface CartItem {
 
 // Freemium Model Types
 export interface AddOn {
-  id: number;
+  id: string;
   name: string;
   description: string;
   price: number; // One-time or recurring price
@@ -96,7 +96,7 @@ export interface AddOn {
 }
 
 export interface FreemiumPlan {
-  id: number;
+  id: string;
   name: string;
   description: string;
   price: number; // Always 0 for base free plan

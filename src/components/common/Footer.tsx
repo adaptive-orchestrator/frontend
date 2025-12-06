@@ -70,7 +70,7 @@ export function Footer() {
               {[
                 { id: 'hero', label: 'Home', href: '#' },
                 { id: 'features', label: 'Features', href: '#features' },
-                { id: 'about', label: 'About OctalTask', href: '#about' },
+                { id: 'about', label: 'About Nexora', href: '#about' },
                 { id: 'testimonials', label: 'Testimonials', href: '#testimonials' },
                 { id: 'faq', label: 'FAQ', href: '#faq' },
               ].map(({ id, label }) => (
@@ -126,7 +126,7 @@ export function Footer() {
               {[
                 { icon: Github, link: 'https://github.com/jiraops', label: 'GitHub' },
                 { icon: Linkedin, link: '#', label: 'LinkedIn' },
-                { icon: Mail, link: 'mailto:contact@octaltask.com', label: 'Email' },
+                { icon: Mail, link: 'mailto:contact@nexora.com', label: 'Email' },
                 { icon: Phone, link: 'tel:+84123456789', label: 'Phone' },
               ].map((social, index) => (
                 <a
@@ -174,7 +174,7 @@ export function Footer() {
         {/* Footer Bottom */}
         <div className="mt-16 pt-8 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">
-            &copy; {new Date().getFullYear()} OctalTask. All rights reserved. A project created for
+            &copy; {new Date().getFullYear()} Nexora. All rights reserved. A project created for
             Web Development course at UIT.
           </p>
 

@@ -38,7 +38,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">1. Agreement to Terms</h3>
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-              By accessing and using OctalTask ("the Platform"), you accept and agree to be bound by these 
+              By accessing and using Nexora ("the Platform"), you accept and agree to be bound by these 
               Terms of Service. If you do not agree to these terms, please do not use our platform. This is 
               an academic project developed by students from the University of Information Technology - VNUHCM.
             </p>
@@ -47,7 +47,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">2. Description of Service</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-3">
-              OctalTask provides an AI-integrated microservices system that allows enterprises to:
+              Nexora provides an AI-integrated microservices system that allows enterprises to:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-2 ml-4">
               <li>Switch between or combine multiple business models (Retail, Subscription, Freemium, Multi-Model)</li>
@@ -85,7 +85,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">4. Acceptable Use Policy</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-3">
-              When using OctalTask, you agree NOT to:
+              When using Nexora, you agree NOT to:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-2 ml-4">
               <li>Violate any applicable laws or regulations</li>
@@ -141,7 +141,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">7. Intellectual Property</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-3">
-              All content, features, and functionality of OctalTask, including but not limited to:
+              All content, features, and functionality of Nexora, including but not limited to:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-2 ml-4">
               <li>Source code and software architecture</li>
@@ -160,7 +160,7 @@ export default function TermsOfService() {
             <p className="text-gray-700 dark:text-gray-300">
               Your use of the platform is also governed by our Privacy Policy. We collect and process data 
               as described in our <Link to={`${baseURL}privacy-policy`} className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>. 
-              By using OctalTask, you consent to such collection and processing.
+              By using Nexora, you consent to such collection and processing.
             </p>
           </section>
 
@@ -182,7 +182,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">10. Limitation of Liability</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-3">
-              To the maximum extent permitted by law, OctalTask and its developers shall not be liable for:
+              To the maximum extent permitted by law, Nexora and its developers shall not be liable for:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-2 ml-4">
               <li>Any indirect, incidental, or consequential damages</li>
@@ -219,7 +219,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">13. Academic Project Disclaimer</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-3">
-              <strong>IMPORTANT:</strong> OctalTask is an academic project developed for educational purposes. 
+              <strong>IMPORTANT:</strong> Nexora is an academic project developed for educational purposes. 
               While we implement industry best practices:
             </p>
             <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-2 ml-4">
@@ -256,7 +256,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">16. Acknowledgment</h3>
             <p className="text-gray-700 dark:text-gray-300">
-              By using OctalTask, you acknowledge that you have read, understood, and agree to be bound by 
+              By using Nexora, you acknowledge that you have read, understood, and agree to be bound by 
               these Terms of Service.
             </p>
           </section>

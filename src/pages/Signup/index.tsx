@@ -88,7 +88,7 @@ const Signup = () => {
                 alert(`Registration successful! (Demo mode) Please select your business model.`);
                 navigate(`${baseURL}mode-selection`);
             } else {
-                alert(`Registration successful! (Demo mode) Welcome to OctalTask.`);
+                alert(`Registration successful! (Demo mode) Welcome to Nexora.`);
                 navigate(`${baseURL}products`);
             }
         } catch (error) {
@@ -104,8 +104,8 @@ const Signup = () => {
                 <div className="max-w-md">
                     <div className="mb-8 text-center lg:text-left">
                         <h1 className="text-4xl font-normal mb-2 cursor-pointer" onClick={ () => { navigate(baseURL) } }>
-                            <span className="font-medium text-blue-600 dark:text-blue-400">Octal</span>
-                            <span className="font-normal text-gray-800 dark:text-gray-200">Task</span>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">Nex</span>
+                            <span className="font-normal text-gray-800 dark:text-gray-200">ora</span>
                         </h1>
                         <p className="text-lg text-gray-600 dark:text-gray-400">
                             Streamline your workflow, accomplish more
@@ -180,14 +180,14 @@ const Signup = () => {
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center lg:hidden">
                         <h1 className="text-4xl font-normal mb-2">
-                            <span className="font-medium text-blue-600 dark:text-blue-400">Octal</span>
-                            <span className="font-normal text-gray-800 dark:text-gray-200">Task</span>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">Nex</span>
+                            <span className="font-normal text-gray-800 dark:text-gray-200">ora</span>
                         </h1>
                         <h2 className="text-2xl font-normal text-gray-700 dark:text-gray-300">
                             Create account
                         </h2>
                         <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">
-                            to get started with OctalTask
+                            to get started with Nexora
                         </p>
                     </div>
 
@@ -196,7 +196,7 @@ const Signup = () => {
                             Create account
                         </h2>
                         <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">
-                            to get started with OctalTask
+                            to get started with Nexora
                         </p>
                     </div>
 
