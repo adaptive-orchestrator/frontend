@@ -42,7 +42,7 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
   // Load mode synchronously from localStorage on init
   const [mode, setModeState] = useState<BusinessMode>(() => {
     const globalMode = localStorage.getItem(getGlobalModeKey());
-    if (globalMode) {
+    if (globalMode && globalMode !== 'null') {
       console.log('[BusinessMode] Initial load business mode:', globalMode);
       return globalMode as BusinessMode;
     }
@@ -62,19 +62,31 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
     const userModeKey = getUserModeKey(userId);
     const savedMode = localStorage.getItem(userModeKey);
     
-    if (savedMode) {
-      setModeState(savedMode as BusinessMode);
-      console.log(`[BusinessMode] Loaded business mode for user ${userId}:`, savedMode);
+    if (savedMode && savedMode !== 'null') {
+      // Only update if different to avoid unnecessary re-renders
+      if (mode !== savedMode) {
+        setModeState(savedMode as BusinessMode);
+        console.log(`[BusinessMode] Loaded business mode for user ${userId}:`, savedMode);
+      } else {
+        console.log(`[BusinessMode] Mode already set for user ${userId}:`, savedMode);
+      }
     } else {
       // Check for old global mode (migration)
       const globalMode = localStorage.getItem(getGlobalModeKey());
-      if (globalMode) {
-        setModeState(globalMode as BusinessMode);
-        console.log(`[BusinessMode] Migrated global mode to user ${userId}:`, globalMode);
-        // Save to user-specific key
+      if (globalMode && globalMode !== 'null') {
+        // Only update if different to avoid unnecessary re-renders
+        if (mode !== globalMode) {
+          setModeState(globalMode as BusinessMode);
+          console.log(`[BusinessMode] Migrated global mode to user ${userId}:`, globalMode);
+        } else {
+          console.log(`[BusinessMode] Mode already set from global for user ${userId}:`, globalMode);
+        }
+        // Save to user-specific key for next time
         localStorage.setItem(userModeKey, globalMode);
       } else {
-        setModeState(null);
+        // Don't set to null if we already have a mode loaded from global
+        // Only clear if explicitly needed
+        console.log(`[BusinessMode] No mode found for user ${userId}, keeping current:`, mode);
       }
     }
   };

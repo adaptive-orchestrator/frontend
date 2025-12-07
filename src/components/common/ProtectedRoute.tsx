@@ -26,6 +26,17 @@ export default function ProtectedRoute({
   const { mode, isLoading: isModeLoading } = useBusinessMode();
   const baseURL = import.meta.env.BASE_URL;
   const [waitTimeout, setWaitTimeout] = useState(false);
+  const [modeCheckDelay, setModeCheckDelay] = useState(true);
+
+  // Give context a moment to sync mode on initial load
+  useEffect(() => {
+    if (requireMode && modeCheckDelay) {
+      const timer = setTimeout(() => {
+        setModeCheckDelay(false);
+      }, 100); // Short delay to let context sync
+      return () => clearTimeout(timer);
+    }
+  }, [requireMode, modeCheckDelay]);
 
   // Set timeout after 5 seconds of waiting
   useEffect(() => {
@@ -43,6 +54,12 @@ export default function ProtectedRoute({
   }, [requireAuth, currentUser, navigate, baseURL]);
 
   useEffect(() => {
+    // Give context a moment to sync on initial load
+    if (requireMode && modeCheckDelay) {
+      console.log('[ProtectedRoute] Waiting for initial mode sync...');
+      return;
+    }
+
     // Don't do anything while mode is still loading
     if (requireMode && isModeLoading) {
       console.log('[ProtectedRoute] Waiting for mode to load...');
@@ -63,6 +80,7 @@ export default function ProtectedRoute({
       isOrgAdmin,
       mode,
       isModeLoading,
+      modeCheckDelay,
       allowedModes
     });
 
@@ -99,7 +117,16 @@ export default function ProtectedRoute({
     }
 
     // Check business mode selection (only after loading is complete)
+    // IMPORTANT: Check localStorage directly to avoid timing issues on F5
     if (requireMode && !mode) {
+      // Double-check localStorage before redirecting
+      const savedMode = localStorage.getItem('businessMode');
+      if (savedMode && savedMode !== 'null') {
+        console.log('[ProtectedRoute] Mode found in localStorage but not in context yet, waiting...');
+        // Give context time to sync
+        return;
+      }
+      
       console.log('[ProtectedRoute] Redirecting to mode selection (no mode)');
       navigate(`${baseURL}mode-selection`, { replace: true });
       return;
@@ -119,7 +146,7 @@ export default function ProtectedRoute({
       }
       return;
     }
-  }, [currentUser, isAdmin, isOrgAdmin, mode, isModeLoading, requireAuth, requireAdmin, requireMode, allowedModes, navigate, baseURL]);
+  }, [currentUser, isAdmin, isOrgAdmin, mode, isModeLoading, modeCheckDelay, requireAuth, requireAdmin, requireMode, allowedModes, navigate, baseURL]);
 
   // Show loading while checking and waiting for user data
   const token = Cookies.get('token');
