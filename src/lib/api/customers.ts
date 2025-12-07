@@ -112,3 +112,23 @@ export const getCustomerInsights = async (id: string) => {
     throw err.response?.data || err;
   }
 };
+
+export const createCustomer = async (data: {
+  name: string;
+  email: string;
+  userId: string;
+  phone?: string;
+  address?: string;
+}) => {
+  try {
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
+
+    const res = await axios.post(`${API_BASE}/customers`, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  } catch (err: any) {
+    throw err.response?.data || err;
+  }
+};

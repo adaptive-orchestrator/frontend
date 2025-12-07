@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useUser } from '@/contexts/UserContext';
 import { createOrder } from '@/lib/api/orders';
-import { getCustomerByUserId } from '@/lib/api/customers';
+import { getCustomerByUserId, createCustomer } from '@/lib/api/customers';
 // import { initiatePayment } from '@/lib/api/payments'; // TODO: Payment sau
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { items, totalPrice, clearCart } = useCart();
-  const { currentUser, user } = useUser();
+  const { currentUser } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -61,7 +61,7 @@ export default function Checkout() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser && !user) {
+    if (!currentUser) {
       navigate(`${baseURL}login`);
       return;
     }
@@ -74,7 +74,7 @@ export default function Checkout() {
         // Handle subscription payment - gọi trực tiếp payment-svc
         const paymentData = {
           subscriptionId: checkoutState.subscriptionId,
-          customerId: user?.id || parseInt(currentUser?.id || '0'),
+          customerId: currentUser ? currentUser.id : '0',
           amount: checkoutState.amount,
           planName: checkoutState.planName || 'Subscription Plan',
           paymentMethod: formData.paymentMethod,
@@ -124,15 +124,33 @@ export default function Checkout() {
         if (isRealUser) {
         // Real API call for authenticated users
         // currentUser.id là userId từ Auth service, cần lấy customerId thực từ Customer service
-        const userId = parseInt(currentUser.id);
-        if (isNaN(userId)) {
+        if (!currentUser || !currentUser.id) {
           throw new Error('Invalid user ID. Please re-login.');
         }
+        const userId = currentUser.id; // UUID string
 
         // Lấy customer theo userId để lấy customerId thực
         console.log('[Checkout] Fetching customer info for userId:', userId);
-        const customer = await getCustomerByUserId(userId);
+        let customer;
+        try {
+          customer = await getCustomerByUserId(userId);
+        } catch (error: any) {
+          // Nếu customer chưa tồn tại, tạo mới
+          if (error?.response?.status === 404 || error?.statusCode === 404) {
+            console.log('[Checkout] Customer not found, creating new customer profile...');
+            customer = await createCustomer({
+              name: currentUser.name || currentUser.email.split('@')[0],
+              email: currentUser.email,
+              userId: userId,
+            });
+            console.log('[Checkout] Customer created:', customer);
+          } else {
+            throw error;
+          }
+        }
         console.log('[Checkout] Customer found:', customer);
+        console.log('[Checkout] Customer ID type:', typeof customer?.id);
+        console.log('[Checkout] Customer ID value:', JSON.stringify(customer?.id));
         
         if (!customer || !customer.id) {
           throw new Error('Customer profile not found. Please contact support.');
@@ -140,6 +158,8 @@ export default function Checkout() {
         
         const customerId = customer.id;
         console.log('[Checkout] Using customerId:', customerId);
+        console.log('[Checkout] customerId type:', typeof customerId);
+        console.log('[Checkout] customerId is empty?', customerId === '' || !customerId);
 
         const orderData = {
           customerId: customerId,
