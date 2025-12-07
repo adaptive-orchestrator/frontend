@@ -12,7 +12,7 @@ import MainNav from '@/components/common/MainNav';
 
 export default function ModeSelection() {
   const navigate = useNavigate();
-  const { setMode } = useBusinessMode();
+  const { switchMode } = useBusinessMode();
   const { currentUser } = useUser();
   const baseURL = import.meta.env.BASE_URL;
   
@@ -21,6 +21,7 @@ export default function ModeSelection() {
   const [businessDescription, setBusinessDescription] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [aiRecommendation, setAIRecommendation] = useState<{
     greeting: string;
     recommendation_intro: string;
@@ -103,30 +104,53 @@ export default function ModeSelection() {
     return modes.find(m => m.id === modelId);
   };
 
-  const handleModeSelect = (mode: 'retail' | 'subscription' | 'freemium' | 'multi') => {
+  const handleModeSelect = async (mode: 'retail' | 'subscription' | 'freemium' | 'multi') => {
     // Save mode with userId to keep it separate per user
     const userId = currentUser?.id || currentUser?.email || 'anonymous';
-    setMode(mode, userId);
     
-    console.log(`Business mode "${mode}" selected for user ${userId}`);
+    console.log(`[ModeSelection] Switching to business mode "${mode}" for user ${userId}`);
     
-    // Redirect based on user role and selected mode
-    const userRole = currentUser?.role;
+    setIsSwitching(true);
     
-    if (userRole === 'organization_admin' || userRole === 'super_admin') {
-      // Admin navigates to admin dashboard
-      navigate(`${baseURL}admin`);
-    } else {
-      // Customer navigates based on selected mode
-      if (mode === 'retail') {
-        navigate(`${baseURL}products`);
-      } else if (mode === 'subscription') {
-        navigate(`${baseURL}plans`);
-      } else if (mode === 'freemium') {
-        navigate(`${baseURL}freemium-plans`);
-      } else {
-        navigate(`${baseURL}`); // multi mode - home page
+    try {
+      // Call switch-model API through context
+      const result = await switchMode(mode, { 
+        tenantId: userId,
+        dryRun: false 
+      });
+      
+      if (!result.success) {
+        console.error('[ModeSelection] Failed to switch mode:', result.error || result.message);
+        alert(`Không thể chuyển sang ${mode} mode: ${result.error || result.message}`);
+        setIsSwitching(false);
+        return;
       }
+      
+      console.log(`[ModeSelection] Successfully switched to ${mode} mode. Deployed: ${result.deployed}`);
+      
+      // Redirect based on user role and selected mode
+      const userRole = currentUser?.role;
+      
+      if (userRole === 'organization_admin' || userRole === 'super_admin') {
+        // Admin navigates to admin dashboard
+        navigate(`${baseURL}admin`);
+      } else {
+        // Customer navigates based on selected mode
+        if (mode === 'retail') {
+          navigate(`${baseURL}products`);
+        } else if (mode === 'subscription') {
+          navigate(`${baseURL}plans`);
+        } else if (mode === 'freemium') {
+          navigate(`${baseURL}freemium-plans`);
+        } else {
+          navigate(`${baseURL}`); // multi mode - home page
+        }
+      }
+    } catch (error) {
+      console.error('[ModeSelection] Error switching mode:', error);
+      alert(`Lỗi khi chuyển sang ${mode} mode. Vui lòng thử lại.`);
+    } finally {
+      setIsSwitching(false);
     }
   };
 
@@ -274,8 +298,16 @@ export default function ModeSelection() {
                       onClick={() => handleModeSelect(mode.id as 'retail' | 'subscription' | 'freemium' | 'multi')}
                       className={`w-full bg-gradient-to-r ${mode.color} hover:opacity-90`}
                       size="lg"
+                      disabled={isSwitching}
                     >
-                      Chọn {mode.title}
+                      {isSwitching ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Đang chuyển đổi...
+                        </>
+                      ) : (
+                        `Chọn ${mode.title}`
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
@@ -466,10 +498,13 @@ export default function ModeSelection() {
                               return (
                                 <div
                                   key={idx}
-                                  className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background cursor-pointer transition-colors border border-transparent hover:border-primary/30"
-                                  onClick={() => {
-                                    handleModeSelect(alt.model as any);
-                                    setShowAIDialog(false);
+                                  className={`flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background transition-colors border border-transparent hover:border-primary/30 ${isSwitching ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                  onClick={async () => {
+                                    if (isSwitching) return;
+                                    await handleModeSelect(alt.model as any);
+                                    if (!isSwitching) {
+                                      setShowAIDialog(false);
+                                    }
                                   }}
                                 >
                                   <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${altInfo?.color || 'from-gray-400 to-gray-500'} flex items-center justify-center`}>
@@ -499,15 +534,27 @@ export default function ModeSelection() {
                   {/* Action Buttons */}
                   <div className="space-y-2 pt-2 border-t">
                     <Button
-                      onClick={() => {
-                        handleModeSelect(aiRecommendation.recommended_model as any);
-                        setShowAIDialog(false);
+                      onClick={async () => {
+                        await handleModeSelect(aiRecommendation.recommended_model as any);
+                        if (!isSwitching) {
+                          setShowAIDialog(false);
+                        }
                       }}
                       className={`w-full gap-2 bg-gradient-to-r ${getModelInfo(aiRecommendation.recommended_model)?.color || 'from-primary to-purple-600'}`}
                       size="lg"
+                      disabled={isSwitching}
                     >
-                      Chọn {getModelInfo(aiRecommendation.recommended_model)?.title}
-                      <ArrowRight className="h-5 w-5" />
+                      {isSwitching ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Đang chuyển đổi...
+                        </>
+                      ) : (
+                        <>
+                          Chọn {getModelInfo(aiRecommendation.recommended_model)?.title}
+                          <ArrowRight className="h-5 w-5" />
+                        </>
+                      )}
                     </Button>
                     
                     <Button
@@ -518,6 +565,7 @@ export default function ModeSelection() {
                         setTargetAudience('');
                       }}
                       className="w-full"
+                      disabled={isSwitching}
                     >
                       Mô tả lại để nhận tư vấn khác
                     </Button>
