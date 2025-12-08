@@ -39,9 +39,13 @@ export default function Products() {
           
           // Map products with inventory stock
           const productsArray = productsData.products || [];
+          // Handle multiple response formats: items, inventories, or data
+          const inventoryArray = inventoryData.items || inventoryData.inventories || inventoryData.data || [];
           const inventoryMap = new Map(
-            (inventoryData.items || []).map((inv: any) => [inv.productId, inv.quantity - inv.reserved])
+            inventoryArray.map((inv: any) => [inv.productId, inv.quantity - (inv.reserved || 0)])
           );
+          
+          console.log('[Products] Inventory map:', Array.from(inventoryMap.entries()));
           
           const productsWithStock = productsArray.map((product: any) => ({
             id: product.id,

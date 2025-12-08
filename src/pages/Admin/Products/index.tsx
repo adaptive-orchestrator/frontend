@@ -123,6 +123,9 @@ export default function AdminProducts() {
         getMyInventory(page, 100) // Get more inventory items to match products
       ]);
 
+      console.log('[fetchProducts] Catalogue data:', catalogueData);
+      console.log('[fetchProducts] Inventory data:', inventoryData);
+
       // Update pagination info
       setTotalItems(catalogueData.total || 0);
       setTotalPages(catalogueData.totalPages || 1);
@@ -130,8 +133,12 @@ export default function AdminProducts() {
 
       // Merge catalogue and inventory data
       const mergedProducts: Product[] = catalogueData.products.map((product: CatalogueProduct) => {
-        const inventory = inventoryData.items?.find((inv: InventoryItem) => inv.productId === product.id);
+        // Handle both response formats: { items: [] } and { inventories: [] }
+        const inventories = inventoryData.items || inventoryData.inventories || inventoryData.data || [];
+        const inventory = inventories.find((inv: InventoryItem) => inv.productId === product.id);
         const stock = inventory?.quantity || 0;
+        
+        console.log(`[fetchProducts] Product ${product.name} - Stock: ${stock}`, inventory);
         
         return {
           id: product.id,
@@ -224,16 +231,13 @@ export default function AdminProducts() {
 
       console.log('Product created in catalogue:', catalogueProduct);
 
-      // Step 2: Create inventory for the product (auto-assigned to current user)
-      const inventoryItem = await createMyInventory({
-        productId: catalogueProduct.product.id,
+      // Step 2: Initialize inventory using adjust API (auto-creates if not exists)
+      const inventoryItem = await adjustStock(catalogueProduct.product.id, {
         quantity: parseInt(newProduct.stock),
-        warehouseLocation: 'Main Warehouse',
-        reorderLevel: 10,
-        maxCapacity: 1000
+        reason: 'restock'
       });
 
-      console.log('Inventory created:', inventoryItem);
+      console.log('Inventory initialized:', inventoryItem);
 
       // Step 3: Refresh product list
       await fetchProducts();
