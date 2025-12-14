@@ -1,6 +1,11 @@
 // src/pages/Cart/index.tsx
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
+import { useUser } from '@/contexts/UserContext';
+import { createOrder } from '@/lib/api/orders';
+import { getCustomerByUserId, createCustomer } from '@/lib/api/customers';
+import { createStripeCheckoutSession, cartItemsToStripeLineItems } from '@/lib/api/stripe';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,8 +15,86 @@ import PageLayout from '@/components/layout/PageLayout';
 export default function Cart() {
   const navigate = useNavigate();
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const { currentUser } = useUser();
+  const [loading, setLoading] = useState(false);
   
   const baseURL = import.meta.env.BASE_URL;
+
+  const handleProceedToCheckout = async () => {
+    if (!currentUser) {
+      navigate(`${baseURL}login`);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get customer info
+      console.log('[Cart] Fetching customer info for userId:', currentUser.id);
+      let customer;
+      try {
+        customer = await getCustomerByUserId(currentUser.id);
+      } catch (error: any) {
+        // Create customer if not found
+        if (error?.response?.status === 404 || error?.statusCode === 404) {
+          console.log('[Cart] Customer not found, creating new customer profile...');
+          customer = await createCustomer({
+            name: currentUser.name || currentUser.email.split('@')[0],
+            email: currentUser.email,
+            userId: currentUser.id,
+          });
+          console.log('[Cart] Customer created:', customer);
+        } else {
+          throw error;
+        }
+      }
+      console.log('[Cart] Customer found:', customer);
+
+      if (!customer || !customer.id) {
+        throw new Error('Customer profile not found. Please contact support.');
+      }
+
+      const customerId = customer.id;
+
+      // Create order first
+      const orderData = {
+        customerId: customerId,
+        items: items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+        })),
+        shippingAddress: 'To be confirmed',
+        billingAddress: 'To be confirmed',
+        notes: 'Order placed via Stripe Checkout from Cart',
+      };
+
+      console.log('[Cart] Creating order:', orderData);
+      const response = await createOrder(orderData);
+      const order = response.order || response;
+      console.log('[Cart] Order created:', order);
+
+      // Create Stripe Checkout Session
+      const stripeLineItems = cartItemsToStripeLineItems(items);
+      const result = await createStripeCheckoutSession({
+        lineItems: stripeLineItems,
+        orderId: order.id || order.orderNumber,
+        customerId: customerId,
+      });
+
+      // Clear cart and redirect to Stripe Checkout
+      console.log('[Cart] Redirecting to Stripe Checkout:', result.url);
+      clearCart();
+      window.location.href = result.url;
+
+    } catch (error: any) {
+      console.error('[Cart] Failed to create checkout session:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to proceed to checkout';
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -137,13 +220,19 @@ export default function Cart() {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
-              <Button onClick={() => navigate(`${baseURL}checkout`)} className="w-full" size="lg">
-                Proceed to Checkout
+              <Button 
+                onClick={handleProceedToCheckout} 
+                className="w-full" 
+                size="lg"
+                disabled={loading}
+              >
+                {loading ? 'Processing...' : 'Proceed to Checkout'}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => navigate(`${baseURL}products`)}
                 className="w-full"
+                disabled={loading}
               >
                 Continue Shopping
               </Button>

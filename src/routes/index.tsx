@@ -12,6 +12,8 @@ import Products from '@/pages/Products';
 import ProductDetail from '@/pages/ProductDetail';
 import Cart from '@/pages/Cart';
 import Checkout from '@/pages/Checkout';
+import CheckoutSuccess from '@/pages/Checkout/Success';
+import CheckoutCancel from '@/pages/Checkout/Cancel';
 import MyOrders from '@/pages/MyOrders';
 import SubscriptionPlans from '@/pages/SubscriptionPlans';
 import SubscriptionDashboard from '@/pages/SubscriptionDashboard';
@@ -147,6 +149,12 @@ export default function AppRoutes() {
                     <Checkout />
                 </ProtectedRoute>
             } />
+            {/* Stripe Checkout Success/Cancel routes - No auth required */}
+            <Route path={`${baseURL}checkout/success`} element={<CheckoutSuccess />} />
+            <Route path={`${baseURL}checkout/cancel`} element={<CheckoutCancel />} />
+            <Route path={`${baseURL}subscription/success`} element={<CheckoutSuccess />} />
+            <Route path={`${baseURL}subscription/cancel`} element={<CheckoutCancel />} />
+            
             <Route path={`${baseURL}orders`} element={
                 <ProtectedRoute requireAuth requireMode allowedModes={['retail', 'multi']}>
                     <MyOrders />
