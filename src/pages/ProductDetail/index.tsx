@@ -33,7 +33,7 @@ export default function ProductDetail() {
         
         try {
           console.log(`[ProductDetail] Fetching product ${id}...`);
-          const response = await fetch(`${API_URL}/products/${id}`);
+          const response = await fetch(`${API_URL}/catalogue/products/${id}`);
           
           if (response.ok) {
             const data = await response.json();

@@ -1,6 +1,6 @@
 // src/pages/LLMRecommendation/index.tsx
 // Human-in-the-loop Business Model Recommendation with Safe Deployment
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -101,8 +101,34 @@ export default function LLMRecommendation() {
   const [showDetailedImpact, setShowDetailedImpact] = useState(false);
   const [manualMode, setManualMode] = useState(true); // Default to manual for better control
   const [waitingForNext, setWaitingForNext] = useState(false);
+  
+  // Test Mode States - để demo validation errors
+  const [testMode, setTestMode] = useState(false);
+  const [showValidationWarning, setShowValidationWarning] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
+
+  // Mock Validation Errors để demo UI (tự suy luận dựa trên Zod schema backend)
+  const MOCK_VALIDATION_ERRORS = [
+    'Field "business_model" must be one of [retail, subscription, freemium, marketplace, enterprise]. Received: "invalid_xyz"',
+    'Field "confidence" must be a number between 0 and 1. Received type: string',
+    'Field "impacted_services" expected array, received: null',
+    'Required field "changeset.model" is missing',
+  ];
+
+  // Keyboard shortcut: Ctrl+Shift+D để bật/tắt test mode (D = Debug/Demo)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        setTestMode(prev => !prev);
+        console.log('[Test Mode]', !testMode ? 'ENABLED' : 'DISABLED');
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [testMode]);
 
   // ============================================================================
   // PHASE 1: Request & Dry-run
@@ -114,6 +140,19 @@ export default function LLMRecommendation() {
     }
 
     setError(null);
+    
+    // TEST MODE: Hiển thị validation errors thay vì gọi API
+    if (testMode) {
+      setPhase('analyzing');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Giả lập phát hiện lỗi validation sau khi "analyzing"
+      setValidationErrors(MOCK_VALIDATION_ERRORS);
+      setShowValidationWarning(true);
+      setPhase('input'); // Quay lại input nhưng hiển thị warning overlay
+      return;
+    }
+    
     setPhase('analyzing');
 
     try {
@@ -242,6 +281,15 @@ export default function LLMRecommendation() {
     await new Promise(resolve => setTimeout(resolve, 500));
     setApprovalStartTime(Date.now());
     setPhase('approval');
+  };
+
+  // ============================================================================
+  // Test Mode: Close Validation Warning
+  // ============================================================================
+  const handleRejectValidationError = () => {
+    setShowValidationWarning(false);
+    setValidationErrors([]);
+    setUserIntent(''); // Clear input
   };
 
   // ============================================================================
@@ -639,6 +687,14 @@ export default function LLMRecommendation() {
                         Phân tích
                       </Button>
                     </div>
+                    {testMode && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          <Microscope className="h-3 w-3 mr-1" />
+                          Test Mode (Ctrl+Shift+D to toggle)
+                        </Badge>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -1356,7 +1412,7 @@ export default function LLMRecommendation() {
                   <RefreshCw className="h-5 w-5 mr-2" />
                   Thực hiện thay đổi khác
                 </Button>
-                <Button onClick={() => navigate(-1)} variant="outline" size="lg">
+                <Button onClick={() => navigate('/admin/dashboard')} variant="outline" size="lg">
                   Quay lại Dashboard
                 </Button>
               </div>
@@ -1396,6 +1452,115 @@ export default function LLMRecommendation() {
             </motion.div>
           )}
         </AnimatePresence>
+        
+        {/* ============================================================ */}
+        {/* VALIDATION WARNING OVERLAY - Test Mode UI */}
+        {/* ============================================================ */}
+        {showValidationWarning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleRejectValidationError();
+              }
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden border"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gray-100 dark:bg-gray-800 p-4 border-b">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold">Validation Error</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Dữ liệu không hợp lệ theo schema validation
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRejectValidationError}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                {/* Alert Message */}
+                <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded border border-orange-200">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium mb-1">
+                        Không thể xử lý yêu cầu
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Phát hiện {validationErrors.length} lỗi trong dữ liệu đầu vào. API không được gọi.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error List */}
+                <div>
+                  <h3 className="font-medium text-sm mb-2 flex items-center gap-2">
+                    <Server className="h-4 w-4" />
+                    Chi tiết lỗi validation:
+                  </h3>
+                  <div className="space-y-2">
+                    {validationErrors.map((error, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                      >
+                        <p className="text-sm font-mono text-gray-700 dark:text-gray-300">
+                          {error}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Info Box */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">Test Mode</p>
+                      <p>
+                        Mock data để demo. Trong thực tế, lỗi này từ Zod validation ở backend.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 border-t flex gap-2">
+                <Button
+                  onClick={handleRejectValidationError}
+                  className="flex-1"
+                  variant="default"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Đóng
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </div>
     </PageLayout>
   );
