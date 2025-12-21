@@ -205,7 +205,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
   const ModeIcon = currentConfig.icon;
 
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="flex flex-col h-[750px] bg-white rounded-xl shadow-lg overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
         <div className="flex items-center justify-between">
@@ -291,30 +291,80 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
               )}
 
               {/* Message content */}
-              <div className={`whitespace-pre-wrap ${m.role === 'assistant' ? 'prose prose-sm max-w-none' : ''}`}>
-                {m.content}
-              </div>
-
-              {/* Metadata display */}
-              {m.metadata?.sql && (
-                <div className="mt-3 p-2 bg-gray-100 rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-500">SQL Query</span>
-                    <button
-                      onClick={() => copyToClipboard(m.metadata!.sql!, m.id)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      {copiedId === m.id ? (
-                        <Check className="w-3.5 h-3.5 text-green-500" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                  <code className="text-xs text-gray-700 block overflow-x-auto">
-                    {m.metadata.sql}
-                  </code>
+              {m.content && (
+                <div className={`whitespace-pre-wrap ${m.role === 'assistant' ? 'prose prose-sm max-w-none' : ''}`}>
+                  {m.content}
                 </div>
+              )}
+
+              {/* Raw data display (if available) */}
+              {m.metadata?.rawData && m.metadata.rawData.length > 0 && (() => {
+                // Check if all values are null
+                const hasNonNullValue = m.metadata.rawData.some((row: any) => 
+                  Object.values(row).some((val: any) => val !== null && val !== undefined)
+                );
+                
+                if (!hasNonNullValue) {
+                  return (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="text-sm text-yellow-800">
+                        ⚠️ Không tìm thấy dữ liệu phù hợp với điều kiện truy vấn.
+                      </div>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                    <div className="text-xs font-medium text-blue-700 mb-2">📊 Dữ liệu chi tiết:</div>
+                    <div className="space-y-1">
+                      {m.metadata.rawData.map((row: any, idx: number) => (
+                        <div key={idx} className="text-sm text-gray-700">
+                          {Object.entries(row).map(([key, value]) => (
+                            <div key={key} className="flex justify-between">
+                              <span className="font-medium">{key}:</span>
+                              <span className="ml-2">
+                                {value === null || value === undefined 
+                                  ? <span className="text-gray-400 italic">không có dữ liệu</span>
+                                  : typeof value === 'number' 
+                                    ? value.toLocaleString('vi-VN') 
+                                    : String(value)
+                                }
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* SQL Query (collapsible) */}
+              {m.metadata?.sql && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs font-medium text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                    <Database className="w-3 h-3" />
+                    SQL Query
+                  </summary>
+                  <div className="mt-2 p-2 bg-gray-100 rounded-lg">
+                    <div className="flex items-center justify-end mb-1">
+                      <button
+                        onClick={() => copyToClipboard(m.metadata!.sql!, m.id)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        {copiedId === m.id ? (
+                          <Check className="w-3.5 h-3.5 text-green-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                    <code className="text-xs text-gray-700 block overflow-x-auto whitespace-pre">
+                      {m.metadata.sql}
+                    </code>
+                  </div>
+                </details>
               )}
 
               {/* Timestamp */}
