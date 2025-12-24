@@ -141,10 +141,19 @@ export default function Checkout() {
             }
 
             // Gọi API tạo checkout session cho subscription payment
+            // Get JWT token from cookie
+            const tokenCookie = document.cookie.split('; ').find(row => row.startsWith('token='));
+            const token = tokenCookie ? tokenCookie.split('=')[1] : null;
+
+            if (!token) {
+              throw new Error('Authentication token not found. Please login again.');
+            }
+
             const response = await fetch(`${PAYMENT_SVC_URL}/payments/stripe/checkout/subscription-payment`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
               },
               body: JSON.stringify({
                 customerId: customer.id,
