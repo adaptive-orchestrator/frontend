@@ -3,6 +3,8 @@
  * Handles communication with payment-svc Stripe endpoints
  */
 
+import Cookies from 'js-cookie';
+
 // Get API URL from environment
 const getPaymentServiceUrl = () => {
   return import.meta.env.VITE_PAYMENT_SVC_URL || 'http://localhost:3013';
@@ -72,10 +74,13 @@ export interface RefundResponse {
 export async function createStripeCheckoutSession(
   data: CreateCheckoutSessionRequest
 ): Promise<CheckoutSessionResponse> {
+  const token = Cookies.get('token');
+
   const response = await fetch(`${getPaymentServiceUrl()}/payments/stripe/checkout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -94,10 +99,13 @@ export async function createStripeCheckoutSession(
 export async function createStripeSubscriptionCheckout(
   data: CreateSubscriptionCheckoutRequest
 ): Promise<CheckoutSessionResponse> {
+  const token = Cookies.get('token');
+
   const response = await fetch(`${getPaymentServiceUrl()}/payments/stripe/checkout/subscription`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -116,10 +124,13 @@ export async function createStripeSubscriptionCheckout(
 export async function createStripePaymentIntent(
   data: PaymentIntentRequest
 ): Promise<PaymentIntentResponse> {
+  const token = Cookies.get('token');
+
   const response = await fetch(`${getPaymentServiceUrl()}/payments/stripe/payment-intent`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -136,10 +147,13 @@ export async function createStripePaymentIntent(
  * Create a refund
  */
 export async function createStripeRefund(data: RefundRequest): Promise<RefundResponse> {
+  const token = Cookies.get('token');
+
   const response = await fetch(`${getPaymentServiceUrl()}/payments/stripe/refund`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(data),
   });
@@ -159,10 +173,13 @@ export async function getStripeBillingPortalUrl(
   stripeCustomerId: string,
   returnUrl?: string
 ): Promise<{ url: string }> {
+  const token = Cookies.get('token');
+
   const response = await fetch(`${getPaymentServiceUrl()}/payments/stripe/billing-portal`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       stripeCustomerId,
@@ -182,10 +199,13 @@ export async function getStripeBillingPortalUrl(
  * Get Stripe Checkout Session details
  */
 export async function getStripeSessionDetails(sessionId: string) {
+  const token = Cookies.get('token');
+
   const response = await fetch(`${getPaymentServiceUrl()}/payments/stripe/session/${sessionId}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
   });
 
