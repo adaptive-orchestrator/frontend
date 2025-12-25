@@ -291,6 +291,8 @@ export default function Checkout() {
               lineItems: stripeLineItems,
               orderId: order.id || order.orderNumber,
               customerId: customerId,
+              successUrl: `${window.location.origin}${baseURL}checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+              cancelUrl: `${window.location.origin}${baseURL}checkout/cancel`,
             });
 
             // Redirect to Stripe Checkout
