@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Nexora Safety Policy Engine - Human-in-the-loop Configuration",
+  "version": "1.0.0",
+  "description": "Policy rules for automated risk classification and safety guardrails",
+  
+  "riskLevels": {
+    "low": {
+      "label": "RỦI RO THẤP",
+      "color": "green",
+      "action": "auto_approve",
+      "requiresHumanReview": false,
+      "maxDowntime": "10s",
+      "maxServicesAffected": 5,
+      "maxRecordsAffected": 100
+    },
+    "medium": {
+      "label": "RỦI RO TRUNG BÌNH",
+      "color": "yellow",
+      "action": "require_human_approval",
+      "requiresHumanReview": true,
+      "maxDowntime": "30s",
+      "maxServicesAffected": 10,
+      "maxRecordsAffected": 1000
+    },
+    "high": {
+      "label": "RỦI RO CAO (NGUY HIỂM)",
+      "color": "red",
+      "action": "block",
+      "requiresHumanReview": true,
+      "requires2FA": true,
+      "blockExecution": true,
+      "alertChannel": ["email", "slack", "dashboard"],
+      "description": "Chặn hoàn toàn - không cho phép thực thi"
+    }
+  },
+  
+  "dangerousKeywords": {
+    "high_risk": [
+      "xóa",
+      "delete",
+      "drop",
+      "truncate",
+      "remove database",
+      "xoá",
+      "phá hủy",
+      "destroy"
+    ],
+    "medium_risk": [
+      "giá",
+      "price",
+      "pricing",
+      "billing",
+      "payment",
+      "thanh toán",
+      "tắt",
+      "disable service"
+    ]
+  },
+  
+  "serviceImpactRules": {
+    "criticalServices": [
+      "BillingService",
+      "PaymentService",
+      "AuthService"
+    ],
+    "rules": [
+      {
+        "condition": "disable_critical_service",
+        "riskLevel": "high",
+        "message": "Không được phép tắt các service quan trọng"
+      },
+      {
+        "condition": "services_affected > 5",
+        "riskLevel": "medium",
+        "message": "Số lượng services bị ảnh hưởng vượt ngưỡng an toàn"
+      },
+      {
+        "condition": "records_affected > 10000",
+        "riskLevel": "high",
+        "message": "Số lượng records bị ảnh hưởng quá lớn"
+      }
+    ]
+  },
+  
+  "auditLog": {
+    "required": true,
+    "format": "json",
+    "fields": [
+      "timestamp",
+      "user",
+      "action",
+      "risk_level",
+      "decision",
+      "duration_ms"
+    ]
+  }
+}

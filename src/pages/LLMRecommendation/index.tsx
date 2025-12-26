@@ -102,6 +102,15 @@ export default function LLMRecommendation() {
   const [manualMode, setManualMode] = useState(true); // Default to manual for better control
   const [waitingForNext, setWaitingForNext] = useState(false);
   
+  // Metrics tracking for paper
+  const [metricsLog, setMetricsLog] = useState<{
+    dryRunStartTime?: number;
+    dryRunEndTime?: number;
+    impactAnalysisStartTime?: number;
+    impactAnalysisEndTime?: number;
+    approvalDecisionTime?: number;
+  }>({});
+  
   // Test Mode States - để demo validation errors
   const [testMode, setTestMode] = useState(false);
   const [showValidationWarning, setShowValidationWarning] = useState(false);
@@ -216,6 +225,10 @@ export default function LLMRecommendation() {
     setPhase('dry-run');
     setWaitingForNext(false);
     setDryRunProgress(0);
+    
+    // Track metrics
+    const dryRunStart = performance.now();
+    setMetricsLog(prev => ({ ...prev, dryRunStartTime: dryRunStart }));
 
     // Simulate dry-run processing with detailed steps
     const dryRunSteps = [
@@ -231,6 +244,12 @@ export default function LLMRecommendation() {
       setDryRunProgress(step.progress);
       await new Promise(resolve => setTimeout(resolve, step.duration));
     }
+    
+    // Track dry-run completion
+    const dryRunEnd = performance.now();
+    setMetricsLog(prev => ({ ...prev, dryRunEndTime: dryRunEnd }));
+    const dryRunDuration = dryRunEnd - (metricsLog.dryRunStartTime || dryRunEnd);
+    console.log(`[Metrics] Dry-run Duration: ${dryRunDuration.toFixed(0)}ms`);
     
     if (manualMode) {
       setWaitingForNext(true);
@@ -248,6 +267,10 @@ export default function LLMRecommendation() {
     setWaitingForNext(false);
     setAnalysisProgress(0);
     
+    // Track impact analysis start
+    const analysisStart = performance.now();
+    setMetricsLog(prev => ({ ...prev, impactAnalysisStartTime: analysisStart }));
+    
     const analysisSteps = [
       { label: 'Analyzing service dependencies...', progress: 25, duration: manualMode ? 800 : 500 },
       { label: 'Calculating affected records...', progress: 50, duration: manualMode ? 800 : 500 },
@@ -264,6 +287,13 @@ export default function LLMRecommendation() {
     
     const impact = analyzeImpact(proposalData);
     setImpactAnalysis(impact);
+    
+    // Track impact analysis completion
+    const analysisEnd = performance.now();
+    setMetricsLog(prev => ({ ...prev, impactAnalysisEndTime: analysisEnd }));
+    const analysisDuration = analysisEnd - (metricsLog.impactAnalysisStartTime || analysisEnd);
+    console.log(`[Metrics] Impact Analysis Duration: ${analysisDuration.toFixed(0)}ms`);
+    console.log(`[Metrics] Risk Level Detected: ${impact.riskLevel.toUpperCase()}`);
 
     if (manualMode) {
       setWaitingForNext(true);
@@ -402,8 +432,12 @@ export default function LLMRecommendation() {
   // PHASE 3: Human Approval
   // ============================================================================
   const handleApprove = async () => {
+    // Track decision time
     if (approvalStartTime) {
-      setDecisionTime(Math.round((Date.now() - approvalStartTime) / 1000));
+      const decisionTimeMs = Date.now() - approvalStartTime;
+      setDecisionTime(Math.round(decisionTimeMs / 1000));
+      setMetricsLog(prev => ({ ...prev, approvalDecisionTime: decisionTimeMs }));
+      console.log(`[Metrics] Admin Decision Time: ${decisionTimeMs}ms (${(decisionTimeMs/1000).toFixed(1)}s)`);
     }
 
     const newMode = proposal?.metadata.to_model as BusinessMode;
@@ -418,14 +452,39 @@ export default function LLMRecommendation() {
 
     setDeploymentSkipped(false);
 
+    // SAFETY POLICY: HIGH RISK = HARD BLOCK (không cho phép tiếp tục)
     if (impactAnalysis?.riskLevel === 'high') {
+      console.log('[Safety Policy] ❌ HIGH RISK DETECTED - Operation BLOCKED');
+      console.log('[Safety Policy] Warnings:', impactAnalysis.warnings);
+      
+      setError(
+        '🚨 CHẶN BỞI SAFETY POLICY: Thao tác này có rủi ro cao và BỊ CẤM thực hiện!\n\n' +
+        `Lý do:\n${impactAnalysis.warnings.map(w => `• ${w}`).join('\n')}\n\n` +
+        '❌ Hệ thống không cho phép tiếp tục. Vui lòng xem xét lại yêu cầu.'
+      );
+      
+      // Auto reject after showing error
+      setTimeout(() => {
+        setPhase('rejected');
+        alert('⛔ Thao tác bị từ chối tự động bởi Safety Guardrails.\n\nKhông thể thực hiện thao tác nguy hiểm này.');
+      }, 2000);
+      
+      return; // HARD STOP - không cho phép proceed
+    }
+    
+    // MEDIUM RISK: Require explicit confirmation
+    if (impactAnalysis?.riskLevel === 'medium') {
       const confirmed = window.confirm(
-        '⚠️ CẢNH BÁO: Đây là thao tác nguy hiểm!\n\n' +
+        '⚠️ CẢNH BÁO: Thao tác có rủi ro trung bình\n\n' +
         'Bạn có chắc chắn muốn tiếp tục?\n' +
-        `- ${impactAnalysis.warnings.join('\n- ')}\n\n` +
+        `${impactAnalysis.warnings.length > 0 ? impactAnalysis.warnings.join('\n') + '\n\n' : ''}` +
         'Nhấn OK để xác nhận, Cancel để hủy.'
       );
-      if (!confirmed) return;
+      if (!confirmed) {
+        console.log('[Safety Policy] User cancelled medium risk operation');
+        return;
+      }
+      console.log('[Safety Policy] ✅ User approved medium risk operation');
     }
 
     setPhase('deploying');

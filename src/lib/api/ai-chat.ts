@@ -130,11 +130,28 @@ export const analyzeError = async (errorLog: string): Promise<RCAResult> => {
     const token = Cookies.get('token');
     const res = await axios.post(
       `${API_BASE}/llm-orchestrator/analyze-incident`,
-      { incident_description: errorLog, logs: errorLog },
+      { errorLog },
       {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
+    
+    // API Gateway returns gRPC format, transform to frontend format
+    if (res.data.raw_response) {
+      try {
+        const analysis = JSON.parse(res.data.raw_response);
+        return {
+          success: true,
+          analysis,
+          codeContext: res.data.recommendations || [],
+          error: undefined,
+        };
+      } catch (e) {
+        // Fallback if parsing fails
+        return res.data;
+      }
+    }
+    
     return res.data;
   } catch (error: any) {
     return {
@@ -170,7 +187,26 @@ export const queryDatabase = async (question: string): Promise<TextToSQLResult> 
         headers: { Authorization: `Bearer ${token}` },
       }
     );
-    return res.data;
+    
+    // Parse raw_data from JSON string to array
+    const data = res.data;
+    if (data.raw_data && typeof data.raw_data === 'string') {
+      try {
+        data.rawData = JSON.parse(data.raw_data);
+      } catch {
+        data.rawData = [];
+      }
+    }
+    
+    // Map snake_case to camelCase
+    return {
+      success: data.success,
+      question: data.question,
+      sql: data.sql,
+      rawData: data.rawData || [],
+      naturalResponse: data.natural_response || data.naturalResponse || '',
+      error: data.error,
+    };
   } catch (error: any) {
     return {
       success: false,
