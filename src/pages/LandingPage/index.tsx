@@ -195,13 +195,15 @@ export default function LandingPage() {
                   <h4 className="text-xl font-bold text-gray-900 dark:text-white">
                     Nguyen Huu Tai
                   </h4>
-                  <p className="text-blue-600 dark:text-blue-400 mb-2">BackEnd Developer / 22521278</p>
+                  <p className="text-blue-600 dark:text-blue-400 mb-2">DevOps Engineer / 22521278</p>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                   Main responsive for developing BackEnd of the website
+                   Main responsible for DevOps, Infrastructure, and CI/CD pipeline
                   </p>
                   <div className="flex gap-3">
                     <a
                       href="https://github.com/0xt4i"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -209,7 +211,9 @@ export default function LandingPage() {
                       </svg>
                     </a>
                     <a
-                      href="linkedin"
+                      href="https://www.linkedin.com/in/huut4i/"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -217,7 +221,7 @@ export default function LandingPage() {
                       </svg>
                     </a>
                     <a
-                      href="22521278@gm.uit.edu.vn"
+                      href="mailto:22521278@gm.uit.edu.vn"
                       className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -255,6 +259,8 @@ export default function LandingPage() {
                   <div className="flex gap-3">
                     <a
                       href="https://github.com/YuilRin"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -262,15 +268,17 @@ export default function LandingPage() {
                       </svg>
                     </a>
                     <a
-                      href="linkedin"
-                      className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                      href="#"
+                      onClick={(e) => e.preventDefault()}
+                      className="text-gray-400 cursor-not-allowed dark:text-gray-500"
+                      title="LinkedIn profile not available"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                       </svg>
                     </a>
                     <a
-                      href="22520762@gm.uit.edu.vn"
+                      href="mailto:22520762@gm.uit.edu.vn"
                       className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
