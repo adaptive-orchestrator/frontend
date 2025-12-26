@@ -205,7 +205,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
   const ModeIcon = currentConfig.icon;
 
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="flex flex-col h-[600px] bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
         <div className="flex items-center justify-between">
@@ -253,9 +253,9 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
             <ModeIcon className="w-12 h-12 mb-3 opacity-50" />
             <p className="text-center">{currentConfig.description}</p>
             <p className="text-sm mt-1">{currentConfig.placeholder}</p>
@@ -271,7 +271,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
               className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                 m.role === 'user'
                   ? 'bg-blue-500 text-white rounded-br-sm'
-                  : 'bg-white shadow-sm border rounded-bl-sm'
+                  : 'bg-white dark:bg-gray-800 shadow-sm border dark:border-gray-700 rounded-bl-sm'
               }`}
             >
               {/* Mode badge for user messages */}
@@ -291,18 +291,18 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
               )}
 
               {/* Message content */}
-              <div className={`whitespace-pre-wrap ${m.role === 'assistant' ? 'prose prose-sm max-w-none' : ''}`}>
+              <div className={`whitespace-pre-wrap ${m.role === 'assistant' ? 'prose prose-sm max-w-none dark:prose-invert' : ''}`}>
                 {m.content}
               </div>
 
               {/* Metadata display */}
               {m.metadata?.sql && (
-                <div className="mt-3 p-2 bg-gray-100 rounded-lg">
+                <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-500">SQL Query</span>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">SQL Query</span>
                     <button
                       onClick={() => copyToClipboard(m.metadata!.sql!, m.id)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                     >
                       {copiedId === m.id ? (
                         <Check className="w-3.5 h-3.5 text-green-500" />
@@ -311,7 +311,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
                       )}
                     </button>
                   </div>
-                  <code className="text-xs text-gray-700 block overflow-x-auto">
+                  <code className="text-xs text-gray-700 dark:text-gray-300 block overflow-x-auto">
                     {m.metadata.sql}
                   </code>
                 </div>
@@ -328,8 +328,8 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white shadow-sm border rounded-2xl rounded-bl-sm px-4 py-3">
-              <div className="flex items-center gap-2 text-gray-500">
+            <div className="bg-white dark:bg-gray-800 shadow-sm border dark:border-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm">Đang xử lý...</span>
               </div>
@@ -341,11 +341,11 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
       </div>
 
       {/* Input Area */}
-      <div className="border-t bg-white p-4">
+      <div className="border-t dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <textarea
-              className="w-full border rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -375,7 +375,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
             </button>
           </div>
         </div>
-        <p className="text-xs text-gray-400 mt-2 text-center">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
           Shift + Enter để xuống dòng • Enter để gửi
         </p>
       </div>
