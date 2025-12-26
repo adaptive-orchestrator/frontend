@@ -393,7 +393,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <textarea
-              className="w-full border rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+              className="w-full border rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -409,10 +409,10 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
             <button
               onClick={sendMessage}
               disabled={!input.trim() || isLoading}
-              className={`absolute right-2 bottom-2 p-2 rounded-lg transition-colors ${
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
                 input.trim() && !isLoading
                   ? `${currentConfig.color} text-white hover:opacity-90`
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }`}
             >
               {isLoading ? (
@@ -423,9 +423,6 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
             </button>
           </div>
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-          Shift + Enter để xuống dòng • Enter để gửi
-        </p>
       </div>
     </div>
   );
