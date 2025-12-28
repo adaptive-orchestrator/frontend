@@ -39,9 +39,19 @@ export default function Products() {
           
           // Map products with inventory stock
           const productsArray = productsData.products || [];
-          const inventoryMap = new Map(
-            (inventoryData.items || []).map((inv: any) => [inv.productId, inv.quantity - inv.reserved])
-          );
+          // Handle multiple response formats: items, inventories, or data
+          const inventoryArray = inventoryData.items || inventoryData.inventories || inventoryData.data || [];
+          
+          // Aggregate inventory by productId (sum quantities if multiple records exist)
+          const inventoryMap = new Map<string, number>();
+          inventoryArray.forEach((inv: any) => {
+            const productId = inv.productId;
+            const availableQty = (inv.quantity || 0) - (inv.reserved || 0);
+            const currentTotal = inventoryMap.get(productId) || 0;
+            inventoryMap.set(productId, currentTotal + availableQty);
+          });
+          
+          console.log('[Products] Aggregated inventory map:', Array.from(inventoryMap.entries()));
           
           const productsWithStock = productsArray.map((product: any) => ({
             id: product.id,

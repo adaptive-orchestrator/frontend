@@ -1,10 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import { Task, TaskList, Comment, Attachment } from '@/types/task';
 import { useUser } from './UserContext';
-import {createList, getLists,  updateListById, deleteListById} from '@/lib/api/tasks';
-import { createTask, getTasks, updateTaskById, deleteTaskById } from '@/lib/api/tasks';
-import { getSubtasksByTaskId, createSubtaskByTaskId, deleteSubtaskById  } from '@/lib/api/tasks';
-import { getCommentsByTaskId, createComment, deleteCommentById } from '@/lib/api/tasks';
+import { createList, updateListById, deleteListById } from '@/lib/api/tasks';
+import { createTask, updateTaskById, deleteTaskById } from '@/lib/api/tasks';
+import { createSubtaskByTaskId, deleteSubtaskById } from '@/lib/api/tasks';
+import { createComment, deleteCommentById } from '@/lib/api/tasks';
 
 interface TaskContextType {
     tasks: Task[];

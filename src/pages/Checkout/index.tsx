@@ -4,27 +4,37 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useUser } from '@/contexts/UserContext';
 import { createOrder } from '@/lib/api/orders';
-import { getCustomerByUserId } from '@/lib/api/customers';
-// import { initiatePayment } from '@/lib/api/payments'; // TODO: Payment sau
+import { getCustomerByUserId, createCustomer } from '@/lib/api/customers';
+import { 
+  createStripeCheckoutSession, 
+  createStripeSubscriptionCheckout,
+  cartItemsToStripeLineItems 
+} from '@/lib/api/stripe';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CreditCard } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Loader2, CreditCard, Wallet } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
+
+// Payment method types
+type PaymentMethodType = 'stripe' | 'manual' | 'vnpay';
 
 export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { items, totalPrice, clearCart } = useCart();
-  const { currentUser, user } = useUser();
+  const { currentUser } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('stripe');
   
   const baseURL = import.meta.env.BASE_URL;
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  // Payment service URL - trực tiếp đến payment-svc, sau này sẽ thay bằng VNPay/Momo
-  const PAYMENT_SVC_URL = import.meta.env.VITE_PAYMENT_SVC_URL || 'http://localhost:3013';
+  // Dùng ?? để VITE_API_BASE='' không bị fallback về localhost trong Kubernetes
+  const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
+  // Payment service URL
+  const PAYMENT_SVC_URL = import.meta.env.VITE_PAYMENT_SVC_URL ?? 'http://localhost:3013';
 
   // Get checkout type from location state
   const checkoutState = location.state as {
@@ -35,6 +45,7 @@ export default function Checkout() {
     period?: 'monthly' | 'yearly';
     amount?: number;
     features?: any[];
+    priceId?: string; // Stripe Price ID (if available)
   } | null;
 
   const isSubscription = checkoutState?.type === 'subscription';
@@ -60,7 +71,7 @@ export default function Checkout() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser && !user) {
+    if (!currentUser) {
       navigate(`${baseURL}login`);
       return;
     }
@@ -70,10 +81,108 @@ export default function Checkout() {
       setError(null);
 
       if (isSubscription) {
-        // Handle subscription payment - gọi trực tiếp payment-svc
+        // Handle subscription payment
+        const userId = currentUser.id;
+
+        // Lấy hoặc tạo customer profile trước khi thanh toán subscription
+        console.log('[Checkout] Fetching/creating customer for subscription, userId:', userId);
+        let customer;
+        try {
+          customer = await getCustomerByUserId(userId);
+          console.log('[Checkout] Customer found for subscription:', customer);
+        } catch (error: any) {
+          // Nếu customer chưa tồn tại, tạo mới
+          if (error?.response?.status === 404 || error?.statusCode === 404 || error?.message?.includes('not found')) {
+            console.log('[Checkout] Customer not found, creating new customer profile...');
+            customer = await createCustomer({
+              name: currentUser.name || currentUser.email?.split('@')[0] || 'Customer',
+              email: currentUser.email,
+              userId: userId,
+            });
+            console.log('[Checkout] Customer created:', customer);
+          } else {
+            throw error;
+          }
+        }
+
+        if (!customer || !customer.id) {
+          throw new Error('Không thể lấy thông tin khách hàng. Vui lòng thử lại.');
+        }
+
+        if (paymentMethod === 'stripe') {
+          // Use Stripe Checkout for subscription
+          console.log('[Checkout] Using Stripe Checkout for subscription');
+          
+          // Lấy priceId từ checkoutState hoặc tạo checkout session với amount
+          const priceId = checkoutState?.priceId;
+          
+          if (priceId) {
+            // Có Stripe Price ID thực → dùng subscription mode
+            const result = await createStripeSubscriptionCheckout({
+              customerId: customer.id,
+              email: currentUser.email,
+              priceId: priceId,
+              subscriptionId: checkoutState?.subscriptionId?.toString(),
+              planName: checkoutState?.planName,
+            });
+
+            // Redirect to Stripe Checkout
+            console.log('[Checkout] Redirecting to Stripe Checkout:', result.url);
+            window.location.href = result.url;
+            return;
+          } else {
+            // Không có Stripe Price ID → dùng payment mode với amount
+            // Tạo one-time payment checkout session thay vì subscription
+            console.log('[Checkout] No Stripe Price ID, using one-time payment checkout');
+            
+            const amount = checkoutState?.amount || 0;
+            if (amount <= 0) {
+              throw new Error('Invalid subscription amount');
+            }
+
+            // Gọi API tạo checkout session cho subscription payment
+            // Get JWT token from cookie
+            const tokenCookie = document.cookie.split('; ').find(row => row.startsWith('token='));
+            const token = tokenCookie ? tokenCookie.split('=')[1] : null;
+
+            if (!token) {
+              throw new Error('Authentication token not found. Please login again.');
+            }
+
+            const response = await fetch(`${PAYMENT_SVC_URL}/payments/stripe/checkout/subscription-payment`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                customerId: customer.id,
+                email: currentUser.email,
+                amount: Math.round(amount * 100), // Convert to cents
+                currency: 'usd',
+                subscriptionId: checkoutState?.subscriptionId?.toString(),
+                planName: checkoutState?.planName,
+                successUrl: `${window.location.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancelUrl: `${window.location.origin}/subscription/cancel`,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.message || 'Failed to create Stripe checkout');
+            }
+
+            const result = await response.json();
+            console.log('[Checkout] Redirecting to Stripe Checkout:', result.url);
+            window.location.href = result.url;
+            return;
+          }
+        }
+        
+        // Manual/VNPay payment flow (không dùng Stripe)
         const paymentData = {
           subscriptionId: checkoutState.subscriptionId,
-          customerId: user?.id || parseInt(currentUser?.id || '0'),
+          customerId: customer.id, // Sử dụng customer ID thực
           amount: checkoutState.amount,
           planName: checkoutState.planName || 'Subscription Plan',
           paymentMethod: formData.paymentMethod,
@@ -109,7 +218,7 @@ export default function Checkout() {
         navigate(`${baseURL}subscription-dashboard`);
 
       } else {
-        // Handle retail order payment (existing code)
+        // Handle retail order payment
         // Validate shipping address
         if (!formData.shippingAddress.trim()) {
           setError('Shipping address is required');
@@ -121,26 +230,80 @@ export default function Checkout() {
         const isRealUser = !!token;
 
         if (isRealUser) {
-        // Real API call for authenticated users
-        // currentUser.id là userId từ Auth service, cần lấy customerId thực từ Customer service
-        const userId = parseInt(currentUser.id);
-        if (isNaN(userId)) {
-          throw new Error('Invalid user ID. Please re-login.');
-        }
+          // Real API call for authenticated users
+          if (!currentUser || !currentUser.id) {
+            throw new Error('Invalid user ID. Please re-login.');
+          }
+          const userId = currentUser.id;
 
-        // Lấy customer theo userId để lấy customerId thực
-        console.log('[Checkout] Fetching customer info for userId:', userId);
-        const customer = await getCustomerByUserId(userId);
-        console.log('[Checkout] Customer found:', customer);
-        
-        if (!customer || !customer.id) {
-          throw new Error('Customer profile not found. Please contact support.');
-        }
-        
-        const customerId = customer.id;
-        console.log('[Checkout] Using customerId:', customerId);
+          // Lấy customer theo userId để lấy customerId thực
+          console.log('[Checkout] Fetching customer info for userId:', userId);
+          let customer;
+          try {
+            customer = await getCustomerByUserId(userId);
+          } catch (error: any) {
+            // Nếu customer chưa tồn tại, tạo mới
+            if (error?.response?.status === 404 || error?.statusCode === 404) {
+              console.log('[Checkout] Customer not found, creating new customer profile...');
+              customer = await createCustomer({
+                name: currentUser.name || currentUser.email.split('@')[0],
+                email: currentUser.email,
+                userId: userId,
+              });
+              console.log('[Checkout] Customer created:', customer);
+            } else {
+              throw error;
+            }
+          }
+          console.log('[Checkout] Customer found:', customer);
+          
+          if (!customer || !customer.id) {
+            throw new Error('Customer profile not found. Please contact support.');
+          }
+          
+          const customerId = customer.id;
 
-        const orderData = {
+          // Use Stripe Checkout for retail order
+          if (paymentMethod === 'stripe') {
+            console.log('[Checkout] Using Stripe Checkout for retail order');
+            
+            // Create order first to get order ID
+            const orderData = {
+              customerId: customerId,
+              items: items.map((item) => ({
+                productId: item.product.id,
+                quantity: item.quantity,
+                price: item.product.price,
+              })),
+              shippingAddress: formData.shippingAddress,
+              billingAddress: formData.billingAddress || formData.shippingAddress,
+              notes: 'Order placed via Stripe Checkout',
+            };
+
+            console.log('[Checkout] Creating order for Stripe:', orderData);
+            const response = await createOrder(orderData);
+            const order = response.order || response;
+            console.log('[Checkout] Order created:', order);
+
+            // Create Stripe Checkout Session
+            const stripeLineItems = cartItemsToStripeLineItems(items);
+            const result = await createStripeCheckoutSession({
+              lineItems: stripeLineItems,
+              orderId: order.id || order.orderNumber,
+              customerId: customerId,
+              successUrl: `${window.location.origin}${baseURL}checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+              cancelUrl: `${window.location.origin}${baseURL}checkout/cancel`,
+            });
+
+            // Redirect to Stripe Checkout
+            console.log('[Checkout] Redirecting to Stripe Checkout:', result.url);
+            clearCart();
+            window.location.href = result.url;
+            return;
+          }
+
+          // Manual/VNPay payment flow (existing code)
+          const orderData = {
           customerId: customerId,
           items: items.map((item) => ({
             productId: item.product.id,
@@ -308,14 +471,43 @@ export default function Checkout() {
               <CardHeader>
                 <CardTitle>Payment Method</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  <span>Credit Card</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  Payment will be processed securely
-                </p>
+              <CardContent className="space-y-4">
+                <RadioGroup
+                  value={paymentMethod}
+                  onValueChange={(value) => setPaymentMethod(value as PaymentMethodType)}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                    <RadioGroupItem value="stripe" id="stripe" />
+                    <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <CreditCard className="h-5 w-5 text-indigo-600" />
+                      <div>
+                        <span className="font-medium">Stripe</span>
+                        <p className="text-sm text-gray-500">Pay with credit card via Stripe</p>
+                      </div>
+                    </Label>
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Recommended</span>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                    <RadioGroupItem value="manual" id="manual" />
+                    <Label htmlFor="manual" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Wallet className="h-5 w-5 text-orange-600" />
+                      <div>
+                        <span className="font-medium">Manual Payment</span>
+                        <p className="text-sm text-gray-500">Pay later / Bank transfer</p>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+                
+                {paymentMethod === 'stripe' && (
+                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-sm">
+                    <p className="text-indigo-700 dark:text-indigo-300">
+                      You will be redirected to Stripe's secure checkout page to complete your payment.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -331,9 +523,14 @@ export default function Checkout() {
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                   Processing...
                 </>
-              ) : (
+              ) : paymentMethod === 'stripe' ? (
                 <>
                   <CreditCard className="h-5 w-5 mr-2" />
+                  Pay with Stripe
+                </>
+              ) : (
+                <>
+                  <Wallet className="h-5 w-5 mr-2" />
                   Place Order
                 </>
               )}

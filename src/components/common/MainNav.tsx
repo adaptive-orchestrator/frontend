@@ -8,14 +8,37 @@ import { useCart } from '@/contexts/CartContext';
 import { useBusinessMode } from '@/contexts/BusinessModeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Menu, X } from 'lucide-react';
+import { ShoppingCart, Menu, X, FlaskConical, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
+
+// Demo Mode Banner Component
+function DemoModeBanner({ onExit }: { onExit: () => void }) {
+  return (
+    <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4">
+      <div className="container mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FlaskConical className="w-4 h-4 animate-pulse" />
+          <span className="text-sm font-medium">
+            Chế độ Demo - Dữ liệu mẫu, không kết nối backend
+          </span>
+        </div>
+        <button
+          onClick={onExit}
+          className="flex items-center gap-1 text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
+        >
+          <LogOut className="w-3 h-3" />
+          Thoát Demo
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function MainNav() {
   const { darkMode } = useTheme();
   const navigate = useNavigate();
-  const { currentUser, logout } = useUser();
+  const { currentUser, logout, isDemoMode } = useUser();
   const { totalItems } = useCart();
   const { isRetailMode, isSubscriptionMode, isFreemiumMode, isMultiMode } = useBusinessMode();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -23,9 +46,13 @@ export default function MainNav() {
 
   const baseURL = import.meta.env.BASE_URL;
 
-  // Check authentication - ưu tiên token
+  // Check authentication - ưu tiên token (skip trong demo mode)
   useEffect(() => {
     const checkAuth = () => {
+      if (isDemoMode) {
+        setIsAuthenticated(true);
+        return;
+      }
       const token = Cookies.get('token');
       setIsAuthenticated(!!token);
     };
@@ -34,10 +61,19 @@ export default function MainNav() {
     const interval = setInterval(checkAuth, 1000);
     
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser, isDemoMode]);
+
+  const handleExitDemo = () => {
+    logout();
+    navigate(`${baseURL}`);
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-md">
+    <>
+      {/* Demo Mode Banner */}
+      {isDemoMode && <DemoModeBanner onExit={handleExitDemo} />}
+      
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-md">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           <Link to={baseURL}>
@@ -292,5 +328,6 @@ export default function MainNav() {
         )}
       </div>
     </header>
+    </>
   );
 }

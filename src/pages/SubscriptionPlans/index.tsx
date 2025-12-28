@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { getAllPlans } from '@/lib/api/plans';
+import { getCustomerByUserId, createCustomer } from '@/lib/api/customers';
 import { Plan } from '@/types/product';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +46,8 @@ export default function SubscriptionPlans() {
   const [isUsingDemoData, setIsUsingDemoData] = useState(false);
   
   const baseURL = import.meta.env.BASE_URL;
-  const API_URL = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Dùng ?? để VITE_API_BASE='' không bị fallback về localhost trong Kubernetes
+  const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
 
   // Demo plans - chỉ dùng khi không có API hoặc để test
   const DEMO_PLANS: Plan[] = [
@@ -91,9 +93,9 @@ export default function SubscriptionPlans() {
         
         // Check if user already has active or pending subscription
         if (currentUser && token) {
-          const customerId = parseInt(currentUser.id);
+          const customerId = currentUser.id; // UUID string from JWT
           
-          if (!isNaN(customerId)) {
+          if (customerId) {
             try {
               // Use /subscriptions/my endpoint with auth token
               const subsResponse = await fetch(`${API_URL}/subscriptions/my`, {
@@ -209,12 +211,11 @@ export default function SubscriptionPlans() {
     try {
       setSubscribing(planId);
       
-      // Step 1: Create subscription
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const customerId = parseInt(currentUser.id);
+      // API_URL đã được khai báo ở đầu component
+      const userId = currentUser.id; // UUID string from JWT
       
-      if (isNaN(customerId)) {
-        throw new Error('Invalid customer ID. Please re-login.');
+      if (!userId) {
+        throw new Error('Invalid user ID. Please re-login.');
       }
 
       // Get token for authentication
@@ -225,6 +226,33 @@ export default function SubscriptionPlans() {
         return;
       }
 
+      // Lấy hoặc tạo customer profile trước khi tạo subscription
+      console.log('[SubscriptionPlans] Fetching/creating customer for userId:', userId);
+      let customer;
+      try {
+        customer = await getCustomerByUserId(userId);
+        console.log('[SubscriptionPlans] Customer found:', customer);
+      } catch (error: any) {
+        // Nếu customer chưa tồn tại, tạo mới
+        if (error?.response?.status === 404 || error?.statusCode === 404 || error?.message?.includes('not found')) {
+          console.log('[SubscriptionPlans] Customer not found, creating new customer profile...');
+          customer = await createCustomer({
+            name: currentUser.name || currentUser.email?.split('@')[0] || 'Customer',
+            email: currentUser.email,
+            userId: userId,
+          });
+          console.log('[SubscriptionPlans] Customer created:', customer);
+        } else {
+          throw error;
+        }
+      }
+
+      if (!customer || !customer.id) {
+        throw new Error('Không thể lấy thông tin khách hàng. Vui lòng thử lại.');
+      }
+
+      // Gửi userId để subscription-svc có thể lookup customer
+      // (subscription-svc đã xử lý việc lookup customer by userId)
       const subscriptionResponse = await fetch(`${API_URL}/subscriptions`, {
         method: 'POST',
         headers: {
@@ -232,7 +260,7 @@ export default function SubscriptionPlans() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          customerId: customerId,
+          customerId: userId, // Subscription-svc sẽ lookup customer by userId
           planId: planId,
           useTrial: false, // Không dùng trial, thanh toán ngay
         }),

@@ -29,7 +29,7 @@ interface SubscriptionPlan {
     description: string;
     price: number;
     billingCycle: 'monthly' | 'yearly';
-    features: number[];
+    features: string[];  // Changed to string[] to handle UUID
     trialEnabled?: boolean;
     trialDays?: number;
     createdAt?: string;
@@ -497,13 +497,13 @@ const AdminPlans = () => {
                                     {features.map(feat => (
                                         <div key={feat.id} className="flex items-center space-x-2">
                                             <Checkbox
-                                                checked={(newPlan.features || []).includes(Number(feat.id))}
+                                                checked={(newPlan.features || []).includes(feat.id)}
                                                 onCheckedChange={(checked) => {
                                                     const currentFeatures = newPlan.features || [];
                                                     if (checked) {
-                                                        setNewPlan({ ...newPlan, features: [...currentFeatures, Number(feat.id)] });
+                                                        setNewPlan({ ...newPlan, features: [...currentFeatures, feat.id] });
                                                     } else {
-                                                        setNewPlan({ ...newPlan, features: currentFeatures.filter(id => id !== Number(feat.id)) });
+                                                        setNewPlan({ ...newPlan, features: currentFeatures.filter(id => id !== feat.id) });
                                                     }
                                                 }}
                                             />

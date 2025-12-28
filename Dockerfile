@@ -3,6 +3,10 @@ FROM node:22-alpine AS build
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
+# Build argument - VITE_API_BASE để rỗng vì nginx proxy từng endpoint
+ARG VITE_API_BASE=""
+ENV VITE_API_BASE=$VITE_API_BASE
+
 # Copy package.json and package-lock.json into the container
 COPY package*.json ./
 

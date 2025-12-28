@@ -1,21 +1,19 @@
 // src/pages/LLMRecommendation/index.tsx
-import { useState } from 'react';
+// Human-in-the-loop Business Model Recommendation with Safe Deployment
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import PageLayout from '@/components/layout/PageLayout';
-import { useBusinessMode } from '@/contexts/BusinessModeContext';
+import { useBusinessMode, BusinessMode } from '@/contexts/BusinessModeContext';
 import { 
   Sparkles,
   Brain,
   CheckCircle,
   AlertTriangle,
-  BarChart3,
-  Zap,
-  Target,
   ArrowRight,
   Loader2,
   Info,
@@ -23,23 +21,578 @@ import {
   ThumbsDown,
   RefreshCw,
   MessageSquare,
-  Send
+  Send,
+  Shield,
+  Clock,
+  AlertCircle,
+  Server,
+  Database,
+  Play,
+  XCircle,
+  Eye,
+  Activity,
+  Check,
+  X,
+  RotateCw,
+  Microscope,
+  Search,
+  HardDrive,
+  BarChart3,
+  Link2,
+  Zap,
+  Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Types for Human-in-the-loop workflow
+interface ImpactAnalysis {
+  servicesAffected: number;
+  servicesToRestart: string[];
+  recordsAffected: number;
+  estimatedDowntime: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  warnings: string[];
+  rollbackPossible: boolean;
+}
+
+interface ChangesetProposal {
+  proposal_text: string;
+  changeset: {
+    model: string;
+    features: Array<{ key: string; value: string }>;
+    impacted_services: string[];
+    services_to_enable?: string[];
+    services_to_disable?: string[];
+    services_to_restart?: string[];
+  };
+  metadata: {
+    intent: string;
+    confidence: number;
+    risk: string;
+    from_model?: string;
+    to_model?: string;
+  };
+}
+
+type WorkflowPhase = 'input' | 'analyzing' | 'dry-run' | 'impact-analysis' | 'approval' | 'deploying' | 'completed' | 'rejected';
 
 export default function LLMRecommendation() {
   const navigate = useNavigate();
   const baseURL = import.meta.env.BASE_URL;
-  const { setMode, mode: currentMode } = useBusinessMode();
+  const { switchMode, mode: currentMode } = useBusinessMode();
   
-  const [analyzing, setAnalyzing] = useState(false);
-  const [showRecommendation, setShowRecommendation] = useState(false);
-  const [userFeedback, setUserFeedback] = useState<'positive' | 'negative' | null>(null);
+  // Workflow state
+  const [phase, setPhase] = useState<WorkflowPhase>('input');
   const [userIntent, setUserIntent] = useState('');
-  const [parsedIntent, setParsedIntent] = useState<any>(null);
-  const [analysisMode, setAnalysisMode] = useState<'auto' | 'intent'>('auto');
+  const [proposal, setProposal] = useState<ChangesetProposal | null>(null);
+  const [impactAnalysis, setImpactAnalysis] = useState<ImpactAnalysis | null>(null);
+  const [deploymentSkipped, setDeploymentSkipped] = useState(false);
+  const [approvalStartTime, setApprovalStartTime] = useState<number | null>(null);
+  const [decisionTime, setDecisionTime] = useState<number | null>(null);
+  const [deployProgress, setDeployProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [userFeedback, setUserFeedback] = useState<'positive' | 'negative' | null>(null);
+  
+  // New states for enhanced UX
+  const [dryRunStep, setDryRunStep] = useState<string>('Initializing...');
+  const [dryRunProgress, setDryRunProgress] = useState(0);
+  const [analysisStep, setAnalysisStep] = useState<string>('Starting analysis...');
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [showDetailedImpact, setShowDetailedImpact] = useState(false);
+  const [manualMode, setManualMode] = useState(true); // Default to manual for better control
+  const [waitingForNext, setWaitingForNext] = useState(false);
+  
+  // Metrics tracking for paper
+  const [metricsLog, setMetricsLog] = useState<{
+    dryRunStartTime?: number;
+    dryRunEndTime?: number;
+    impactAnalysisStartTime?: number;
+    impactAnalysisEndTime?: number;
+    approvalDecisionTime?: number;
+  }>({});
+  
+  // Test Mode States - để demo validation errors
+  const [testMode, setTestMode] = useState(false);
+  const [showValidationWarning, setShowValidationWarning] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  // Redirect if no mode selected yet
+  const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
+
+  // Mock Validation Errors để demo UI (tự suy luận dựa trên Zod schema backend)
+  const MOCK_VALIDATION_ERRORS = [
+    'Field "business_model" must be one of [retail, subscription, freemium, marketplace, enterprise]. Received: "invalid_xyz"',
+    'Field "confidence" must be a number between 0 and 1. Received type: string',
+    'Field "impacted_services" expected array, received: null',
+    'Required field "changeset.model" is missing',
+  ];
+
+  // Keyboard shortcut: Ctrl+Shift+D để bật/tắt test mode (D = Debug/Demo)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        setTestMode(prev => !prev);
+        console.log('[Test Mode]', !testMode ? 'ENABLED' : 'DISABLED');
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [testMode]);
+
+  // ============================================================================
+  // PHASE 1: Request & Dry-run
+  // ============================================================================
+  const handleAnalyzeIntent = async () => {
+    if (!userIntent.trim()) {
+      setError('Vui lòng nhập yêu cầu của bạn!');
+      return;
+    }
+
+    setError(null);
+    
+    // TEST MODE: Hiển thị validation errors thay vì gọi API
+    if (testMode) {
+      setPhase('analyzing');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Giả lập phát hiện lỗi validation sau khi "analyzing"
+      setValidationErrors(MOCK_VALIDATION_ERRORS);
+      setShowValidationWarning(true);
+      setPhase('input'); // Quay lại input nhưng hiển thị warning overlay
+      return;
+    }
+    
+    setPhase('analyzing');
+
+    try {
+      // Gọi API recommend-model-detailed (có changeset đầy đủ)
+      console.log('[LLM] Calling recommend-model-detailed API...');
+      const response = await fetch(`${API_URL}/llm-orchestrator/recommend-model-detailed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_description: userIntent,
+          current_model: currentMode,
+          target_audience: '',
+          revenue_preference: '',
+          lang: 'vi',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[LLM] Recommend-model-detailed response:', data);
+
+      // Data now has changeset with impacted_services directly
+      const proposalData: ChangesetProposal = {
+        proposal_text: data.proposal_text || userIntent,
+        changeset: {
+          model: data.changeset?.model || 'BusinessModel',
+          features: data.changeset?.features || [
+            { key: 'business_model', value: data.metadata?.to_model || 'retail' },
+          ],
+          impacted_services: data.changeset?.impacted_services || [],
+        },
+        metadata: {
+          intent: data.metadata?.intent || 'business_model_change',
+          confidence: data.metadata?.confidence || 0.85,
+          risk: data.metadata?.risk || 'low',
+          from_model: data.metadata?.from_model || currentMode,
+          to_model: data.metadata?.to_model || 'retail',
+        },
+      };
+
+      setProposal(proposalData);
+      
+      // Both manual and auto: start dry-run simulation
+      // Manual mode will pause at the end of dry-run
+      await proceedToDryRun(proposalData);
+
+    } catch (err: any) {
+      console.error('[LLM] Error:', err);
+      setError(err.message || 'Có lỗi xảy ra khi phân tích');
+      setPhase('input');
+    }
+  };
+
+  // ============================================================================
+  // PHASE 1.5: Dry-run (separated for manual control)
+  // ============================================================================
+  const proceedToDryRun = async (proposalData: ChangesetProposal) => {
+    setPhase('dry-run');
+    setWaitingForNext(false);
+    setDryRunProgress(0);
+    
+    // Track metrics
+    const dryRunStart = performance.now();
+    setMetricsLog(prev => ({ ...prev, dryRunStartTime: dryRunStart }));
+
+    // Simulate dry-run processing with detailed steps
+    const dryRunSteps = [
+      { label: 'Validating business requirements...', progress: 20, duration: manualMode ? 800 : 500 },
+      { label: 'Parsing LLM recommendations...', progress: 40, duration: manualMode ? 800 : 500 },
+      { label: 'Simulating database changes (in-memory)...', progress: 70, duration: manualMode ? 800 : 500 },
+      { label: 'Dry-run validation complete', progress: 100, duration: manualMode ? 500 : 300 },
+    ];
+    
+    for (let i = 0; i < dryRunSteps.length; i++) {
+      const step = dryRunSteps[i];
+      setDryRunStep(step.label);
+      setDryRunProgress(step.progress);
+      await new Promise(resolve => setTimeout(resolve, step.duration));
+    }
+    
+    // Track dry-run completion
+    const dryRunEnd = performance.now();
+    setMetricsLog(prev => ({ ...prev, dryRunEndTime: dryRunEnd }));
+    const dryRunDuration = dryRunEnd - (metricsLog.dryRunStartTime || dryRunEnd);
+    console.log(`[Metrics] Dry-run Duration: ${dryRunDuration.toFixed(0)}ms`);
+    
+    if (manualMode) {
+      setWaitingForNext(true);
+      return;
+    }
+    
+    await proceedToImpactAnalysis(proposalData);
+  };
+
+  // ============================================================================
+  // PHASE 2: Impact Analysis (separated for manual control)
+  // ============================================================================
+  const proceedToImpactAnalysis = async (proposalData: ChangesetProposal) => {
+    setPhase('impact-analysis');
+    setWaitingForNext(false);
+    setAnalysisProgress(0);
+    
+    // Track impact analysis start
+    const analysisStart = performance.now();
+    setMetricsLog(prev => ({ ...prev, impactAnalysisStartTime: analysisStart }));
+    
+    const analysisSteps = [
+      { label: 'Analyzing service dependencies...', progress: 25, duration: manualMode ? 800 : 500 },
+      { label: 'Calculating affected records...', progress: 50, duration: manualMode ? 800 : 500 },
+      { label: 'Estimating downtime and risks...', progress: 75, duration: manualMode ? 800 : 500 },
+      { label: 'Impact analysis complete', progress: 100, duration: manualMode ? 500 : 300 },
+    ];
+    
+    for (let i = 0; i < analysisSteps.length; i++) {
+      const step = analysisSteps[i];
+      setAnalysisStep(step.label);
+      setAnalysisProgress(step.progress);
+      await new Promise(resolve => setTimeout(resolve, step.duration));
+    }
+    
+    const impact = analyzeImpact(proposalData);
+    setImpactAnalysis(impact);
+    
+    // Track impact analysis completion
+    const analysisEnd = performance.now();
+    setMetricsLog(prev => ({ ...prev, impactAnalysisEndTime: analysisEnd }));
+    const analysisDuration = analysisEnd - (metricsLog.impactAnalysisStartTime || analysisEnd);
+    console.log(`[Metrics] Impact Analysis Duration: ${analysisDuration.toFixed(0)}ms`);
+    console.log(`[Metrics] Risk Level Detected: ${impact.riskLevel.toUpperCase()}`);
+
+    if (manualMode) {
+      setWaitingForNext(true);
+      return;
+    }
+
+    await proceedToApproval();
+  };
+
+  // ============================================================================
+  // PHASE 3: Show Approval Screen
+  // ============================================================================
+  const proceedToApproval = async () => {
+    setWaitingForNext(false);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setApprovalStartTime(Date.now());
+    setPhase('approval');
+  };
+
+  // ============================================================================
+  // Test Mode: Close Validation Warning
+  // ============================================================================
+  const handleRejectValidationError = () => {
+    setShowValidationWarning(false);
+    setValidationErrors([]);
+    setUserIntent(''); // Clear input
+  };
+
+  // ============================================================================
+  // Manual Next Button Handler
+  // ============================================================================
+  const handleNext = async () => {
+    if (!proposal) return;
+    
+    if (phase === 'dry-run') {
+      await proceedToImpactAnalysis(proposal);
+    } else if (phase === 'impact-analysis') {
+      await proceedToApproval();
+    }
+  };
+
+  // ============================================================================
+  // Impact Analysis Logic
+  // ============================================================================
+  const analyzeImpact = (proposalData: ChangesetProposal): ImpactAnalysis => {
+    const services = proposalData.changeset.impacted_services || [];
+    
+    // Use risk from API if available
+    let riskLevel: 'low' | 'medium' | 'high' = proposalData.metadata.risk as 'low' | 'medium' | 'high' || 'low';
+    const warnings: string[] = [];
+    
+    const intentLower = userIntent.toLowerCase();
+    
+    // Check for dangerous operations
+    if (intentLower.includes('xóa') || intentLower.includes('delete') || intentLower.includes('drop')) {
+      riskLevel = 'high';
+      warnings.push('⚠️ NGUY HIỂM: Phát hiện yêu cầu XÓA dữ liệu!');
+      warnings.push('🔒 Yêu cầu xác thực 2 lớp (2FA) trước khi thực hiện');
+    } else if (intentLower.includes('giá') || intentLower.includes('price') || intentLower.includes('billing')) {
+      riskLevel = 'medium';
+      warnings.push('⚠️ Thay đổi liên quan đến THANH TOÁN/GIÁ CẢ');
+    }
+
+    // Use services_to_restart from API if available, otherwise fallback
+    let servicesToRestart: string[] = [];
+    
+    if (proposalData.changeset.services_to_restart && proposalData.changeset.services_to_restart.length > 0) {
+      // Use from API
+      servicesToRestart = proposalData.changeset.services_to_restart;
+    } else {
+      // Fallback: Core services that always need restart
+      const coreServicesToRestart = ['BillingService', 'PaymentService', 'CatalogueService'];
+      servicesToRestart = services.filter(s => coreServicesToRestart.includes(s));
+    }
+
+    const recordsAffected = riskLevel === 'high' ? 15000 : riskLevel === 'medium' ? 500 : 0;
+
+    return {
+      servicesAffected: services.length,
+      servicesToRestart,
+      recordsAffected,
+      estimatedDowntime: services.length > 5 ? '30-60 seconds' : '< 10 seconds',
+      riskLevel,
+      warnings,
+      rollbackPossible: true,
+    };
+  };
+
+  // ============================================================================
+  // Helper: Classify services into Enable/Disable/Restart
+  // ============================================================================
+  const classifyService = (service: string): 'enable' | 'disable' | 'restart' => {
+    // Use data from API if available
+    if (proposal?.changeset.services_to_restart?.includes(service)) {
+      return 'restart';
+    }
+    if (proposal?.changeset.services_to_enable?.includes(service)) {
+      return 'enable';
+    }
+    if (proposal?.changeset.services_to_disable?.includes(service)) {
+      return 'disable';
+    }
+    
+    // Fallback to default logic if API doesn't provide detailed breakdown
+    const coreServicesToRestart = ['BillingService', 'PaymentService', 'CatalogueService'];
+    
+    if (coreServicesToRestart.includes(service)) {
+      return 'restart';
+    }
+    
+    const modelServices = {
+      retail: ['OrderService', 'InventoryService'],
+      subscription: ['SubscriptionService', 'PromotionService', 'PricingService'],
+      freemium: ['SubscriptionService', 'PromotionService', 'PricingService'],
+      multi: ['OrderService', 'InventoryService', 'SubscriptionService', 'PromotionService', 'PricingService'],
+    };
+    
+    const fromModel = proposal?.metadata.from_model as keyof typeof modelServices || 'retail';
+    const toModel = proposal?.metadata.to_model as keyof typeof modelServices || 'retail';
+    
+    const fromServices = modelServices[fromModel] || [];
+    const toServices = modelServices[toModel] || [];
+    
+    if (toServices.includes(service) && !fromServices.includes(service)) {
+      return 'enable';
+    }
+    
+    if (fromServices.includes(service) && !toServices.includes(service)) {
+      return 'disable';
+    }
+    
+    return 'restart';
+  };
+
+  // ============================================================================
+  // PHASE 3: Human Approval
+  // ============================================================================
+  const handleApprove = async () => {
+    // Track decision time
+    if (approvalStartTime) {
+      const decisionTimeMs = Date.now() - approvalStartTime;
+      setDecisionTime(Math.round(decisionTimeMs / 1000));
+      setMetricsLog(prev => ({ ...prev, approvalDecisionTime: decisionTimeMs }));
+      console.log(`[Metrics] Admin Decision Time: ${decisionTimeMs}ms (${(decisionTimeMs/1000).toFixed(1)}s)`);
+    }
+
+    const newMode = proposal?.metadata.to_model as BusinessMode;
+    
+    // Check if model is unchanged - skip deployment
+    if (newMode === currentMode) {
+      console.log('[LLM] Model unchanged, skipping deployment');
+      setDeploymentSkipped(true);
+      setPhase('completed');
+      return;
+    }
+
+    setDeploymentSkipped(false);
+
+    // SAFETY POLICY: HIGH RISK = HARD BLOCK (không cho phép tiếp tục)
+    if (impactAnalysis?.riskLevel === 'high') {
+      console.log('[Safety Policy] ❌ HIGH RISK DETECTED - Operation BLOCKED');
+      console.log('[Safety Policy] Warnings:', impactAnalysis.warnings);
+      
+      setError(
+        '🚨 CHẶN BỞI SAFETY POLICY: Thao tác này có rủi ro cao và BỊ CẤM thực hiện!\n\n' +
+        `Lý do:\n${impactAnalysis.warnings.map(w => `• ${w}`).join('\n')}\n\n` +
+        '❌ Hệ thống không cho phép tiếp tục. Vui lòng xem xét lại yêu cầu.'
+      );
+      
+      // Auto reject after showing error
+      setTimeout(() => {
+        setPhase('rejected');
+        alert('⛔ Thao tác bị từ chối tự động bởi Safety Guardrails.\n\nKhông thể thực hiện thao tác nguy hiểm này.');
+      }, 2000);
+      
+      return; // HARD STOP - không cho phép proceed
+    }
+    
+    // MEDIUM RISK: Require explicit confirmation
+    if (impactAnalysis?.riskLevel === 'medium') {
+      const confirmed = window.confirm(
+        '⚠️ CẢNH BÁO: Thao tác có rủi ro trung bình\n\n' +
+        'Bạn có chắc chắn muốn tiếp tục?\n' +
+        `${impactAnalysis.warnings.length > 0 ? impactAnalysis.warnings.join('\n') + '\n\n' : ''}` +
+        'Nhấn OK để xác nhận, Cancel để hủy.'
+      );
+      if (!confirmed) {
+        console.log('[Safety Policy] User cancelled medium risk operation');
+        return;
+      }
+      console.log('[Safety Policy] ✅ User approved medium risk operation');
+    }
+
+    setPhase('deploying');
+    setDeployProgress(0);
+
+    try {
+      // PHASE 4: Safe Rollout - Call switch-model API to trigger Helm deployment
+      console.log('[LLM] Calling switch-model API for deployment...');
+      
+      // Simulate progress while API call is running
+      const progressInterval = setInterval(() => {
+        setDeployProgress(prev => Math.min(prev + 10, 90));
+      }, 300);
+      
+      if (newMode && ['retail', 'subscription', 'freemium', 'multi'].includes(newMode)) {
+        // Call switchMode from context - this triggers /llm-orchestrator/switch-model API
+        const result = await switchMode(newMode, { dryRun: false });
+        
+        console.log('[LLM] Switch-model result:', result);
+        
+        clearInterval(progressInterval);
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to switch model');
+        }
+        
+        // Update progress to 100% after successful deployment
+        setDeployProgress(100);
+      }
+
+      setPhase('completed');
+    } catch (err: any) {
+      console.error('[LLM] Deployment error:', err);
+      setError(err.message || 'Có lỗi xảy ra khi triển khai');
+      setPhase('approval'); // Go back to approval phase on error
+    }
+  };
+
+  const handleReject = () => {
+    if (approvalStartTime) {
+      setDecisionTime(Math.round((Date.now() - approvalStartTime) / 1000));
+    }
+    setPhase('rejected');
+  };
+
+  const handleReset = () => {
+    setPhase('input');
+    setUserIntent('');
+    setProposal(null);
+    setImpactAnalysis(null);
+    setApprovalStartTime(null);
+    setDecisionTime(null);
+    setDeployProgress(0);
+    setError(null);
+    setUserFeedback(null);
+    setDeploymentSkipped(false);
+    setDryRunStep('Initializing...');
+    setDryRunProgress(0);
+    setAnalysisStep('Starting analysis...');
+    setAnalysisProgress(0);
+    setShowDetailedImpact(false);
+    setWaitingForNext(false);
+  };
+
+  // ============================================================================
+  // RENDER: Workflow Phases
+  // ============================================================================
+  
+  // Phase indicator component
+  const PhaseIndicator = () => {
+    const phases = [
+      { key: 'input', label: 'Yêu cầu', icon: MessageSquare },
+      { key: 'dry-run', label: 'Dry-run', icon: Eye },
+      { key: 'impact-analysis', label: 'Phân tích', icon: Activity },
+      { key: 'approval', label: 'Phê duyệt', icon: Shield },
+      { key: 'deploying', label: 'Triển khai', icon: Play },
+    ];
+
+    const currentIndex = phases.findIndex(p => p.key === phase);
+
+    return (
+      <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+        {phases.map((p, idx) => {
+          const Icon = p.icon;
+          const isActive = p.key === phase;
+          const isCompleted = idx < currentIndex;
+          
+          return (
+            <div key={p.key} className="flex items-center">
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+                isActive ? 'bg-blue-600 text-white' : 
+                isCompleted ? 'bg-green-600 text-white' : 
+                'bg-gray-200 dark:bg-gray-700 text-gray-500'
+              }`}>
+                {isCompleted ? <CheckCircle className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                <span className="text-sm font-medium">{p.label}</span>
+              </div>
+              {idx < phases.length - 1 && (
+                <ArrowRight className={`h-4 w-4 mx-2 ${isCompleted ? 'text-green-600' : 'text-gray-300'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Redirect if no mode selected
   if (!currentMode) {
     return (
       <PageLayout>
@@ -49,8 +602,7 @@ export default function LLMRecommendation() {
               <AlertTriangle className="h-16 w-16 text-yellow-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-4">Chưa có dữ liệu để phân tích</h2>
               <p className="text-muted-foreground mb-6">
-                Bạn cần chọn một business model và sử dụng hệ thống trước.<br />
-                Sau đó AI sẽ có đủ data để đề xuất model tối ưu hơn.
+                Bạn cần chọn một business model trước.
               </p>
               <Button 
                 onClick={() => navigate(`${baseURL}mode-selection`)}
@@ -67,760 +619,1007 @@ export default function LLMRecommendation() {
     );
   }
 
-  // Mock user behavior data - NOW WITH REAL DATA FROM CURRENT MODE
-  const [userData] = useState({
-    userId: 'USER_12345',
-    accountAge: '3 months',
-    totalPurchases: currentMode === 'retail' ? 8 : currentMode === 'subscription' ? 2 : 15,
-    avgOrderValue: currentMode === 'retail' ? 45.50 : currentMode === 'subscription' ? 49.99 : 12.30,
-    monthlySpending: currentMode === 'retail' ? 124.99 : currentMode === 'subscription' ? 49.99 : 25.00,
-    loginFrequency: currentMode === 'subscription' ? 'Daily' : currentMode === 'retail' ? 'Weekly' : 'Daily',
-    featureUsage: {
-      productBrowsing: currentMode === 'retail' ? 'High' : 'Medium',
-      wishlist: 'Medium',
-      reviews: currentMode === 'freemium' ? 'Low' : 'Medium',
-    },
-    currentModel: currentMode || 'retail',
-  });
-
-  // Mock LLM analysis result - DYNAMIC BASED ON CURRENT MODE
-  const [llmAnalysis] = useState(() => {
-    // If retail user spending > $100/month → recommend subscription
-    if (currentMode === 'retail' && userData.monthlySpending > 100) {
-      return {
-        recommendedModel: 'subscription',
-        confidence: 92,
-        reasoning: [
-          `Bạn đang dùng ${currentMode.toUpperCase()} và chi tiêu $${userData.monthlySpending}/tháng`,
-          'Tổng chi tiêu > $49.99 subscription plan → KHÔNG TỐI ƯU',
-          `Login ${userData.loginFrequency} cho thấy mức độ engaged cao`,
-          'Subscription sẽ tiết kiệm chi phí và unlock tất cả features',
-        ],
-        benefits: [
-          { icon: 'money', title: 'Tiết kiệm ~$75/tháng', desc: 'So với việc mua lẻ hiện tại' },
-          { icon: 'sparkle', title: 'AI Assistant unlimited', desc: 'Code generation, content writing' },
-          { icon: 'box', title: 'Free shipping', desc: 'Tất cả đơn hàng không giới hạn' },
-          { icon: 'bolt', title: 'Priority support', desc: 'Response time < 2 hours' },
-        ],
-        potentialSavings: '$900/year',
-        riskLevel: 'Low',
-      };
-    } 
-    // If freemium user hitting limits → recommend subscription
-    else if (currentMode === 'freemium' && userData.totalPurchases > 10) {
-      return {
-        recommendedModel: 'subscription',
-        confidence: 88,
-        reasoning: [
-          `Bạn đang dùng FREEMIUM nhưng đã có ${userData.totalPurchases} purchases`,
-          'Usage pattern cho thấy bạn cần nhiều features hơn free plan',
-          'Subscription unlock unlimited features với giá cố định',
-          'Không phải lo về giới hạn hay mua addons nhiều lần',
-        ],
-        benefits: [
-          { icon: 'unlock', title: 'Unlimited everything', desc: 'Không giới hạn projects, tasks, storage' },
-          { icon: 'diamond', title: 'Premium features', desc: 'AI, Analytics, Team chat...' },
-          { icon: 'money', title: 'Better value', desc: 'Chỉ $49.99/tháng cho all features' },
-          { icon: 'bolt', title: 'Priority support', desc: 'Response time < 2 hours' },
-        ],
-        potentialSavings: '$600/year',
-        riskLevel: 'Low',
-      };
-    }
-    // If subscription user not using much → recommend freemium or retail
-    else if (currentMode === 'subscription' && userData.loginFrequency === 'Weekly') {
-      return {
-        recommendedModel: 'freemium',
-        confidence: 85,
-        reasoning: [
-          'Bạn đang trả $49.99/tháng cho SUBSCRIPTION',
-          `Nhưng chỉ login ${userData.loginFrequency} → không tận dụng hết giá trị`,
-          'Freemium có thể phù hợp hơn: free base + pay for what you use',
-          'Tiết kiệm tiền khi không dùng nhiều',
-        ],
-        benefits: [
-          { icon: 'money', title: 'Tiết kiệm $49.99/tháng', desc: 'Chỉ trả khi cần addon' },
-          { icon: 'target', title: 'Pay for value', desc: 'Chỉ trả cho tính năng thực sự dùng' },
-          { icon: 'bulb', title: 'Linh hoạt', desc: 'Mở rộng khi cần, thu hẹp khi không cần' },
-          { icon: 'free', title: 'Free base', desc: 'Vẫn dùng được core features miễn phí' },
-        ],
-        potentialSavings: '$400/year',
-        riskLevel: 'Low',
-      };
-    }
-    // Default: current model is optimal
-    return {
-      recommendedModel: currentMode as string,
-      confidence: 95,
-      reasoning: [
-        `${currentMode?.toUpperCase()} model đang rất phù hợp với usage pattern của bạn!`,
-        'Không cần thay đổi model hiện tại',
-        'Bạn đang tận dụng tốt các features',
-        'Chi phí và giá trị đang cân bằng',
-      ],
-      benefits: [
-        { icon: 'check', title: 'Optimal choice', desc: 'Model hiện tại là tối ưu' },
-        { icon: 'chart', title: 'Good utilization', desc: 'Đang dùng hiệu quả' },
-        { icon: 'diamond', title: 'Value match', desc: 'Giá trị phù hợp với chi phí' },
-        { icon: 'target', title: 'Keep using', desc: 'Tiếp tục sử dụng model này' },
-      ],
-      potentialSavings: '$0/year',
-      riskLevel: 'Low',
-    };
-  });
-
-  // Parse natural language intent
-  const parseUserIntent = (intent: string) => {
-    // Simulate LLM parsing
-    const intentLower = intent.toLowerCase();
-    
-    // Pattern matching for common intents
-    let recommendation: any = {
-      recommendedModel: 'subscription',
-      confidence: 85,
-      reasoning: [],
-      benefits: [],
-      potentialSavings: '$0/year',
-      riskLevel: 'Medium',
-    };
-
-    if (intentLower.includes('đăng ký') || intentLower.includes('subscription')) {
-      recommendation = {
-        recommendedModel: 'subscription',
-        confidence: 95,
-        reasoning: [
-          `Phát hiện intent: "${intent}"`,
-          'User yêu cầu chuyển sang mô hình đăng ký (subscription)',
-          'Subscription phù hợp với nhu cầu thanh toán định kỳ',
-          'Model này sẽ tự động hóa billing và renewal',
-        ],
-        benefits: [
-          { icon: 'refresh', title: 'Auto-renewal', desc: 'Tự động gia hạn mỗi tháng' },
-          { icon: 'money', title: 'Predictable revenue', desc: 'Doanh thu ổn định hàng tháng' },
-          { icon: 'chart', title: 'Usage tracking', desc: 'Theo dõi metrics chi tiết' },
-          { icon: 'target', title: 'Customer retention', desc: 'Tăng độ trung thành 3x' },
-        ],
-        potentialSavings: '$1,200/year',
-        riskLevel: 'Low',
-      };
-    } else if (intentLower.includes('mua lẻ') || intentLower.includes('retail')) {
-      recommendation = {
-        recommendedModel: 'retail',
-        confidence: 90,
-        reasoning: [
-          `Phát hiện intent: "${intent}"`,
-          'User muốn chuyển sang mô hình bán lẻ (retail)',
-          'Retail phù hợp với giao dịch một lần',
-          'Không cần cam kết dài hạn',
-        ],
-        benefits: [
-          { icon: 'cart', title: 'One-time purchase', desc: 'Mua một lần, không ràng buộc' },
-          { icon: 'card', title: 'Simple payment', desc: 'Thanh toán đơn giản' },
-          { icon: 'box', title: 'Immediate delivery', desc: 'Giao hàng ngay' },
-          { icon: 'unlock', title: 'No commitment', desc: 'Không cam kết dài hạn' },
-        ],
-        potentialSavings: '$500/year',
-        riskLevel: 'Low',
-      };
-    } else if (intentLower.includes('miễn phí') || intentLower.includes('freemium')) {
-      recommendation = {
-        recommendedModel: 'freemium',
-        confidence: 88,
-        reasoning: [
-          `Phát hiện intent: "${intent}"`,
-          'User muốn sử dụng mô hình freemium',
-          'Freemium cho phép bắt đầu miễn phí',
-          'Trả tiền cho tính năng cần thiết',
-        ],
-        benefits: [
-          { icon: 'gift', title: 'Free to start', desc: 'Bắt đầu hoàn toàn miễn phí' },
-          { icon: 'bag', title: 'Pay as you go', desc: 'Chỉ trả cho addon cần dùng' },
-          { icon: 'bulb', title: 'Flexible scaling', desc: 'Mở rộng linh hoạt' },
-          { icon: 'target', title: 'Low risk', desc: 'Rủi ro thấp khi thử nghiệm' },
-        ],
-        potentialSavings: '$800/year',
-        riskLevel: 'Low',
-      };
-    }
-
-    // Extract entities (like product group)
-    const productGroupMatch = intent.match(/nhóm sản phẩm\s*["""]?([A-Za-z0-9]+)["""]?/i);
-    const productGroup = productGroupMatch ? productGroupMatch[1] : null;
-
-    return {
-      proposal_text: intent,
-      changeset: {
-        model: productGroup ? 'product_group' : 'business_model',
-        features: [
-          ...(productGroup ? [{ key: 'product_group_name', value: productGroup }] : []),
-          { key: 'billing_model', value: recommendation.recommendedModel },
-          ...(recommendation.recommendedModel === 'subscription' ? [
-            { key: 'subscription_period', value: 'monthly' }
-          ] : []),
-        ],
-        impacted_services: [
-          'ProductCatalogService',
-          'BillingService',
-          ...(recommendation.recommendedModel === 'subscription' ? ['SubscriptionService'] : []),
-        ],
-      },
-      metadata: {
-        intent: 'update_business_model',
-        confidence: recommendation.confidence / 100,
-        risk: recommendation.riskLevel.toLowerCase(),
-        detected_entities: {
-          model: recommendation.recommendedModel,
-          ...(productGroup ? { product_group: productGroup } : {}),
-        },
-      },
-      recommendation,
-    };
-  };
-
-  const handleAnalyzeIntent = async () => {
-    if (!userIntent.trim()) {
-      alert('Vui lòng nhập yêu cầu của bạn!');
-      return;
-    }
-
-    setAnalyzing(true);
-    setShowRecommendation(false);
-    setAnalysisMode('intent');
-
-    // API Gateway runs on port 3000
-    const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
-    console.log('[LLM] Calling LLM API:', `${API_URL}/llm-orchestrator/chat`);
-
-    try {
-      const response = await fetch(`${API_URL}/llm-orchestrator/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userIntent,
-          tenant_id: 'default',
-          role: 'admin',
-          lang: 'vi',
-        }),
-      });
-
-      console.log('[LLM] Response status:', response.status);
-
-      if (!response.ok) throw new Error('API call failed');
-
-      const data = await response.json();
-      console.log('[LLM] LLM Response:', data);
-
-      // Extract recommended model from changeset
-      const recommendedModel = data.changeset?.features?.find((f: any) => f.key === 'business_model')?.value || 'retail';
-      
-      // Extract product group from features if available
-      const productGroup = data.changeset?.features?.find((f: any) => f.key === 'product_group')?.value;
-
-      // Transform LLM response to match UI format
-      const parsed = {
-        proposal_text: data.proposal_text || userIntent,
-        changeset: data.changeset || { model: 'business_model', features: [], impacted_services: [] },
-        metadata: {
-          intent: data.metadata?.intent || 'switch_model',
-          confidence: data.metadata?.confidence || 0.8,
-          risk: data.metadata?.risk || 'low',
-          // Add detected_entities for UI compatibility
-          detected_entities: {
-            model: recommendedModel,
-            product_group: productGroup,
-          },
-        },
-        recommendation: {
-          recommendedModel: recommendedModel,
-          confidence: Math.round((data.metadata?.confidence || 0.8) * 100),
-          reasoning: [
-            `LLM phân tích: "${userIntent}"`,
-            data.proposal_text || 'Đang xử lý yêu cầu...',
-            `Độ tin cậy: ${Math.round((data.metadata?.confidence || 0.8) * 100)}%`,
-            `Mức rủi ro: ${data.metadata?.risk || 'low'}`,
-          ],
-          benefits: [
-            { icon: 'target', title: 'AI Analyzed', desc: 'Đã phân tích bằng LLM' },
-            { icon: 'bolt', title: 'Auto Changeset', desc: `${data.changeset?.impacted_services?.length || 0} services bị ảnh hưởng` },
-            { icon: 'chart', title: 'Confidence', desc: `${Math.round((data.metadata?.confidence || 0.8) * 100)}%` },
-            { icon: 'lock', title: 'Risk Level', desc: data.metadata?.risk || 'low' },
-          ],
-          potentialSavings: '$0/year',
-          riskLevel: data.metadata?.risk === 'high' ? 'High' : data.metadata?.risk === 'medium' ? 'Medium' : 'Low',
-        },
-      };
-
-      setParsedIntent(parsed);
-      setShowRecommendation(true);
-    } catch (error) {
-      console.error('[LLM] LLM API Error:', error);
-      // Fallback to local parsing if API fails
-      const parsed = parseUserIntent(userIntent);
-      setParsedIntent(parsed);
-      setShowRecommendation(true);
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleAcceptRecommendation = () => {
-    const recommendedModel = currentAnalysis.recommendedModel;
-    
-    // If same as current, just go back
-    if (recommendedModel === currentMode) {
-      alert('Bạn đang dùng model tối ưu rồi! Tiếp tục sử dụng nhé.');
-      navigate(-1);
-      return;
-    }
-
-    // Switch to new model
-    setMode(recommendedModel as any);
-    
-    // Navigate to appropriate page
-    if (recommendedModel === 'retail') {
-      navigate(`${baseURL}products`);
-    } else if (recommendedModel === 'subscription') {
-      navigate(`${baseURL}subscription-plans`);
-    } else if (recommendedModel === 'freemium') {
-      navigate(`${baseURL}freemium-plans`);
-    }
-  };
-
-  const handleFeedback = (feedback: 'positive' | 'negative') => {
-    setUserFeedback(feedback);
-    alert(`Thank you for feedback! RL system will learn from this.\n\n${feedback === 'positive' ? 'Positive feedback recorded' : 'Negative feedback recorded'}`);
-  };
-
-  const handleReanalyze = () => {
-    setAnalyzing(true);
-    setShowRecommendation(false);
-    setUserFeedback(null);
-    setParsedIntent(null);
-    setUserIntent('');
-    setAnalysisMode('auto');
-    setTimeout(() => {
-      setAnalyzing(false);
-      setShowRecommendation(false); // Back to input form
-    }, 1000);
-  };
-
-  // Get current analysis data based on mode
-  const getCurrentAnalysis = () => {
-    if (analysisMode === 'intent' && parsedIntent) {
-      return parsedIntent.recommendation;
-    }
-    return llmAnalysis;
-  };
-
-  const currentAnalysis = getCurrentAnalysis();
-
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Brain className="h-10 w-10 text-purple-600" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              AI Model Optimizer
+              Safe Business Model Change
             </h1>
           </div>
           <p className="text-muted-foreground text-lg">
-            Phân tích usage của bạn và đề xuất business model tối ưu
+            Human-in-the-loop workflow với Dry-run và Impact Analysis
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
             <Badge className="bg-blue-600 text-white px-4 py-2">
-              Current Model: {currentMode?.toUpperCase()}
+              Current: {currentMode?.toUpperCase()}
             </Badge>
+            <Badge variant="outline" className="px-4 py-2">
+              <Shield className="h-4 w-4 mr-2" />
+              Safe Deployment Mode
+            </Badge>
+            {phase === 'input' && (
+              <Button
+                variant={manualMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setManualMode(!manualMode)}
+                className={manualMode ? "bg-purple-600" : ""}
+              >
+                {manualMode ? <><Target className="h-3 w-3 inline mr-1" /> Manual Mode</> : <><Zap className="h-3 w-3 inline mr-1" /> Auto Mode</>}
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Natural Language Intent Input */}
-        {!analyzing && !showRecommendation && (
+        {/* Phase Indicator */}
+        {phase !== 'input' && phase !== 'completed' && phase !== 'rejected' && <PhaseIndicator />}
+        
+        {/* Next Button for Manual Mode */}
+        {manualMode && waitingForNext && (phase === 'dry-run' || phase === 'impact-analysis') && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6 mb-8"
+            className="mb-6"
           >
-            <Card className="border-2 border-blue-300">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-blue-600" />
-                  Yêu cầu chuyển đổi Business Model
-                </CardTitle>
-                <CardDescription>
-                  Nói với AI bạn muốn chuyển sang model nào và cho nhóm sản phẩm gì
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="intent">Yêu cầu của bạn</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      id="intent"
-                      placeholder='VD: "Chuyển đổi nhóm sản phẩm A sang mô hình đăng ký theo tháng"'
-                      value={userIntent}
-                      onChange={(e) => setUserIntent(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAnalyzeIntent()}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleAnalyzeIntent} className="bg-blue-600">
-                      <Send className="h-4 w-4 mr-2" />
-                      Analyze
-                    </Button>
+            <Card className="border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center animate-pulse">
+                      <ArrowRight className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-lg flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        {phase === 'dry-run' ? 'Dry-run hoàn tất!' : 'Impact Analysis hoàn tất!'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {phase === 'dry-run' 
+                          ? 'Xem kỹ kết quả và nhấn Next để tiếp tục phân tích tác động' 
+                          : 'Xem kỹ báo cáo và nhấn Next để chuyển sang phê duyệt'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Example intents */}
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Ví dụ:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      'Chuyển đổi nhóm sản phẩm A sang mô hình đăng ký theo tháng',
-                      'Tôi muốn bán lẻ sản phẩm B',
-                      'Cho phép khách hàng dùng thử miễn phí trước',
-                      'Chuyển từ retail sang subscription',
-                    ].map((example, idx) => (
-                      <Button
-                        key={idx}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserIntent(example)}
-                        className="text-xs"
-                      >
-                        {example}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-muted-foreground">
-                    <strong className="text-blue-600">Use case:</strong> Dành cho admin/business owner muốn thay đổi billing model của nhóm sản phẩm cụ thể. 
-                    AI sẽ parse yêu cầu và generate changeset cho microservices.
-                  </p>
+                  <Button 
+                    onClick={handleNext}
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8"
+                  >
+                    Next
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
 
-        {/* Analyzing Phase */}
-        <AnimatePresence>
-          {analyzing && (
+        {/* Error Display */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 rounded-lg flex items-center gap-3"
+          >
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <span className="text-red-600">{error}</span>
+            <Button variant="ghost" size="sm" onClick={() => setError(null)}>Đóng</Button>
+          </motion.div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {/* ============================================================ */}
+          {/* PHASE: Input */}
+          {/* ============================================================ */}
+          {phase === 'input' && (
             <motion.div
+              key="input"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <Card className="border-2 border-purple-300">
-                <CardContent className="py-12">
-                  <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-16 w-16 text-purple-600 animate-spin" />
-                    <h2 className="text-2xl font-bold">
-                      {analysisMode === 'intent' ? 'Parsing Your Intent...' : 'Analyzing Your Behavior...'}
-                    </h2>
-                    <div className="text-center space-y-2">
-                      {analysisMode === 'intent' ? (
-                        <>
-                          <p className="text-muted-foreground">Understanding natural language</p>
-                          <p className="text-muted-foreground">Extracting entities & intent</p>
-                          <p className="text-muted-foreground">Mapping to business models</p>
-                          <p className="text-muted-foreground">Generating changeset</p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-muted-foreground">Scanning purchase patterns</p>
-                          <p className="text-muted-foreground">Calculating usage metrics</p>
-                          <p className="text-muted-foreground">Running LLM inference</p>
-                          <p className="text-muted-foreground">Applying RL optimization</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Recommendation Phase */}
-        <AnimatePresence>
-          {showRecommendation && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-6"
-            >
-              {/* Intent Parsing Result - HIDDEN JSON, SHOW USER-FRIENDLY */}
-              {analysisMode === 'intent' && parsedIntent && (
-                <Card className="border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-blue-600" />
-                      AI đã hiểu yêu cầu của bạn
-                    </CardTitle>
-                    <CardDescription>Kết quả phân tích natural language</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded border">
-                      <p className="text-sm text-muted-foreground mb-2">Yêu cầu của bạn:</p>
-                      <p className="font-semibold">{parsedIntent.proposal_text}</p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded border">
-                        <p className="text-sm text-muted-foreground mb-2">Model được đề xuất:</p>
-                        <Badge className="bg-purple-600 text-lg">
-                          {(parsedIntent.metadata?.detected_entities?.model || parsedIntent.recommendation?.recommendedModel || 'retail').toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded border">
-                        <p className="text-sm text-muted-foreground mb-2">Độ tin cậy:</p>
-                        <p className="text-2xl font-bold text-green-600">
-                          {Math.round((parsedIntent.metadata?.confidence || 0.8) * 100)}%
-                        </p>
-                      </div>
-                    </div>
-
-                    {parsedIntent.metadata?.detected_entities?.product_group && (
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded border">
-                        <p className="text-sm text-muted-foreground mb-2">Nhóm sản phẩm:</p>
-                        <Badge variant="outline" className="text-lg">
-                          {parsedIntent.metadata.detected_entities.product_group}
-                        </Badge>
-                      </div>
-                    )}
-
-                    <div className="flex items-start gap-2 p-3 bg-blue-100 dark:bg-blue-900/20 rounded">
-                      <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold">Services sẽ được cập nhật:</p>
-                        <p className="text-sm text-muted-foreground">
-                          {parsedIntent.changeset?.impacted_services?.join(', ') || 'Đang phân tích...'}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Current Analysis */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-blue-500" />
-                    Phân tích Usage hiện tại
-                  </CardTitle>
-                  <CardDescription>Dựa trên dữ liệu từ {currentMode?.toUpperCase()} model</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Account Age</p>
-                      <p className="text-xl font-bold">{userData.accountAge}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Purchases</p>
-                      <p className="text-xl font-bold">{userData.totalPurchases}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Monthly Spending</p>
-                      <p className="text-xl font-bold">${userData.monthlySpending}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Login Frequency</p>
-                      <p className="text-xl font-bold">{userData.loginFrequency}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded">
-                    <p className="text-sm">
-                      <span className="font-semibold">Đang sử dụng:</span>{' '}
-                      <Badge className="bg-blue-500">{userData.currentModel.toUpperCase()}</Badge>
-                      {' '}
-                      <span className="text-muted-foreground">• {userData.accountAge}</span>
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* LLM Recommendation */}
-              <Card className={`border-2 ${currentAnalysis.recommendedModel === currentMode ? 'border-green-400 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20' : 'border-yellow-400 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20'}`}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-2xl">
-                      <Sparkles className={`h-6 w-6 ${currentAnalysis.recommendedModel === currentMode ? 'text-green-600' : 'text-yellow-600'}`} />
-                      {currentAnalysis.recommendedModel === currentMode ? 'Đang tối ưu!' : 'AI Recommendation'}
-                    </CardTitle>
-                    <Badge className="bg-green-600 text-white text-lg px-4 py-2">
-                      {llmAnalysis.confidence}% Confidence
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-lg">
-                    Based on advanced LLM analysis and RL optimization
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Recommended Model */}
-                  <div className={`text-center p-6 bg-white dark:bg-gray-800 rounded-lg border-2 ${currentAnalysis.recommendedModel === currentMode ? 'border-green-500' : 'border-yellow-500'}`}>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {currentAnalysis.recommendedModel === currentMode ? 'Bạn đang dùng model tối ưu:' : 'AI đề xuất chuyển sang:'}
-                    </p>
-                    <h2 className={`text-4xl font-bold uppercase mb-2 ${currentAnalysis.recommendedModel === currentMode ? 'text-green-600' : 'text-yellow-600'}`}>
-                      {currentAnalysis.recommendedModel}
-                    </h2>
-                    {currentAnalysis.potentialSavings !== '$0/year' && (
-                      <p className="text-2xl font-bold text-purple-600">
-                        Save {currentAnalysis.potentialSavings}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* AI Reasoning */}
-                  <div>
-                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-purple-600" />
-                      {currentAnalysis.recommendedModel === currentMode ? 'Tại sao model này tối ưu?' : 'Tại sao nên chuyển?'}
-                    </h3>
-                    <div className="space-y-2">
-                      {currentAnalysis.reasoning.map((reason: string, idx: number) => (
-                        <div key={idx} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded">
-                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm">{reason}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Benefits */}
-                  <div>
-                    <h3 className="font-bold text-lg mb-3">
-                      {currentAnalysis.recommendedModel === currentMode ? 'Lợi ích đang có' : 'Lợi ích khi chuyển'}
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {currentAnalysis.benefits.map((benefit: any, idx: number) => (
-                        <div key={idx} className="p-4 bg-white dark:bg-gray-800 rounded border">
-                          <div className="flex items-start gap-3">
-                            <span className="text-3xl">{benefit.icon}</span>
-                            <div>
-                              <p className="font-semibold">{benefit.title}</p>
-                              <p className="text-sm text-muted-foreground">{benefit.desc}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Risk Assessment */}
-                  <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded border">
-                    {currentAnalysis.riskLevel === 'Low' ? (
-                      <CheckCircle className="h-6 w-6 text-green-600" />
-                    ) : (
-                      <AlertTriangle className="h-6 w-6 text-yellow-600" />
-                    )}
-                    <div>
-                      <p className="font-semibold">Risk Level: {currentAnalysis.riskLevel}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Based on 10,000+ similar user patterns analyzed
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3">
-                    <Button 
-                      className={`flex-1 text-lg py-6 ${currentAnalysis.recommendedModel === currentMode ? 'bg-green-600 hover:bg-green-700' : 'bg-gradient-to-r from-yellow-600 to-orange-600'}`}
-                      onClick={handleAcceptRecommendation}
-                    >
-                      {currentAnalysis.recommendedModel === currentMode ? (
-                        <>
-                          <CheckCircle className="h-5 w-5 mr-2" />
-                          Tiếp tục sử dụng
-                        </>
-                      ) : (
-                        <>
-                          <Target className="h-5 w-5 mr-2" />
-                          Chuyển sang {currentAnalysis.recommendedModel.toUpperCase()}
-                          <ArrowRight className="h-5 w-5 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="px-6"
-                      onClick={() => navigate(-1)}
-                    >
-                      Quay lại
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="px-6"
-                      onClick={handleReanalyze}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Reset
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Model Comparison - REMOVED, not needed for user */}
-
-              {/* Feedback Section */}
               <Card className="border-2 border-blue-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-blue-600" />
-                    Help Us Improve (Reinforcement Learning)
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                    Pha 1: Yêu cầu thay đổi nghiệp vụ
                   </CardTitle>
                   <CardDescription>
-                    Your feedback helps our RL system learn and improve recommendations
+                    Mô tả yêu cầu kinh doanh của bạn bằng ngôn ngữ tự nhiên. AI sẽ phân tích và đề xuất cấu hình.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder='VD: "Bán những linh kiện điện tử cho sinh viên"'
+                        value={userIntent}
+                        onChange={(e) => setUserIntent(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAnalyzeIntent()}
+                        className="flex-1 text-lg py-6"
+                      />
+                      <Button onClick={handleAnalyzeIntent} className="bg-blue-600 px-8" size="lg">
+                        <Send className="h-5 w-5 mr-2" />
+                        Phân tích
+                      </Button>
+                    </div>
+                    {testMode && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          <Microscope className="h-3 w-3 mr-1" />
+                          Test Mode (Ctrl+Shift+D to toggle)
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      'Bán linh kiện điện tử cho sinh viên',
+                      'Cho thuê thiết bị theo tháng',
+                      'Cho dùng thử miễn phí 14 ngày',
+                      'Xóa danh mục sản phẩm cũ',
+                    ].map((example, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserIntent(example)}
+                      >
+                        {example}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-lg border">
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      Quy trình an toàn Human-in-the-loop
+                    </h4>
+                    <div className="grid md:grid-cols-4 gap-4 text-sm">
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs flex-shrink-0">1</div>
+                        <div>
+                          <p className="font-medium">Dry-run</p>
+                          <p className="text-muted-foreground">Mô phỏng không commit</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs flex-shrink-0">2</div>
+                        <div>
+                          <p className="font-medium">Impact Analysis</p>
+                          <p className="text-muted-foreground">Phân tích tác động</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs flex-shrink-0">3</div>
+                        <div>
+                          <p className="font-medium">Human Approval</p>
+                          <p className="text-muted-foreground">Quản trị viên phê duyệt</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs flex-shrink-0">4</div>
+                        <div>
+                          <p className="font-medium">Safe Rollout</p>
+                          <p className="text-muted-foreground">Rolling Update</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PHASE: Analyzing */}
+          {/* ============================================================ */}
+          {phase === 'analyzing' && (
+            <motion.div
+              key="analyzing"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <Card className="border-2 border-purple-300">
+                <CardContent className="py-16">
+                  <div className="flex flex-col items-center gap-6">
+                    <Loader2 className="h-20 w-20 text-purple-600 animate-spin" />
+                    <h2 className="text-2xl font-bold">Đang phân tích yêu cầu...</h2>
+                    <div className="text-center space-y-2 text-muted-foreground">
+                      <p className="flex items-center justify-center gap-2"><Search className="h-4 w-4" /> Parsing natural language intent...</p>
+                      <p className="flex items-center justify-center gap-2"><Brain className="h-4 w-4" /> Running LLM analysis...</p>
+                      <p className="flex items-center justify-center gap-2"><Database className="h-4 w-4" /> Generating changeset proposal...</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PHASE: Dry-run */}
+          {/* ============================================================ */}
+          {phase === 'dry-run' && (
+            <motion.div
+              key="dry-run"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="border-2 border-yellow-400">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-yellow-600" />
+                    Pha 1.5: Dry-run Simulation
+                  </CardTitle>
+                  <CardDescription>
+                    Mô phỏng thay đổi trong bộ nhớ tạm mà KHÔNG commit vào database
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex flex-col items-center gap-4">
+                    <Badge className="bg-yellow-600 text-white text-lg px-4 py-2 flex items-center gap-2">
+                      <Microscope className="h-5 w-5" /> DRY-RUN MODE
+                    </Badge>
+                    <h2 className="text-xl font-bold text-center">{dryRunStep}</h2>
+                    <div className="w-full max-w-md">
+                      <Progress value={dryRunProgress} className="h-3" />
+                      <p className="text-center mt-2 text-sm font-medium">{dryRunProgress}%</p>
+                    </div>
+                  </div>
+                  
+                  {/* Preview changeset info */}
+                  {proposal && dryRunProgress >= 40 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg border border-purple-200 mb-6"
+                    >
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Database className="h-4 w-4 text-purple-600" />
+                        Changeset Preview (In-Memory)
+                      </h4>
+                      <div className="grid gap-2 text-sm">
+                        <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-black/20 rounded">
+                          <span className="text-muted-foreground">Business Model:</span>
+                          <Badge variant="outline" className="font-mono">
+                            {proposal.metadata.from_model} → {proposal.metadata.to_model}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-black/20 rounded">
+                          <span className="text-muted-foreground">Services Affected:</span>
+                          <Badge variant="outline">{proposal.changeset.impacted_services.length} services</Badge>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-black/20 rounded">
+                          <span className="text-muted-foreground">Config Changes:</span>
+                          <Badge variant="outline">{proposal.changeset.features.length} keys</Badge>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-black/20 rounded">
+                          <span className="text-muted-foreground">Risk Level:</span>
+                          <Badge className={
+                            proposal.metadata.risk === 'high' ? 'bg-red-600' :
+                            proposal.metadata.risk === 'medium' ? 'bg-orange-600' :
+                            'bg-green-600'
+                          }>{proposal.metadata.risk}</Badge>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  <div className="grid md:grid-cols-2 gap-4 mt-6">
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200">
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-yellow-600" />
+                        Dry-run Benefits
+                      </h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li className="flex items-center gap-2"><Check className="h-3 w-3" /> Zero database impact</li>
+                        <li className="flex items-center gap-2"><Check className="h-3 w-3" /> Safe to experiment</li>
+                        <li className="flex items-center gap-2"><Check className="h-3 w-3" /> Accurate prediction</li>
+                        <li className="flex items-center gap-2"><Check className="h-3 w-3" /> Full rollback support</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <Info className="h-4 w-4 text-blue-600" />
+                        Processing
+                      </h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• In-memory computation</li>
+                        <li>• Configuration validation</li>
+                        <li>• Dependency resolution</li>
+                        <li>• Impact calculation</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PHASE: Impact Analysis */}
+          {/* ============================================================ */}
+          {phase === 'impact-analysis' && (
+            <motion.div
+              key="impact"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="border-2 border-orange-400">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-orange-600" />
+                    Pha 2: Impact Analysis
+                  </CardTitle>
+                  <CardDescription>
+                    Phân tích tác động trước khi áp dụng thực tế
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex flex-col items-center gap-4">
+                    <Activity className="h-16 w-16 text-orange-600 animate-pulse" />
+                    <h2 className="text-xl font-bold text-center">{analysisStep}</h2>
+                    <div className="w-full max-w-md">
+                      <Progress value={analysisProgress} className="h-3" />
+                      <p className="text-center mt-2 text-sm font-medium">{analysisProgress}%</p>
+                    </div>
+                  </div>
+                  
+                  {/* Show calculated metrics when progress >= 50% */}
+                  {impactAnalysis && analysisProgress >= 50 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-lg border border-blue-200 mb-6"
+                    >
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-blue-600" />
+                        Impact Metrics (Calculated)
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Server className="h-3 w-3 text-blue-600" />
+                            <span className="text-xs text-muted-foreground">Services Affected</span>
+                          </div>
+                          <p className="text-2xl font-bold">{impactAnalysis.servicesAffected}</p>
+                        </div>
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded">
+                          <div className="flex items-center gap-2 mb-1">
+                            <RotateCw className="h-3 w-3 text-orange-600" />
+                            <span className="text-xs text-muted-foreground">Needs Restart</span>
+                          </div>
+                          <p className="text-2xl font-bold">{impactAnalysis.servicesToRestart.length}</p>
+                        </div>
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Database className="h-3 w-3 text-purple-600" />
+                            <span className="text-xs text-muted-foreground">Records Impacted</span>
+                          </div>
+                          <p className="text-2xl font-bold">{impactAnalysis.recordsAffected.toLocaleString()}</p>
+                        </div>
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Clock className="h-3 w-3 text-red-600" />
+                            <span className="text-xs text-muted-foreground">Est. Downtime</span>
+                          </div>
+                          <p className="text-xl font-bold">{impactAnalysis.estimatedDowntime}</p>
+                        </div>
+                      </div>
+                      {impactAnalysis.warnings.length > 0 && (
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/20 rounded border border-red-200">
+                          <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Warnings Detected
+                          </p>
+                          {impactAnalysis.warnings.map((warning, idx) => (
+                            <p key={idx} className="text-xs text-red-600 dark:text-red-400">{warning}</p>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                  
+                  <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg border">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Server className="h-4 w-4 text-orange-600" />
+                      Analyzing Scope of Impact
+                    </h4>
+                    <div className="grid md:grid-cols-3 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                        <span>Service dependencies</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></div>
+                        <span>Database records</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-600 animate-pulse"></div>
+                        <span>Downtime estimation</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+                        <span>Risk assessment</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse"></div>
+                        <span>Rollback planning</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-yellow-600 animate-pulse"></div>
+                        <span>Safety checks</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PHASE: Approval */}
+          {/* ============================================================ */}
+          {phase === 'approval' && proposal && impactAnalysis && (
+            <motion.div
+              key="approval"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              {/* Proposal Card */}
+              <Card className="border-2 border-blue-400">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    Đề xuất từ AI
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg mb-4">
+                    <p className="text-lg">{proposal.proposal_text}</p>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded border">
+                      <p className="text-sm text-muted-foreground">Model đề xuất</p>
+                      <Badge className="bg-purple-600 text-lg mt-1">
+                        {(proposal.metadata.to_model || 'retail').toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded border">
+                      <p className="text-sm text-muted-foreground">Độ tin cậy</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {Math.round((proposal.metadata.confidence || 0.85) * 100)}%
+                      </p>
+                    </div>
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded border">
+                      <p className="text-sm text-muted-foreground">Intent</p>
+                      <p className="font-medium">{proposal.metadata.intent}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Impact Analysis Card */}
+              <Card className={`border-2 ${
+                impactAnalysis.riskLevel === 'high' ? 'border-red-500 bg-red-50 dark:bg-red-950/10' :
+                impactAnalysis.riskLevel === 'medium' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/10' :
+                'border-green-500 bg-green-50 dark:bg-green-950/10'
+              }`}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Activity className={`h-5 w-5 ${
+                        impactAnalysis.riskLevel === 'high' ? 'text-red-600' :
+                        impactAnalysis.riskLevel === 'medium' ? 'text-yellow-600' :
+                        'text-green-600'
+                      }`} />
+                      Báo cáo Impact Analysis
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowDetailedImpact(!showDetailedImpact)}
+                    >
+                      {showDetailedImpact ? '▼ Ẩn chi tiết' : '▶ Xem chi tiết'}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-4 gap-4 mb-4">
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded border text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowDetailedImpact(true)}>
+                      <Server className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                      <p className="text-2xl font-bold">{impactAnalysis.servicesAffected}</p>
+                      <p className="text-sm text-muted-foreground">Services ảnh hưởng</p>
+                      <p className="text-xs text-blue-600 mt-1">Click để xem</p>
+                    </div>
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded border text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowDetailedImpact(true)}>
+                      <RefreshCw className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+                      <p className="text-2xl font-bold">{impactAnalysis.servicesToRestart.length}</p>
+                      <p className="text-sm text-muted-foreground">Services cần restart</p>
+                      <p className="text-xs text-orange-600 mt-1">Click để xem</p>
+                    </div>
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded border text-center">
+                      <Database className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                      <p className="text-2xl font-bold">{impactAnalysis.recordsAffected.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Records ảnh hưởng</p>
+                    </div>
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded border text-center">
+                      <Clock className="h-8 w-8 mx-auto mb-2 text-gray-600" />
+                      <p className="text-2xl font-bold">{impactAnalysis.estimatedDowntime}</p>
+                      <p className="text-sm text-muted-foreground">Downtime dự kiến</p>
+                    </div>
+                  </div>
+                  
+                  {/* Detailed Impact - Expandable Section */}
+                  <AnimatePresence>
+                    {showDetailedImpact && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-6 space-y-4"
+                      >
+                        {/* Services Affected List */}
+                        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <Server className="h-5 w-5 text-blue-600" />
+                            Danh sách Services bị ảnh hưởng
+                          </h4>
+                          <div className="grid md:grid-cols-2 gap-2">
+                            {proposal?.changeset.impacted_services.map((service, idx) => {
+                              const action = classifyService(service);
+                              return (
+                                <div key={idx} className={`flex items-center gap-2 p-2 rounded ${
+                                  action === 'enable' ? 'bg-green-50 dark:bg-green-950/20 border border-green-200' :
+                                  action === 'disable' ? 'bg-red-50 dark:bg-red-950/20 border border-red-200' :
+                                  'bg-orange-50 dark:bg-orange-950/20 border border-orange-200'
+                                }`}>
+                                  <div className={`w-2 h-2 rounded-full ${
+                                    action === 'enable' ? 'bg-green-600' :
+                                    action === 'disable' ? 'bg-red-600' :
+                                    'bg-orange-600 animate-pulse'
+                                  }`}></div>
+                                  <span className="text-sm font-mono flex-1">{service}</span>
+                                  {action === 'enable' && (
+                                    <Badge className="bg-green-600 text-white text-xs flex items-center gap-1"><Check className="h-3 w-3" /> Enable</Badge>
+                                  )}
+                                  {action === 'disable' && (
+                                    <Badge className="bg-red-600 text-white text-xs flex items-center gap-1"><X className="h-3 w-3" /> Disable</Badge>
+                                  )}
+                                  {action === 'restart' && (
+                                    <Badge className="bg-orange-600 text-white text-xs flex items-center gap-1"><RotateCw className="h-3 w-3" /> Restart</Badge>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        {/* Services to Restart */}
+                        {impactAnalysis.servicesToRestart.length > 0 && (
+                          <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200">
+                            <h4 className="font-semibold mb-3 flex items-center gap-2">
+                              <RefreshCw className="h-5 w-5 text-orange-600" />
+                              Services cần Restart (Rolling Update)
+                            </h4>
+                            <div className="space-y-2">
+                              {impactAnalysis.servicesToRestart.map((service, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded">
+                                  <div className="flex items-center gap-2">
+                                    <Server className="h-4 w-4 text-orange-600" />
+                                    <span className="font-mono text-sm">{service}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    <span>~{3 + idx}s downtime</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-3 flex items-start gap-2">
+                              <Zap className="h-3 w-3 mt-0.5 flex-shrink-0" /> Chiến lược: Rolling Update - restart từng pod một để giảm thiểu downtime
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Deployment Timeline */}
+                        <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-purple-600" />
+                            Deployment Timeline (Dự kiến)
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 text-muted-foreground">T+0s</div>
+                              <div className="flex-1 flex items-center gap-2">
+                                <div className="h-1 w-full bg-blue-600 rounded"></div>
+                                <span>Trigger deployment</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 text-muted-foreground">T+2s</div>
+                              <div className="flex-1 flex items-center gap-2">
+                                <div className="h-1 w-full bg-yellow-600 rounded"></div>
+                                <span>Config update & validation</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 text-muted-foreground">T+5s</div>
+                              <div className="flex-1 flex items-center gap-2">
+                                <div className="h-1 w-full bg-orange-600 rounded"></div>
+                                <span>Rolling restart services</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 text-muted-foreground">T+{impactAnalysis.estimatedDowntime.includes('30-60') ? '60' : '10'}s</div>
+                              <div className="flex-1 flex items-center gap-2">
+                                <div className="h-1 w-full bg-green-600 rounded"></div>
+                                <span>✅ Deployment complete</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Risk Badge */}
+                  <div className="flex items-center justify-center mb-4">
+                    <Badge className={`text-lg px-6 py-2 ${
+                      impactAnalysis.riskLevel === 'high' ? 'bg-red-600' :
+                      impactAnalysis.riskLevel === 'medium' ? 'bg-yellow-600' :
+                      'bg-green-600'
+                    } text-white`}>
+                      {impactAnalysis.riskLevel === 'high' ? '🚨 RỦI RO CAO' :
+                       impactAnalysis.riskLevel === 'medium' ? '⚠️ RỦI RO TRUNG BÌNH' :
+                       '✅ RỦI RO THẤP'}
+                    </Badge>
+                  </div>
+
+                  {/* Warnings */}
+                  {impactAnalysis.warnings.length > 0 && (
+                    <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-lg border border-red-300">
+                      <h4 className="font-bold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" />
+                        Cảnh báo
+                      </h4>
+                      <ul className="space-y-1">
+                        {impactAnalysis.warnings.map((w, i) => (
+                          <li key={i} className="text-red-600 dark:text-red-400">{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Rollback info */}
+                  <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                    <span className="text-sm">Rollback khả dụng: Có thể hoàn tác trong 24h nếu cần</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Approval Buttons */}
+              <Card className="border-2 border-purple-400">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-purple-600" />
+                    Pha 3: Phê duyệt của Quản trị viên
+                  </CardTitle>
+                  <CardDescription>
+                    Xem xét báo cáo và quyết định tiếp tục hoặc hủy bỏ
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4">
-                    <p className="font-semibold">Is this recommendation helpful?</p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={userFeedback === 'positive' ? 'default' : 'outline'}
-                        className={userFeedback === 'positive' ? 'bg-green-600' : ''}
-                        onClick={() => handleFeedback('positive')}
-                      >
-                        <ThumbsUp className="h-4 w-4 mr-2" />
-                        Yes, helpful
-                      </Button>
-                      <Button
-                        variant={userFeedback === 'negative' ? 'default' : 'outline'}
-                        className={userFeedback === 'negative' ? 'bg-red-600' : ''}
-                        onClick={() => handleFeedback('negative')}
-                      >
-                        <ThumbsDown className="h-4 w-4 mr-2" />
-                        Not helpful
-                      </Button>
-                    </div>
-                    <Button variant="ghost" onClick={handleReanalyze}>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Re-analyze
+                  <div className="flex gap-4">
+                    <Button 
+                      onClick={handleApprove}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-lg py-6"
+                      size="lg"
+                    >
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Phê duyệt & Triển khai
+                    </Button>
+                    <Button 
+                      onClick={handleReject}
+                      variant="destructive"
+                      className="flex-1 text-lg py-6"
+                      size="lg"
+                    >
+                      <XCircle className="h-5 w-5 mr-2" />
+                      Từ chối
                     </Button>
                   </div>
-                  {userFeedback && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded flex items-start gap-2"
+                  <p className="text-center text-sm text-muted-foreground mt-4">
+                    ⏱️ Thời gian xem xét sẽ được ghi nhận để đánh giá độ trực quan của Dashboard
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PHASE: Deploying */}
+          {/* ============================================================ */}
+          {phase === 'deploying' && (
+            <motion.div
+              key="deploying"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="border-2 border-green-400">
+                <CardContent className="py-12">
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="relative">
+                      <Play className="h-16 w-16 text-green-600" />
+                      <Loader2 className="h-6 w-6 text-green-600 animate-spin absolute -bottom-1 -right-1" />
+                    </div>
+                    <Badge className="bg-green-600 text-white text-lg px-4 py-2">
+                      ROLLING UPDATE
+                    </Badge>
+                    <h2 className="text-2xl font-bold">Đang triển khai an toàn...</h2>
+                    <div className="w-full max-w-md">
+                      <Progress value={deployProgress} className="h-4" />
+                      <p className="text-center mt-2 text-lg font-medium">{deployProgress}%</p>
+                    </div>
+                    <p className="text-muted-foreground text-center">
+                      Sử dụng chiến lược Rolling Update để giảm thiểu downtime
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PHASE: Completed */}
+          {/* ============================================================ */}
+          {phase === 'completed' && (
+            <motion.div
+              key="completed"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-6"
+            >
+              <Card className={`border-2 ${deploymentSkipped ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20' : 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20'}`}>
+                <CardContent className="py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <CheckCircle className={`h-20 w-20 ${deploymentSkipped ? 'text-blue-600' : 'text-green-600'}`} />
+                    <h2 className={`text-3xl font-bold ${deploymentSkipped ? 'text-blue-700' : 'text-green-700'}`}>
+                      {deploymentSkipped ? 'Không cần triển khai!' : 'Triển khai thành công!'}
+                    </h2>
+                    <p className="text-lg text-muted-foreground text-center">
+                      {deploymentSkipped 
+                        ? `Hệ thống đã đang chạy mô hình ${currentMode?.toUpperCase()} - không cần thay đổi`
+                        : 'Thay đổi đã được áp dụng an toàn với Rolling Update'}
+                    </p>
+                    {deploymentSkipped && (
+                      <Badge className="bg-blue-600 text-white px-4 py-2">
+                        <Info className="h-4 w-4 mr-2" />
+                        Đề xuất trùng với model hiện tại
+                      </Badge>
+                    )}
+                    {decisionTime && (
+                      <Badge variant="outline" className="text-lg px-4 py-2">
+                        <Clock className="h-4 w-4 mr-2" />
+                        Thời gian phê duyệt: {decisionTime}s
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Audit Log */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>📋 Audit Log</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 font-mono text-sm bg-gray-100 dark:bg-gray-800 p-4 rounded">
+                    <p className="text-green-600">✅ Request received: "{userIntent}"</p>
+                    <p className="text-blue-600 flex items-center gap-2"><Search className="h-4 w-4" /> LLM Parsing completed → {proposal?.metadata.to_model?.toUpperCase()}</p>
+                    <p className="text-yellow-600 flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Dry-run Impact calculated</p>
+                    <p className="text-purple-600">👤 Admin Approved (took {decisionTime}s)</p>
+                    {deploymentSkipped ? (
+                      <p className="text-blue-600">ℹ️ Deployment SKIPPED: Model unchanged ({currentMode?.toUpperCase()})</p>
+                    ) : (
+                      <p className="text-green-600">🚀 Config Applied via Rolling Update → switch-model API called</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Feedback */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Đánh giá trải nghiệm</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <p>Quy trình này có hữu ích không?</p>
+                    <Button
+                      variant={userFeedback === 'positive' ? 'default' : 'outline'}
+                      className={userFeedback === 'positive' ? 'bg-green-600' : ''}
+                      onClick={() => setUserFeedback('positive')}
                     >
-                      <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-                      <p className="text-sm">
-                        Thank you! Our RL agent has recorded your feedback and will use it to improve future recommendations for similar users.
-                      </p>
-                    </motion.div>
-                  )}
+                      <ThumbsUp className="h-4 w-4 mr-2" />
+                      Có
+                    </Button>
+                    <Button
+                      variant={userFeedback === 'negative' ? 'default' : 'outline'}
+                      className={userFeedback === 'negative' ? 'bg-red-600' : ''}
+                      onClick={() => setUserFeedback('negative')}
+                    >
+                      <ThumbsDown className="h-4 w-4 mr-2" />
+                      Không
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex gap-4">
+                <Button onClick={handleReset} className="flex-1" size="lg">
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  Thực hiện thay đổi khác
+                </Button>
+                <Button onClick={() => navigate('/admin/dashboard')} variant="outline" size="lg">
+                  Quay lại Dashboard
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PHASE: Rejected */}
+          {/* ============================================================ */}
+          {phase === 'rejected' && (
+            <motion.div
+              key="rejected"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
+                <CardContent className="py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <XCircle className="h-20 w-20 text-red-600" />
+                    <h2 className="text-3xl font-bold text-red-700">Đã từ chối</h2>
+                    <p className="text-lg text-muted-foreground">
+                      Không có thay đổi nào được áp dụng. Hệ thống an toàn.
+                    </p>
+                    {decisionTime && (
+                      <Badge variant="outline" className="text-lg px-4 py-2">
+                        <Clock className="h-4 w-4 mr-2" />
+                        Thời gian xem xét: {decisionTime}s
+                      </Badge>
+                    )}
+                    <Button onClick={handleReset} className="mt-4" size="lg">
+                      <RefreshCw className="h-5 w-5 mr-2" />
+                      Thử lại với yêu cầu khác
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
           )}
         </AnimatePresence>
+        
+        {/* ============================================================ */}
+        {/* VALIDATION WARNING OVERLAY - Test Mode UI */}
+        {/* ============================================================ */}
+        {showValidationWarning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleRejectValidationError();
+              }
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden border"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gray-100 dark:bg-gray-800 p-4 border-b">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold">Validation Error</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Dữ liệu không hợp lệ theo schema validation
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRejectValidationError}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                {/* Alert Message */}
+                <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded border border-orange-200">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium mb-1">
+                        Không thể xử lý yêu cầu
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Phát hiện {validationErrors.length} lỗi trong dữ liệu đầu vào. API không được gọi.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error List */}
+                <div>
+                  <h3 className="font-medium text-sm mb-2 flex items-center gap-2">
+                    <Server className="h-4 w-4" />
+                    Chi tiết lỗi validation:
+                  </h3>
+                  <div className="space-y-2">
+                    {validationErrors.map((error, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                      >
+                        <p className="text-sm font-mono text-gray-700 dark:text-gray-300">
+                          {error}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Info Box */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">Test Mode</p>
+                      <p>
+                        Mock data để demo. Trong thực tế, lỗi này từ Zod validation ở backend.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 border-t flex gap-2">
+                <Button
+                  onClick={handleRejectValidationError}
+                  className="flex-1"
+                  variant="default"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Đóng
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </div>
     </PageLayout>
   );

@@ -28,11 +28,12 @@ export default function ProductDetail() {
       try {
         setLoading(true);
         
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        // Dùng ?? để VITE_API_BASE='' không bị fallback về localhost trong Kubernetes
+        const API_URL = import.meta.env.VITE_API_BASE ?? 'http://localhost:3000';
         
         try {
           console.log(`[ProductDetail] Fetching product ${id}...`);
-          const response = await fetch(`${API_URL}/products/${id}`);
+          const response = await fetch(`${API_URL}/catalogue/products/${id}`);
           
           if (response.ok) {
             const data = await response.json();

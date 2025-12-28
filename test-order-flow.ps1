@@ -23,7 +23,7 @@ $services = @(
     @{Name="API Gateway"; Port=3000},
     @{Name="Order Service"; Port=50057},
     @{Name="Inventory Service"; Port=50059},
-    @{Name="Billing Service"; Port=50060}
+    @{Name="Billing Service"; Port=50058}
 )
 
 $allRunning = $true

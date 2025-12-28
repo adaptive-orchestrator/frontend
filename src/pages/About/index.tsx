@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 
 export default function About() {
   const team = [
-    { 
-      name: 'Nguyen Huu Tai', 
-      role: 'BackEnd Developer',
+    {
+      name: 'Nguyen Huu Tai',
+      role: 'DevOps Engineer',
       studentId: '22521278',
-      description: 'Main responsive for developing BackEnd of the website',
+      description: 'Main responsible for DevOps, Infrastructure, and CI/CD pipeline',
       github: 'https://github.com/0xt4i',
       email: '22521278@gm.uit.edu.vn'
     },
