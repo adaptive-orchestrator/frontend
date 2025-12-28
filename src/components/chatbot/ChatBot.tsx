@@ -205,7 +205,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
   const ModeIcon = currentConfig.icon;
 
   return (
-    <div className="flex flex-col h-[750px] bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="flex flex-col h-[600px] bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
         <div className="flex items-center justify-between">
@@ -253,9 +253,9 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
             <ModeIcon className="w-12 h-12 mb-3 opacity-50" />
             <p className="text-center">{currentConfig.description}</p>
             <p className="text-sm mt-1">{currentConfig.placeholder}</p>
@@ -271,7 +271,7 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
               className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                 m.role === 'user'
                   ? 'bg-blue-500 text-white rounded-br-sm'
-                  : 'bg-white shadow-sm border rounded-bl-sm'
+                  : 'bg-white dark:bg-gray-800 shadow-sm border dark:border-gray-700 rounded-bl-sm'
               }`}
             >
               {/* Mode badge for user messages */}
@@ -291,11 +291,9 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
               )}
 
               {/* Message content */}
-              {m.content && (
-                <div className={`whitespace-pre-wrap ${m.role === 'assistant' ? 'prose prose-sm max-w-none' : ''}`}>
-                  {m.content}
-                </div>
-              )}
+              <div className={`whitespace-pre-wrap ${m.role === 'assistant' ? 'prose prose-sm max-w-none dark:prose-invert' : ''}`}>
+                {m.content}
+              </div>
 
               {/* Raw data display (if available) */}
               {m.metadata?.rawData && m.metadata.rawData.length > 0 && (() => {
@@ -378,8 +376,8 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white shadow-sm border rounded-2xl rounded-bl-sm px-4 py-3">
-              <div className="flex items-center gap-2 text-gray-500">
+            <div className="bg-white dark:bg-gray-800 shadow-sm border dark:border-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm">Đang xử lý...</span>
               </div>
@@ -391,11 +389,11 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
       </div>
 
       {/* Input Area */}
-      <div className="border-t bg-white p-4">
+      <div className="border-t dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <textarea
-              className="w-full border rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -411,10 +409,10 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
             <button
               onClick={sendMessage}
               disabled={!input.trim() || isLoading}
-              className={`absolute right-2 bottom-2 p-2 rounded-lg transition-colors ${
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
                 input.trim() && !isLoading
                   ? `${currentConfig.color} text-white hover:opacity-90`
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }`}
             >
               {isLoading ? (
@@ -425,9 +423,6 @@ ${analysis.prevention ? `### 🛡️ Phòng ngừa\n${analysis.prevention}` : ''
             </button>
           </div>
         </div>
-        <p className="text-xs text-gray-400 mt-2 text-center">
-          Shift + Enter để xuống dòng • Enter để gửi
-        </p>
       </div>
     </div>
   );
