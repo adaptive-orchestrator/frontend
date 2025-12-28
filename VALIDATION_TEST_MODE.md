@@ -142,14 +142,6 @@ const [validationErrors, setValidationErrors] = useState<string[]>([]);
 3. Hoặc refresh page
 
 ---
-
-**Tạo bởi:** Copilot  
-**Ngày:** 21/12/2025  
-**Keyboard Shortcut:** `Ctrl + Shift + D` (D = Debug/Demo)
-
-
----
-
 ## 🎯 Tính năng đã thêm
 
 ### 1. **Test Mode Toggle**
@@ -380,7 +372,3 @@ Nếu muốn thêm error types:
 3. Test UI với số lượng errors mới
 
 ---
-
-**Tạo bởi:** Copilot  
-**Ngày:** 21/12/2025  
-**File:** `frontend/src/pages/LLMRecommendation/index.tsx`
