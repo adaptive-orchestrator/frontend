@@ -93,6 +93,15 @@ export default function LLMRecommendation() {
   const [error, setError] = useState<string | null>(null);
   const [userFeedback, setUserFeedback] = useState<'positive' | 'negative' | null>(null);
   
+  // Helm dry-run results state
+  const [helmDryRunResults, setHelmDryRunResults] = useState<{
+    validation_passed: boolean;
+    databases_output: string;
+    services_output: string;
+    validation_errors: string[];
+    warnings: string[];
+  } | null>(null);
+  
   // New states for enhanced UX
   const [dryRunStep, setDryRunStep] = useState<string>('Initializing...');
   const [dryRunProgress, setDryRunProgress] = useState(0);
@@ -225,6 +234,7 @@ export default function LLMRecommendation() {
     setPhase('dry-run');
     setWaitingForNext(false);
     setDryRunProgress(0);
+    setHelmDryRunResults(null); // Clear previous results
     
     // Track metrics
     const dryRunStart = performance.now();
@@ -232,10 +242,12 @@ export default function LLMRecommendation() {
 
     // Simulate dry-run processing with detailed steps
     const dryRunSteps = [
-      { label: 'Validating business requirements...', progress: 20, duration: manualMode ? 800 : 500 },
-      { label: 'Parsing LLM recommendations...', progress: 40, duration: manualMode ? 800 : 500 },
-      { label: 'Simulating database changes (in-memory)...', progress: 70, duration: manualMode ? 800 : 500 },
-      { label: 'Dry-run validation complete', progress: 100, duration: manualMode ? 500 : 300 },
+      { label: 'Validating business requirements...', progress: 10, duration: manualMode ? 500 : 300 },
+      { label: 'Parsing LLM recommendations...', progress: 20, duration: manualMode ? 500 : 300 },
+      { label: 'Executing Helm --dry-run for databases...', progress: 50, duration: manualMode ? 1500 : 800 },
+      { label: 'Executing Helm --dry-run for services...', progress: 80, duration: manualMode ? 1500 : 800 },
+      { label: 'Validating K8s manifests...', progress: 95, duration: manualMode ? 500 : 300 },
+      { label: 'Dry-run validation complete', progress: 100, duration: manualMode ? 300 : 200 },
     ];
     
     for (let i = 0; i < dryRunSteps.length; i++) {
@@ -243,6 +255,33 @@ export default function LLMRecommendation() {
       setDryRunStep(step.label);
       setDryRunProgress(step.progress);
       await new Promise(resolve => setTimeout(resolve, step.duration));
+    }
+
+    // Call actual Helm dry-run API
+    try {
+      const newMode = proposalData.metadata.to_model as BusinessMode;
+      if (newMode && ['retail', 'subscription', 'freemium', 'multi'].includes(newMode)) {
+        console.log('[Helm Dry-run] Calling switch-model API with dry_run=true...');
+        const result = await switchMode(newMode, { dryRun: true });
+        
+        console.log('[Helm Dry-run] Result:', result);
+        
+        if (result.helm_dry_run_results) {
+          setHelmDryRunResults(result.helm_dry_run_results);
+          console.log('[Helm Dry-run] Validation passed:', result.helm_dry_run_results.validation_passed);
+        }
+        
+        if (!result.success || (result.helm_dry_run_results && !result.helm_dry_run_results.validation_passed)) {
+          setError('Helm dry-run validation failed! See console for details.');
+          setPhase('input');
+          return;
+        }
+      }
+    } catch (err: any) {
+      console.error('[Helm Dry-run] Error:', err);
+      setError('Failed to execute Helm dry-run: ' + err.message);
+      setPhase('input');
+      return;
     }
     
     // Track dry-run completion
@@ -547,6 +586,7 @@ export default function LLMRecommendation() {
     setAnalysisProgress(0);
     setShowDetailedImpact(false);
     setWaitingForNext(false);
+    setHelmDryRunResults(null); // Clear Helm dry-run results
   };
 
   // ============================================================================
@@ -907,6 +947,86 @@ export default function LLMRecommendation() {
                             'bg-green-600'
                           }>{proposal.metadata.risk}</Badge>
                         </div>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {/* Helm Dry-run Results Display */}
+                  {helmDryRunResults && dryRunProgress >= 80 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 rounded-lg border-2 border-green-400 mb-6"
+                    >
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <CheckCircle className={`h-5 w-5 ${helmDryRunResults.validation_passed ? 'text-green-600' : 'text-red-600'}`} />
+                        Helm Dry-run Validation Results
+                      </h4>
+                      
+                      <div className="grid gap-3">
+                        {/* Validation Status */}
+                        <div className="flex justify-between items-center p-3 bg-white/70 dark:bg-black/30 rounded">
+                          <span className="font-medium">Validation Status:</span>
+                          <Badge className={helmDryRunResults.validation_passed ? 'bg-green-600' : 'bg-red-600'}>
+                            {helmDryRunResults.validation_passed ? '✅ PASSED' : '❌ FAILED'}
+                          </Badge>
+                        </div>
+                        
+                        {/* Validation Errors */}
+                        {helmDryRunResults.validation_errors && helmDryRunResults.validation_errors.length > 0 && (
+                          <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded border border-red-300">
+                            <h5 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4" />
+                              Validation Errors ({helmDryRunResults.validation_errors.length})
+                            </h5>
+                            <ul className="text-sm space-y-1 text-red-600">
+                              {helmDryRunResults.validation_errors.map((err, i) => (
+                                <li key={i} className="font-mono text-xs">{err}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Warnings */}
+                        {helmDryRunResults.warnings && helmDryRunResults.warnings.length > 0 && (
+                          <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded border border-yellow-300">
+                            <h5 className="font-semibold text-yellow-700 mb-2 flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4" />
+                              Warnings ({helmDryRunResults.warnings.length})
+                            </h5>
+                            <ul className="text-sm space-y-1 text-yellow-600">
+                              {helmDryRunResults.warnings.slice(0, 3).map((warn, i) => (
+                                <li key={i} className="font-mono text-xs">{warn}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Rendered Manifests Info */}
+                        <div className="grid md:grid-cols-2 gap-2">
+                          <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded text-sm">
+                            <span className="font-medium">Databases manifest:</span>
+                            <span className="ml-2 text-muted-foreground">
+                              {helmDryRunResults.databases_output ? 
+                                `${(helmDryRunResults.databases_output.length / 1024).toFixed(1)} KB` : 
+                                'N/A'}
+                            </span>
+                          </div>
+                          <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded text-sm">
+                            <span className="font-medium">Services manifest:</span>
+                            <span className="ml-2 text-muted-foreground">
+                              {helmDryRunResults.services_output ? 
+                                `${(helmDryRunResults.services_output.length / 1024).toFixed(1)} KB` : 
+                                'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900/20 dark:to-blue-900/20 rounded">
+                        <p className="text-sm font-medium text-center">
+                          ✅ Helm validated templates successfully. No resources were modified on the cluster.
+                        </p>
                       </div>
                     </motion.div>
                   )}

@@ -4,6 +4,15 @@ import { useToast } from '@/components/ui/toast';
 
 export type BusinessMode = 'retail' | 'subscription' | 'freemium' | 'multi' | null;
 
+// Helm dry-run results interface
+export interface HelmDryRunResults {
+  validation_passed: boolean;
+  databases_output: string;
+  services_output: string;
+  validation_errors: string[];
+  warnings: string[];
+}
+
 interface SwitchModelResult {
   success: boolean;
   message: string;
@@ -11,6 +20,7 @@ interface SwitchModelResult {
   deployed?: boolean;
   dry_run?: boolean;
   error?: string;
+  helm_dry_run_results?: HelmDryRunResults;
 }
 
 interface BusinessModeContextType {
@@ -153,6 +163,18 @@ export const BusinessModeProvider = ({ children }: BusinessModeProviderProps) =>
         // Update local state
         setMode(newMode, currentUserId || undefined);
         console.log(`[BusinessMode] Switched to ${newMode} mode. Deployed: ${result.deployed}`);
+        
+        // Log Helm dry-run results if available
+        if (result.helm_dry_run_results) {
+          console.log('[Helm Dry-run] Validation passed:', result.helm_dry_run_results.validation_passed);
+          if (result.helm_dry_run_results.validation_errors?.length > 0) {
+            console.error('[Helm Dry-run] Validation errors:', result.helm_dry_run_results.validation_errors);
+          }
+          if (result.helm_dry_run_results.warnings?.length > 0) {
+            console.warn('[Helm Dry-run] Warnings:', result.helm_dry_run_results.warnings);
+          }
+        }
+        
         // Save history
         try {
           const historyKey = getHistoryKey(currentUserId || undefined);
