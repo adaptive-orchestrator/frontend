@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import PageLayout from '@/components/layout/PageLayout';
-import { useBusinessMode, BusinessMode } from '@/contexts/BusinessModeContext';
+import { useBusinessMode, BusinessMode, SmartSwitchResult } from '@/contexts/BusinessModeContext';
 import { 
   Sparkles,
   Brain,
@@ -79,7 +79,7 @@ type WorkflowPhase = 'input' | 'analyzing' | 'dry-run' | 'impact-analysis' | 'ap
 export default function LLMRecommendation() {
   const navigate = useNavigate();
   const baseURL = import.meta.env.BASE_URL;
-  const { switchMode, mode: currentMode } = useBusinessMode();
+  const { switchMode, smartSwitch, mode: currentMode, lastSmartSwitchResult } = useBusinessMode();
   
   // Workflow state
   const [phase, setPhase] = useState<WorkflowPhase>('input');
@@ -110,6 +110,12 @@ export default function LLMRecommendation() {
   const [showDetailedImpact, setShowDetailedImpact] = useState(false);
   const [manualMode, setManualMode] = useState(true); // Default to manual for better control
   const [waitingForNext, setWaitingForNext] = useState(false);
+  
+  // API Mode: 'smart' = API 2 (Dynamic Changeset) first, fallback to API 1
+  //           'legacy' = API 1 (Switch-model) only
+  const [apiMode, setApiMode] = useState<'smart' | 'legacy'>('smart');
+  const [smartSwitchResult, setSmartSwitchResult] = useState<SmartSwitchResult | null>(null);
+  const [showFallbackOption, setShowFallbackOption] = useState(false);
   
   // Metrics tracking for paper
   const [metricsLog, setMetricsLog] = useState<{
@@ -235,20 +241,33 @@ export default function LLMRecommendation() {
     setWaitingForNext(false);
     setDryRunProgress(0);
     setHelmDryRunResults(null); // Clear previous results
+    setSmartSwitchResult(null);
+    setShowFallbackOption(false);
     
     // Track metrics
     const dryRunStart = performance.now();
     setMetricsLog(prev => ({ ...prev, dryRunStartTime: dryRunStart }));
 
     // Simulate dry-run processing with detailed steps
-    const dryRunSteps = [
-      { label: 'Validating business requirements...', progress: 10, duration: manualMode ? 500 : 300 },
-      { label: 'Parsing LLM recommendations...', progress: 20, duration: manualMode ? 500 : 300 },
-      { label: 'Executing Helm --dry-run for databases...', progress: 50, duration: manualMode ? 1500 : 800 },
-      { label: 'Executing Helm --dry-run for services...', progress: 80, duration: manualMode ? 1500 : 800 },
-      { label: 'Validating K8s manifests...', progress: 95, duration: manualMode ? 500 : 300 },
-      { label: 'Dry-run validation complete', progress: 100, duration: manualMode ? 300 : 200 },
-    ];
+    const dryRunSteps = apiMode === 'smart' 
+      ? [
+          { label: 'Initializing Smart Switch (API 2)...', progress: 5, duration: manualMode ? 300 : 200 },
+          { label: 'Validating intent with Zod schema...', progress: 15, duration: manualMode ? 500 : 300 },
+          { label: 'RAG: Discovering available services...', progress: 30, duration: manualMode ? 800 : 500 },
+          { label: 'LLM: Generating dynamic changeset...', progress: 50, duration: manualMode ? 1200 : 700 },
+          { label: 'Executing Helm --dry-run for databases...', progress: 70, duration: manualMode ? 1000 : 600 },
+          { label: 'Executing Helm --dry-run for services...', progress: 85, duration: manualMode ? 1000 : 600 },
+          { label: 'Validating K8s manifests...', progress: 95, duration: manualMode ? 500 : 300 },
+          { label: 'Smart Switch validation complete', progress: 100, duration: manualMode ? 300 : 200 },
+        ]
+      : [
+          { label: 'Validating business requirements...', progress: 10, duration: manualMode ? 500 : 300 },
+          { label: 'Parsing LLM recommendations...', progress: 20, duration: manualMode ? 500 : 300 },
+          { label: 'Executing Helm --dry-run for databases...', progress: 50, duration: manualMode ? 1500 : 800 },
+          { label: 'Executing Helm --dry-run for services...', progress: 80, duration: manualMode ? 1500 : 800 },
+          { label: 'Validating K8s manifests...', progress: 95, duration: manualMode ? 500 : 300 },
+          { label: 'Dry-run validation complete', progress: 100, duration: manualMode ? 300 : 200 },
+        ];
     
     for (let i = 0; i < dryRunSteps.length; i++) {
       const step = dryRunSteps[i];
@@ -257,29 +276,80 @@ export default function LLMRecommendation() {
       await new Promise(resolve => setTimeout(resolve, step.duration));
     }
 
-    // Call actual Helm dry-run API
+    // Call actual Helm dry-run API based on apiMode
     try {
       const newMode = proposalData.metadata.to_model as BusinessMode;
-      if (newMode && ['retail', 'subscription', 'freemium', 'multi'].includes(newMode)) {
-        console.log('[Helm Dry-run] Calling switch-model API with dry_run=true...');
-        const result = await switchMode(newMode, { dryRun: true });
+      
+      if (apiMode === 'smart') {
+        // ====== SMART SWITCH MODE (API 2 → fallback to API 1) ======
+        console.log('[Smart Switch] Calling smartSwitch API...');
+        const result = await smartSwitch({
+          userIntent: userIntent,
+          currentModel: currentMode,
+          targetModel: newMode,
+          autoDeploy: false, // Dry-run first, deploy later
+          useFallbackOnFailure: true,
+        });
         
-        console.log('[Helm Dry-run] Result:', result);
+        console.log('[Smart Switch] Result:', result);
+        setSmartSwitchResult(result);
         
-        if (result.helm_dry_run_results) {
-          setHelmDryRunResults(result.helm_dry_run_results);
-          console.log('[Helm Dry-run] Validation passed:', result.helm_dry_run_results.validation_passed);
+        if (result.helm_validation) {
+          setHelmDryRunResults(result.helm_validation);
+          console.log('[Smart Switch] Helm validation passed:', result.helm_validation.validation_passed);
         }
         
-        if (!result.success || (result.helm_dry_run_results && !result.helm_dry_run_results.validation_passed)) {
-          setError('Helm dry-run validation failed! See console for details.');
+        // Check for fallback scenario
+        if (result.api_used === 'switch-model' && result.fallback_options?.available) {
+          console.log('[Smart Switch] Fallback to API 1 occurred');
+          setShowFallbackOption(true);
+        }
+        
+        if (!result.success) {
+          // Check if fallback is available
+          if (result.fallback_options?.available) {
+            console.log('[Smart Switch] API 2 failed, showing fallback options...');
+            setShowFallbackOption(true);
+            setError(`API 2 failed: ${result.error || result.message}\n\nFallback option available via API 1.`);
+            // Don't reset phase - let user choose fallback
+            return;
+          }
+          
+          setError(`Smart Switch failed: ${result.error || result.message}`);
           setPhase('input');
           return;
         }
+        
+        // Update proposal with dynamic changeset data if available
+        if (result.changeset) {
+          proposalData.changeset.impacted_services = result.changeset.discovered_services || [];
+          proposalData.metadata.risk = result.changeset.risk_level;
+          proposalData.metadata.confidence = result.changeset.services?.[0]?.confidence || 0.85;
+        }
+        
+      } else {
+        // ====== LEGACY MODE (API 1 only) ======
+        if (newMode && ['retail', 'subscription', 'freemium', 'multi'].includes(newMode)) {
+          console.log('[Helm Dry-run] Calling switch-model API with dry_run=true...');
+          const result = await switchMode(newMode, { dryRun: true });
+          
+          console.log('[Helm Dry-run] Result:', result);
+          
+          if (result.helm_dry_run_results) {
+            setHelmDryRunResults(result.helm_dry_run_results);
+            console.log('[Helm Dry-run] Validation passed:', result.helm_dry_run_results.validation_passed);
+          }
+          
+          if (!result.success || (result.helm_dry_run_results && !result.helm_dry_run_results.validation_passed)) {
+            setError('Helm dry-run validation failed! See console for details.');
+            setPhase('input');
+            return;
+          }
+        }
       }
     } catch (err: any) {
-      console.error('[Helm Dry-run] Error:', err);
-      setError('Failed to execute Helm dry-run: ' + err.message);
+      console.error('[Dry-run] Error:', err);
+      setError(`Failed to execute ${apiMode === 'smart' ? 'Smart Switch' : 'Helm'} dry-run: ` + err.message);
       setPhase('input');
       return;
     }
@@ -530,8 +600,8 @@ export default function LLMRecommendation() {
     setDeployProgress(0);
 
     try {
-      // PHASE 4: Safe Rollout - Call switch-model API to trigger Helm deployment
-      console.log('[LLM] Calling switch-model API for deployment...');
+      // PHASE 4: Safe Rollout
+      console.log(`[LLM] Deploying using ${apiMode === 'smart' ? 'Smart Switch' : 'switch-model'} API...`);
       
       // Simulate progress while API call is running
       const progressInterval = setInterval(() => {
@@ -539,15 +609,39 @@ export default function LLMRecommendation() {
       }, 300);
       
       if (newMode && ['retail', 'subscription', 'freemium', 'multi'].includes(newMode)) {
-        // Call switchMode from context - this triggers /llm-orchestrator/switch-model API
-        const result = await switchMode(newMode, { dryRun: false });
-        
-        console.log('[LLM] Switch-model result:', result);
-        
-        clearInterval(progressInterval);
-        
-        if (!result.success) {
-          throw new Error(result.message || 'Failed to switch model');
+        if (apiMode === 'smart') {
+          // ====== SMART SWITCH MODE (API 2) ======
+          const result = await smartSwitch({
+            userIntent: userIntent,
+            currentModel: currentMode,
+            targetModel: newMode,
+            autoDeploy: true, // Actually deploy this time
+            useFallbackOnFailure: true,
+          });
+          
+          console.log('[Smart Switch Deploy] Result:', result);
+          setSmartSwitchResult(result);
+          
+          clearInterval(progressInterval);
+          
+          if (!result.success) {
+            throw new Error(result.error || result.message || 'Smart Switch deployment failed');
+          }
+          
+          // Log which API was used
+          console.log(`[Smart Switch] Deployed using: ${result.api_used.toUpperCase()}`);
+          
+        } else {
+          // ====== LEGACY MODE (API 1 only) ======
+          const result = await switchMode(newMode, { dryRun: false });
+          
+          console.log('[LLM] Switch-model result:', result);
+          
+          clearInterval(progressInterval);
+          
+          if (!result.success) {
+            throw new Error(result.message || 'Failed to switch model');
+          }
         }
         
         // Update progress to 100% after successful deployment
@@ -587,6 +681,8 @@ export default function LLMRecommendation() {
     setShowDetailedImpact(false);
     setWaitingForNext(false);
     setHelmDryRunResults(null); // Clear Helm dry-run results
+    setSmartSwitchResult(null); // Clear Smart Switch results
+    setShowFallbackOption(false); // Clear fallback option
   };
 
   // ============================================================================
@@ -682,16 +778,38 @@ export default function LLMRecommendation() {
               Safe Deployment Mode
             </Badge>
             {phase === 'input' && (
-              <Button
-                variant={manualMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setManualMode(!manualMode)}
-                className={manualMode ? "bg-purple-600" : ""}
-              >
-                {manualMode ? <><Target className="h-3 w-3 inline mr-1" /> Manual Mode</> : <><Zap className="h-3 w-3 inline mr-1" /> Auto Mode</>}
-              </Button>
+              <>
+                <Button
+                  variant={manualMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setManualMode(!manualMode)}
+                  className={manualMode ? "bg-purple-600" : ""}
+                >
+                  {manualMode ? <><Target className="h-3 w-3 inline mr-1" /> Manual Mode</> : <><Zap className="h-3 w-3 inline mr-1" /> Auto Mode</>}
+                </Button>
+                <Button
+                  variant={apiMode === 'smart' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setApiMode(apiMode === 'smart' ? 'legacy' : 'smart')}
+                  className={apiMode === 'smart' ? "bg-gradient-to-r from-green-600 to-teal-600" : ""}
+                  title={apiMode === 'smart' 
+                    ? "Smart Switch: API 2 (Dynamic Changeset) → fallback API 1" 
+                    : "Legacy: API 1 (Switch-model) only"}
+                >
+                  {apiMode === 'smart' ? (
+                    <><Sparkles className="h-3 w-3 inline mr-1" /> Smart Switch (API 2)</>
+                  ) : (
+                    <><Server className="h-3 w-3 inline mr-1" /> Legacy (API 1)</>
+                  )}
+                </Button>
+              </>
             )}
           </div>
+          {phase === 'input' && apiMode === 'smart' && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              💡 Smart Switch: Sử dụng Dynamic Changeset (API 2) với Zod validation, RAG discovery, tự động fallback sang API 1 nếu thất bại
+            </p>
+          )}
         </div>
 
         {/* Phase Indicator */}
@@ -1027,6 +1145,120 @@ export default function LLMRecommendation() {
                         <p className="text-sm font-medium text-center">
                           ✅ Helm validated templates successfully. No resources were modified on the cluster.
                         </p>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {/* Smart Switch Result Display */}
+                  {apiMode === 'smart' && smartSwitchResult && dryRunProgress >= 90 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-gradient-to-r from-teal-50 to-green-50 dark:from-teal-950/20 dark:to-green-950/20 rounded-lg border-2 border-teal-400 mb-6"
+                    >
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-teal-600" />
+                        Smart Switch Results (API 2)
+                      </h4>
+                      
+                      <div className="grid gap-3">
+                        {/* API Used */}
+                        <div className="flex justify-between items-center p-3 bg-white/70 dark:bg-black/30 rounded">
+                          <span className="font-medium">API Used:</span>
+                          <Badge className={smartSwitchResult.api_used === 'dynamic-changeset' ? 'bg-teal-600' : 'bg-blue-600'}>
+                            {smartSwitchResult.api_used === 'dynamic-changeset' ? '🤖 Dynamic Changeset (API 2)' : '🔄 Switch-model (API 1)'}
+                          </Badge>
+                        </div>
+                        
+                        {/* Dynamic Changeset Info */}
+                        {smartSwitchResult.changeset && (
+                          <>
+                            <div className="flex justify-between items-center p-3 bg-white/70 dark:bg-black/30 rounded">
+                              <span className="font-medium">Discovered Services:</span>
+                              <Badge variant="outline">{smartSwitchResult.changeset.discovered_services?.length || 0} services</Badge>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-white/70 dark:bg-black/30 rounded">
+                              <span className="font-medium">Auto Generated:</span>
+                              <Badge variant="outline">{smartSwitchResult.changeset.auto_generated ? '✅ Yes' : '❌ No'}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-white/70 dark:bg-black/30 rounded">
+                              <span className="font-medium">Risk Level:</span>
+                              <Badge className={
+                                smartSwitchResult.changeset.risk_level === 'high' ? 'bg-red-600' :
+                                smartSwitchResult.changeset.risk_level === 'medium' ? 'bg-orange-600' :
+                                'bg-green-600'
+                              }>{smartSwitchResult.changeset.risk_level}</Badge>
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Changeset Files */}
+                        {smartSwitchResult.files && (
+                          <div className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded">
+                            <h5 className="font-medium mb-2 flex items-center gap-2">
+                              <HardDrive className="h-4 w-4" />
+                              Generated Files
+                            </h5>
+                            <div className="grid gap-1 text-sm font-mono">
+                              {smartSwitchResult.files.json && (
+                                <span className="text-muted-foreground">📄 {smartSwitchResult.files.json}</span>
+                              )}
+                              {smartSwitchResult.files.yaml && (
+                                <span className="text-muted-foreground">📄 {smartSwitchResult.files.yaml}</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {/* Fallback Option Display */}
+                  {showFallbackOption && smartSwitchResult?.fallback_options?.available && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950/20 dark:to-yellow-950/20 rounded-lg border-2 border-orange-400 mb-6"
+                    >
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-orange-600" />
+                        API 2 Failed - Fallback Available
+                      </h4>
+                      
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Dynamic Changeset (API 2) không thành công. Bạn có thể sử dụng Switch-model (API 1) làm phương án dự phòng.
+                      </p>
+                      
+                      {smartSwitchResult.fallback_options.recommendation && (
+                        <p className="text-sm mb-4 p-2 bg-white/50 rounded">
+                          💡 {smartSwitchResult.fallback_options.recommendation}
+                        </p>
+                      )}
+                      
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={async () => {
+                            setApiMode('legacy');
+                            setShowFallbackOption(false);
+                            setError(null);
+                            if (proposal) {
+                              await proceedToDryRun(proposal);
+                            }
+                          }}
+                          className="bg-orange-600 hover:bg-orange-700"
+                        >
+                          <RotateCw className="h-4 w-4 mr-2" />
+                          Thử lại với API 1
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowFallbackOption(false);
+                            handleReset();
+                          }}
+                        >
+                          Hủy bỏ
+                        </Button>
                       </div>
                     </motion.div>
                   )}
@@ -1552,7 +1784,16 @@ export default function LLMRecommendation() {
                     {deploymentSkipped ? (
                       <p className="text-blue-600">ℹ️ Deployment SKIPPED: Model unchanged ({currentMode?.toUpperCase()})</p>
                     ) : (
-                      <p className="text-green-600">🚀 Config Applied via Rolling Update → switch-model API called</p>
+                      <>
+                        <p className="text-teal-600 flex items-center gap-2">
+                          <Sparkles className="h-4 w-4" />
+                          API Used: {smartSwitchResult?.api_used === 'dynamic-changeset' ? 'Dynamic Changeset (API 2)' : 'Switch-model (API 1)'}
+                        </p>
+                        <p className="text-green-600">🚀 Config Applied via Rolling Update</p>
+                        {smartSwitchResult?.changeset_path && (
+                          <p className="text-gray-500">📁 Changeset: {smartSwitchResult.changeset_path}</p>
+                        )}
+                      </>
                     )}
                   </div>
                 </CardContent>
